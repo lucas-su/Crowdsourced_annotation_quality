@@ -68,7 +68,7 @@ def remove_users(method='mean'):
             include = clf.fit_predict(weights)
         elif method == 'OCSVM':
             if iteration >0:
-                clf = OneClassSVM(kernel='linear', nu=0.05).fit(weights)
+                clf = OneClassSVM(kernel='linear', nu=0.03).fit(weights)
                 include = clf.predict(weights)
             else:
                 include = np.ones(1000)
@@ -80,7 +80,7 @@ def remove_users(method='mean'):
                 users.loc[user, "included"] = iteration * -1
 
 if __name__ == "__main__":
-    iterations = 8      # max iterations, should stop before this
+    iterations = 12      # max iterations, should stop before this
     sd_multiplier = 1   # for use in mean removal method
     stopping_sd = 0.1   # 0.1 works well
 
