@@ -76,7 +76,7 @@ if __name__ == "__main__":
     samples = random.choices(x, gam_beta_mean, k=10 ** 3)
 
     # plot dists (turn off for debugging, messes with debugger)
-    # plot_dists()
+    plot_dists()
 
     # fill in users and quality
     users.id = np.arange(0,1000,1)
