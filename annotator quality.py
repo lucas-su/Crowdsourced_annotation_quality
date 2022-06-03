@@ -1,4 +1,4 @@
-import pandas, csv, pickle
+import pandas, pickle
 import numpy as np
 from statistics import  mean, stdev
 from multiprocessing import Pool
@@ -8,6 +8,9 @@ from sklearn.svm import OneClassSVM
 
 
 def dist_eval(currentUser):
+    """
+    Heaviest function is separated to facilitate parallel processing
+    """
     total_agreement = 0
     total_messages = 0
 
@@ -79,10 +82,14 @@ def remove_users(method='mean'):
             if include[i] == -1:
                 users.loc[user, "included"] = iteration * -1
 
+
+
 if __name__ == "__main__":
-    iterations = 12      # max iterations, should stop before this
-    sd_multiplier = 1   # for use in mean removal method
-    stopping_sd = 0.1   # 0.1 works well
+    iterations = 12                 # max iterations, should stop before this
+    sd_multiplier = 1               # for use in mean removal method
+    stopping_sd = 0.08              # 0.1 works well
+    normalizeMethod = 'softmax'     # options: mean softmax identity
+    removeMethod = 'OCSVM'          # options: elliptic localoutlier OCSVM
 
     with open('simulation data/users.pickle', 'rb') as file:
         users = pickle.load(file)
@@ -100,10 +107,10 @@ if __name__ == "__main__":
         print(f"iteration {iteration}")
         print(f'mean: {mean_weight} stdev {sd_weight}')
 
-        normalize(method='identity')
+        normalize(method=normalizeMethod)
 
         nusers_before_removal = sum([i if i > 0 else 0 for i in users.included])
-        remove_users(method='OCSVM') # linear svm seems most appropriate
+        remove_users(method=removeMethod)
         nusers_after_removal =  sum([i if i > 0 else 0 for i in users.included])
 
         print(f"removed users this round: {nusers_before_removal-nusers_after_removal}")
