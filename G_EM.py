@@ -143,10 +143,10 @@ class M():
 
 if __name__ == "__main__":
 
-    iterations = 20    # iterations of EM algo
+    iterations = 20     # iterations of EM algo
     car = 5             # cardinality of data, is overwritten if a simulated dataset is used
-    mode = "uniform"       # data modes, options: real, perfect, uniform, gaussian (all except real are simulated)
-
+    mode = "uniform"    # data modes, options: real, perfect, uniform, gaussian (all except real are simulated)
+    dup = 6             # duplication factor, determines which premade simulation dataset to use
     ###############################
 
     if mode == 'real':
@@ -160,9 +160,9 @@ if __name__ == "__main__":
         with open('data/web_annotations.csv', 'r') as file:
             annotation = pandas.read_csv(file, names=colnames)
     else:
-        with open(f'simulation data/{mode}_user.pickle', 'rb') as file:
+        with open(f'simulation data/{mode}_dup-{dup}_user.pickle', 'rb') as file:
             user = pickle.load(file)
-        with open(f'simulation data/{mode}_annotations_empty.pickle', 'rb') as file:
+        with open(f'simulation data/{mode}_dup-{dup}_annotations_empty.pickle', 'rb') as file:
             annotations = pickle.load(file)
         car = annotations.loc[:,['annot_1','annot_2', 'annot_3']].values.max()
     # init user weights at 1

@@ -12,10 +12,10 @@ def dist_annot(users, annotations, q_id):
     if q_id % 100 == 0:
         print(q_id)
 
-    userlist = [0,0,0]
+    userlist = np.zeros(duplication_factor)
 
     while not (len(set(userlist)) == len(userlist)):
-        userlist = [random.randint(0,users.__len__()-1) for _ in range(3)]
+        userlist = [random.randint(0,users.__len__()-1) for _ in range(duplication_factor)]
     answers = [sim_answer(users, annotations, u_id, car, q_id) for u_id in userlist]
 
     return  userlist, answers
@@ -92,7 +92,8 @@ if __name__ == "__main__":
 
     nAnnot = 50
     nQuestions = 200
-    car = 5
+    car = 3
+    duplication_factor = 6
 
     # other globals
     xmax = 1
@@ -121,8 +122,8 @@ if __name__ == "__main__":
     # mode = "perfect"
     # param = [['perfect']]
     # distribution = dist(param, x)
-
-
+    #
+    #
 
     # datasets
     udata = {"ID":range(nAnnot),
@@ -152,7 +153,7 @@ if __name__ == "__main__":
 
     res = np.array([np.concatenate(np.column_stack(i)) for i in results])
 
-    annotation.loc[:, ["id_1", "annot_1", "id_2", "annot_2", "id_3", "annot_3"]] = res
+    annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(duplication_factor)])] = res
 
     for i, q in enumerate(results):
         for u_a_pair in zip(q[0],q[1]):
@@ -161,7 +162,7 @@ if __name__ == "__main__":
     print("done, saving")
 
     # save data
-    with open(f'simulation data/{mode}_user.pickle', 'wb') as file:
+    with open(f'simulation data/{mode}_dup-{duplication_factor}_user.pickle', 'wb') as file:
         pickle.dump(user, file)
-    with open(f'simulation data/{mode}_annotations_empty.pickle', 'wb') as file:
+    with open(f'simulation data/{mode}_dup-{duplication_factor}_annotations_empty.pickle', 'wb') as file:
         pickle.dump(annotation, file)
