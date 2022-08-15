@@ -21,10 +21,10 @@ def dist_annot(users, annotations, q_id):
     return  userlist, answers
 
 def sim_answer(users, annotations, u_id, car, q_id):
-    if users.loc[u_id].type == "first_only":
+    if users.loc[u_id].type == "first_only" and mode!="perfect":
         ans = 0
     else:
-        ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else random.randint(0,car)
+        ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else random.randint(0,car-1)
     return ans
 
 class dist():
@@ -40,11 +40,15 @@ class dist():
         cum = np.zeros(self.x.__len__())
         for dist in self.param:
             func = eval(f'self.{dist[0]}') # eval to determine which distribution to take. Options: gamma beta gaussian uniform
-            if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform']:
+            if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform', 'perfect']:
                 raise NotImplementedError
             cum += func(*dist[1:])
 
         return cum/self.param.__len__()
+
+    def perfect(self):
+        return np.append(np.zeros(self.x.shape[0]-1),1)
+
 
     def gamma(self, alpha, beta):
         # alpha = 1
@@ -100,7 +104,7 @@ if __name__ == "__main__":
     ##################
     # mode = "50_50_gaussian"
     # param = [["gaussian",2,1],["gaussian",8,1]]
-    # gauss_gauss = dist(param, x)
+    # distribution = dist(param, x)
 
     ###########
     # uniform #
@@ -108,12 +112,22 @@ if __name__ == "__main__":
 
     mode = "uniform"
     param = [['uniform']]
-    uniform = dist(param, x)
+    distribution = dist(param, x)
+
+    ###########################
+    # perfect trustworthiness #
+    ###########################
+
+    # mode = "perfect"
+    # param = [['perfect']]
+    # distribution = dist(param, x)
+
+
 
     # datasets
     udata = {"ID":range(nAnnot),
              "type": ["normal" if random.random()>0.2 else "first_only" for _ in range(nAnnot)],
-             "T_given": random.choices(x, uniform(), k=nAnnot),
+             "T_given": random.choices(x, distribution(), k=nAnnot),
              "T_model": np.ones(nAnnot)*0.5}
 
     for q in range(nQuestions): # keep track of labels in broad format
