@@ -19,8 +19,9 @@ https://colab.research.google.com/drive/186F0yeqV_5OpIC4FkjHysEJ0tAiEW6Y-?authus
 
 import numpy as np
 import pandas, pickle
-
-
+from multiprocessing import Pool
+from functools import partial
+import pprint
 
 
 class E():
@@ -121,8 +122,8 @@ class M():
     def __init__(self, k):
         self.cm = k-1
 
-    def step(self, gamma, n, nq):
-
+    def step(self, gamma, nq, n):
+        n = n[1] # with multiprocessing setup, n is a tuple of (ID, Series) and we only need the Series here
         # construct list of answered questions for current annotators
         l_n = []
         for i in range(nq):
@@ -143,14 +144,14 @@ class M():
 
 if __name__ == "__main__":
 
-    iterations = 20     # iterations of EM algo
-    car = 5             # cardinality of data, is overwritten if a simulated dataset is used
-    mode = "uniform"    # data modes, options: real, perfect, uniform, gaussian (all except real are simulated)
-    dup = 6             # duplication factor, determines which premade simulation dataset to use
+    iterations = 2     # iterations of EM algo
+    car = 10
+    mode = "uniform"    # data modes, options: real, single0 (perfectly bad trustworthiness), single1 (perfect trustworthiness), uniform, gaussian (all except real are simulated)
+    dup = 5             # duplication factor, determines which premade simulation dataset to use
+    p_fo = 0.1          # proportion 'first only' annotators, who are lazy and only ever click the first option
     ###############################
 
     if mode == 'real':
-
         with open('data/users.csv', 'r') as file:
             user = pandas.read_csv(file)
 
@@ -160,14 +161,14 @@ if __name__ == "__main__":
         with open('data/web_annotations.csv', 'r') as file:
             annotation = pandas.read_csv(file, names=colnames)
     else:
-        with open(f'simulation data/{mode}_dup-{dup}_user.pickle', 'rb') as file:
+        with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle', 'rb') as file:
             user = pickle.load(file)
-        with open(f'simulation data/{mode}_dup-{dup}_annotations_empty.pickle', 'rb') as file:
+        with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle', 'rb') as file:
             annotations = pickle.load(file)
-        car = annotations.loc[:,['annot_1','annot_2', 'annot_3']].values.max()
+        # car = annotations.loc[:,np.concatenate([[f'annot_{i}'] for i in range(dup)])].values.max()+1
     # init user weights at 1
     for i in range(iterations+1):
-        user[f'q_weight_{i}'] = np.ones(user.__len__()) * 0.5 # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
+        user[f't_weight_{i}'] = np.ones(user.__len__()) * 0.5 # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
     user['included'] = np.ones(user.__len__())
 
 
@@ -178,11 +179,47 @@ if __name__ == "__main__":
     m = M(car)
     i = 0
     while i < iterations:
-
+        print("iteration: ", i)
         g = e.step()
-        for ann in user.ID:
-            user.loc[ann, "T_model_next"] = m.step(g, user.iloc[ann], nQuestions)
-        user.loc[:, "T_model"] =user.loc[:, "T_model_next"]
+        with Pool(16) as p:
+            results = p.map(partial(m.step, g, nQuestions), user.iterrows())
+        # for ann in user.ID:
+        #     user.loc[ann, f"t_weight_{i}"] = m.step(g, user.iloc[ann], nQuestions)
+        user.loc[:, "T_model"] = results
+        user.loc[:, f"t_weight_{i}"] = results
         i += 1
+    for q in range(nQuestions):
+        k_w = []
+        for k in range(car):
+            d_w = 0
+            for d in range(dup):
+                if annotations.loc[q,f'annot_{d}'] == k:
+                    d_w += user.loc[annotations.loc[q, f'id_{d}'],'T_model']
+            k_w.append(d_w)
+        annotations.loc[q,'model'] = k_w.index(max(k_w))
+    annotations.insert(annotations.columns.get_loc("model")+1, "naive", np.zeros(nQuestions))
+    for q in range(nQuestions):
+        k_w = []
+        for k in range(car):
+            d_w = 0
+            for d in range(dup):
+                if annotations.loc[q,f'annot_{d}'] == k:
+                    d_w += 1
+            k_w.append(d_w)
+        annotations.loc[q,'naive'] = k_w.index(max(k_w))
+    diff_m = annotations.loc[:,'GT'] - annotations.loc[:,'model']
+    diff_n = annotations.loc[:, 'GT'] - annotations.loc[:, 'naive']
+    diff_m_cnt = (diff_m != 0).sum()
+    diff_n_cnt = (diff_n != 0).sum()
+    summary = {"Mode": mode,
+               "Cardinality": car,
+               "Iterations": iterations,
+               "Duplication factor": dup,
+               "Proportion 'first only'": p_fo,
+               "Percentage correct modelled": 1-(diff_m_cnt/nQuestions),
+               "Percentage correct naive": 1-(diff_n_cnt/nQuestions)}
+    pp = pprint.PrettyPrinter(indent=4)
+    pp.pprint(summary)
+    print(summary)
     print('done!')
 

@@ -21,7 +21,7 @@ def dist_annot(users, annotations, q_id):
     return  userlist, answers
 
 def sim_answer(users, annotations, u_id, car, q_id):
-    if users.loc[u_id].type == "first_only" and mode!="perfect":
+    if users.loc[u_id].type == "first_only" and mode[:6] !="single":
         ans = 0
     else:
         ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else random.randint(0,car-1)
@@ -40,15 +40,17 @@ class dist():
         cum = np.zeros(self.x.__len__())
         for dist in self.param:
             func = eval(f'self.{dist[0]}') # eval to determine which distribution to take. Options: gamma beta gaussian uniform
-            if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform', 'perfect']:
+            if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform', 'single']:
                 raise NotImplementedError
             cum += func(*dist[1:])
 
         return cum/self.param.__len__()
 
-    def perfect(self):
-        return np.append(np.zeros(self.x.shape[0]-1),1)
-
+    def single(self, prob):
+        if prob == 1:
+            return np.append(np.zeros(self.x.shape[0]-1),prob)
+        elif prob == 0:
+            return np.append(1-prob, np.zeros(self.x.shape[0] - 1))
 
     def gamma(self, alpha, beta):
         # alpha = 1
@@ -92,8 +94,9 @@ if __name__ == "__main__":
 
     nAnnot = 50
     nQuestions = 200
-    car = 3
-    duplication_factor = 6
+    car = 10
+    duplication_factor = 5
+    p_first_only = 0.1
 
     # other globals
     xmax = 1
@@ -116,18 +119,20 @@ if __name__ == "__main__":
     distribution = dist(param, x)
 
     ###########################
-    # perfect trustworthiness #
+    # single trustworthiness #
     ###########################
 
-    # mode = "perfect"
-    # param = [['perfect']]
+    # mode = "single0"
+    # param = [['single', 0]]
     # distribution = dist(param, x)
     #
-    #
+    # mode = "single1"
+    # param = [['single', 1]]
+    # distribution = dist(param, x)
 
     # datasets
     udata = {"ID":range(nAnnot),
-             "type": ["normal" if random.random()>0.2 else "first_only" for _ in range(nAnnot)],
+             "type": ["normal" if random.random()>p_first_only else "first_only" for _ in range(nAnnot)],
              "T_given": random.choices(x, distribution(), k=nAnnot),
              "T_model": np.ones(nAnnot)*0.5}
 
@@ -136,15 +141,13 @@ if __name__ == "__main__":
 
     user = pandas.DataFrame(data=udata)
 
-    annotation = pandas.DataFrame(data={"GT": random.choices(range(car), k=nQuestions),
-                                      "model": np.zeros(nQuestions),
-                                      "id_1": np.zeros(nQuestions),
-                                      "annot_1": np.zeros(nQuestions),
-                                      "id_2": np.zeros(nQuestions),
-                                      "annot_2": np.zeros(nQuestions),
-                                      "id_3": np.zeros(nQuestions),
-                                      "annot_3": np.zeros(nQuestions)
-                                      })
+    annotdict = {"GT": random.choices(range(car), k=nQuestions),
+                 "model": np.zeros(nQuestions)}
+    for i in range(duplication_factor):
+        annotdict[f'id_{i}'] = np.zeros(nQuestions)
+        annotdict[f'annot_{i}'] = np.zeros(nQuestions)
+
+    annotation = pandas.DataFrame(data=annotdict)
 
 
     with Pool(16) as p:
@@ -162,7 +165,7 @@ if __name__ == "__main__":
     print("done, saving")
 
     # save data
-    with open(f'simulation data/{mode}_dup-{duplication_factor}_user.pickle', 'wb') as file:
+    with open(f'simulation data/{mode}_dup-{duplication_factor}_car-{car}_p-fo-{p_first_only}_user.pickle', 'wb') as file:
         pickle.dump(user, file)
-    with open(f'simulation data/{mode}_dup-{duplication_factor}_annotations_empty.pickle', 'wb') as file:
+    with open(f'simulation data/{mode}_dup-{duplication_factor}_car-{car}_p-fo-{p_first_only}_annotations_empty.pickle', 'wb') as file:
         pickle.dump(annotation, file)
