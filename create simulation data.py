@@ -12,10 +12,10 @@ def dist_annot(users, annotations, q_id):
     if q_id % 100 == 0:
         print(q_id)
 
-    userlist = np.zeros(duplication_factor)
+    userlist = np.zeros(dup)
 
     while not (len(set(userlist)) == len(userlist)):
-        userlist = [random.randint(0,users.__len__()-1) for _ in range(duplication_factor)]
+        userlist = [random.randint(0,users.__len__()-1) for _ in range(dup)]
     answers = [sim_answer(users, annotations, u_id, car, q_id) for u_id in userlist]
 
     return  userlist, answers
@@ -94,9 +94,9 @@ if __name__ == "__main__":
 
     nAnnot = 50
     nQuestions = 200
-    car = 10
-    duplication_factor = 5
-    p_first_only = 0.1
+    # car = 5
+    # duplication_factor = 3
+    # p_fo = 0.0
 
     # other globals
     xmax = 1
@@ -109,6 +109,15 @@ if __name__ == "__main__":
     # mode = "50_50_gaussian"
     # param = [["gaussian",2,1],["gaussian",8,1]]
     # distribution = dist(param, x)
+
+    ############
+    # gaussian #
+    ############
+    # mode = "gaussian"
+    # param = [["gaussian",5,1]]
+    # distribution = dist(param, x)
+
+
 
     ###########
     # uniform #
@@ -131,41 +140,51 @@ if __name__ == "__main__":
     # distribution = dist(param, x)
 
     # datasets
-    udata = {"ID":range(nAnnot),
-             "type": ["normal" if random.random()>p_first_only else "first_only" for _ in range(nAnnot)],
-             "T_given": random.choices(x, distribution(), k=nAnnot),
-             "T_model": np.ones(nAnnot)*0.5}
 
-    for q in range(nQuestions): # keep track of labels in broad format
-        udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
+    car_list = list(range(2,10))
+    modes = ['uniform']
+    dups = [3,5,7,9]
+    p_fos = [0.0,0.1,0.2,0.3]
 
-    user = pandas.DataFrame(data=udata)
+    for car in car_list:
+        for mode in modes:
+            for dup in dups:
+                for p_fo in p_fos:
+                    udata = {"ID":range(nAnnot),
+                             "type": ["normal" if random.random() > p_fo else "first_only" for _ in range(nAnnot)],
+                             "T_given": random.choices(x, distribution(), k=nAnnot),
+                             "T_model": np.ones(nAnnot)*0.5}
 
-    annotdict = {"GT": random.choices(range(car), k=nQuestions),
-                 "model": np.zeros(nQuestions)}
-    for i in range(duplication_factor):
-        annotdict[f'id_{i}'] = np.zeros(nQuestions)
-        annotdict[f'annot_{i}'] = np.zeros(nQuestions)
+                    for q in range(nQuestions): # keep track of labels in broad format
+                        udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
 
-    annotation = pandas.DataFrame(data=annotdict)
+                    user = pandas.DataFrame(data=udata)
+
+                    annotdict = {"GT": random.choices(range(car), k=nQuestions),
+                                 "model": np.zeros(nQuestions)}
+                    for i in range(dup):
+                        annotdict[f'id_{i}'] = np.zeros(nQuestions)
+                        annotdict[f'annot_{i}'] = np.zeros(nQuestions)
+
+                    annotation = pandas.DataFrame(data=annotdict)
 
 
-    with Pool(16) as p:
-        results = p.map(partial(dist_annot, user, annotation), range(nQuestions))
+                    with Pool(16) as p:
+                        results = p.map(partial(dist_annot, user, annotation), range(nQuestions))
 
 
-    res = np.array([np.concatenate(np.column_stack(i)) for i in results])
+                    res = np.array([np.concatenate(np.column_stack(i)) for i in results])
 
-    annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(duplication_factor)])] = res
+                    annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(dup)])] = res
 
-    for i, q in enumerate(results):
-        for u_a_pair in zip(q[0],q[1]):
-            user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
+                    for i, q in enumerate(results):
+                        for u_a_pair in zip(q[0],q[1]):
+                            user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
 
-    print("done, saving")
+                    print(f"saving {car}, {mode}, {dup}, {p_fo}")
 
-    # save data
-    with open(f'simulation data/{mode}_dup-{duplication_factor}_car-{car}_p-fo-{p_first_only}_user.pickle', 'wb') as file:
-        pickle.dump(user, file)
-    with open(f'simulation data/{mode}_dup-{duplication_factor}_car-{car}_p-fo-{p_first_only}_annotations_empty.pickle', 'wb') as file:
-        pickle.dump(annotation, file)
+                    # save data
+                    with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle', 'wb') as file:
+                        pickle.dump(user, file)
+                    with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle', 'wb') as file:
+                        pickle.dump(annotation, file)
