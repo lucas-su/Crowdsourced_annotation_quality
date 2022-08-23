@@ -92,8 +92,8 @@ class dist():
 
 if __name__ == "__main__":
 
-    nAnnot = 50
-    nQuestions = 200
+    nAnnot = 300
+    nQuestions = 500
     # car = 5
     # duplication_factor = 3
     # p_fo = 0.0
@@ -113,9 +113,9 @@ if __name__ == "__main__":
     ############
     # gaussian #
     ############
-    mode = "gaussian"
-    param = [["gaussian",5,1]]
-    distribution = dist(param, x)
+    # mode = "gaussian"
+    # param = [["gaussian",5,1]]
+    # distribution = dist(param, x)
 
 
 
@@ -123,9 +123,9 @@ if __name__ == "__main__":
     # uniform #
     ###########
 
-    # mode = "uniform"
-    # param = [['uniform']]
-    # distribution = dist(param, x)
+    mode = "uniform"
+    param = [['uniform']]
+    distribution = dist(param, x)
 
     ###########################
     # single trustworthiness #
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     # datasets
 
     car_list = list(range(2,10))
-    modes = ['gaussian']
+    modes = ['uniform']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
 
@@ -169,7 +169,7 @@ if __name__ == "__main__":
                     annotation = pandas.DataFrame(data=annotdict)
 
 
-                    with Pool(8) as p:
+                    with Pool(16) as p:
                         results = p.map(partial(dist_annot, user, annotation, dup, car, mode), range(nQuestions))
 
 

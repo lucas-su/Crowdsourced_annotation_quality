@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
     iterations_list = [5,10,15,20]
     car_list = list(range(2,10))
-    modes = ['gaussian']
+    modes = ['uniform']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
 

@@ -18,17 +18,19 @@ def plot_duplication_factor():
                 (em_data['p_fo'] == p_fo) &
                 (em_data['car'] == car),
                 'pc_n'
-            ])
+            ], label='Naive')
             axs[i,j].plot(dups,em_data.loc[
                 (em_data['iterations'] == iter_select) &
                 (em_data['mode'] == 'uniform')&
                 (em_data['p_fo'] == p_fo) &
                 (em_data['car'] == car),
                 'pc_m'
-            ])
+            ], label='Modelled')
             axs[i,j].set_title(f'car={car}, p_fo={p_fo}')
             if i == car_list.__len__()-1:
                 axs[i,j].set_xlabel('Annotator duplication factor')
+                if j == p_fos.__len__()-1:
+                    axs[i,j].legend(loc='lower left', bbox_to_anchor=(1, -0.08, 1, 1))
             if j == 0:
                 axs[i, j].set_ylabel('Prop. correct')
     plt.subplots_adjust(hspace=0.4)
@@ -45,7 +47,7 @@ def plot_car():
                 (em_data['p_fo'] == p_fo) &
                 (em_data['dup'] == dup),
                 'pc_n'
-            ])
+            ], label='Naive')
             axs[i,j].plot(car_list,em_data.loc[
                 (em_data['iterations'] == iter_select) &
                 pandas.Series([item in car_list for item in em_data['car']]) &
@@ -53,10 +55,12 @@ def plot_car():
                 (em_data['p_fo'] == p_fo) &
                 (em_data['dup'] == dup),
                 'pc_m'
-            ])
+            ], label='Modelled')
             axs[i,j].set_title(f'dup={dup}, p_fo={p_fo}')
             if i == dups.__len__()-1:
                 axs[i,j].set_xlabel('Cardinality')
+                if j == p_fos.__len__()-1:
+                    axs[i,j].legend(loc='lower left', bbox_to_anchor=(1, -0.04, 1, 1))
             if j == 0:
                 axs[i, j].set_ylabel('Proportion correct')
     plt.subplots_adjust(hspace=0.4)
@@ -73,8 +77,8 @@ if __name__ == "__main__":
 
     with open('data/em_data.pickle', 'rb') as file:
         em_data = pickle.load(file)
-    # plot_car()
-    plot_duplication_factor()
+    plot_car()
+    # plot_duplication_factor()
 
 
 
