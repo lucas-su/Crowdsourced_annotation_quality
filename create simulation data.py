@@ -9,9 +9,6 @@ import pandas
 import  random
 
 def dist_annot(users, annotations, dup, car, mode, q_id):
-    if q_id % 100 == 0:
-        print(q_id)
-
     userlist = np.zeros(dup)
 
     while not (len(set(userlist)) == len(userlist)):
@@ -93,7 +90,7 @@ class dist():
 if __name__ == "__main__":
 
     nAnnot = 300
-    nQuestions = 500
+    nQuestions = 800
     # car = 5
     # duplication_factor = 3
     # p_fo = 0.0
@@ -113,19 +110,19 @@ if __name__ == "__main__":
     ############
     # gaussian #
     ############
-    # mode = "gaussian"
-    # param = [["gaussian",5,1]]
-    # distribution = dist(param, x)
+    mode = "gaussian"
+    param = [["gaussian",5,1]]
+    distribution = dist(param, x)
 
 
 
     ###########
     # uniform #
     ###########
-
-    mode = "uniform"
-    param = [['uniform']]
-    distribution = dist(param, x)
+    #
+    # mode = "uniform"
+    # param = [['uniform']]
+    # distribution = dist(param, x)
 
     ###########################
     # single trustworthiness #
@@ -142,7 +139,7 @@ if __name__ == "__main__":
     # datasets
 
     car_list = list(range(2,10))
-    modes = ['uniform']
+    modes = ['gaussian']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
 
@@ -180,7 +177,10 @@ if __name__ == "__main__":
                     for i, q in enumerate(results):
                         for u_a_pair in zip(q[0],q[1]):
                             user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
-
+                    ulen = user.__len__()
+                    user = user.drop(np.where(np.all(np.array([np.isnan(user[f'q_{i}']) for i in range(nQuestions)]), axis=0) == True)[0])
+                    if user.__len__() != ulen:
+                        print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
                     print(f"saving {car}, {mode}, {dup}, {p_fo}")
 
                     # save data

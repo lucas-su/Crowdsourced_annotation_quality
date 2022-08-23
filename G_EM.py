@@ -118,7 +118,8 @@ class EM():
                 self.gamma_.loc[m,k] = self.gamma(m, k)
         return self.gamma_
 
-    def m_step(self, gamma, nq, n):
+
+    def m_step(self, gamma, nq, car, n):
         n = n[1] # with multiprocessing setup, n is a tuple of (ID, Series) and we only need the Series here
         # construct list of answered questions for current annotators
         l_n = []
@@ -157,7 +158,7 @@ def run_em(iterations, car, nQuestions):
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'EM'].values[0].m_step, g, nQuestions), user.iterrows())
+            (ems['p_fo'].values == p_fo), 'EM'].values[0].m_step, g, nQuestions, car), user.iterrows())
         # for ann in user.ID:
         #     user.loc[ann, f"t_weight_{i}"] = m.step(g, user.iloc[ann], nQuestions)
         user.loc[:, "T_model"] = results
