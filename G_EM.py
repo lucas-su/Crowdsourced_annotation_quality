@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
     iterations_list = [5,10,15,20]
     car_list = list(range(2,10))
-    modes = ['uniform']
+    modes = ['gaussian']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
 
@@ -259,5 +259,5 @@ if __name__ == "__main__":
                         nQuestions = annotations.__len__()
                         ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
                         run_em(iterations, car, nQuestions)
-    with open('data/em_data.pickle', 'wb') as file:
+    with open(f'data/em_data_{"_".join(modes)}.pickle', 'wb') as file:
         pickle.dump(ems, file)

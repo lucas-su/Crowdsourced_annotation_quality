@@ -8,7 +8,7 @@ import numpy as np
 import pandas
 import  random
 
-def dist_annot(users, annotations, q_id):
+def dist_annot(users, annotations, dup, car, mode, q_id):
     if q_id % 100 == 0:
         print(q_id)
 
@@ -16,11 +16,11 @@ def dist_annot(users, annotations, q_id):
 
     while not (len(set(userlist)) == len(userlist)):
         userlist = [random.randint(0,users.__len__()-1) for _ in range(dup)]
-    answers = [sim_answer(users, annotations, u_id, car, q_id) for u_id in userlist]
+    answers = [sim_answer(users, annotations, u_id, car, q_id, mode) for u_id in userlist]
 
     return  userlist, answers
 
-def sim_answer(users, annotations, u_id, car, q_id):
+def sim_answer(users, annotations, u_id, car, q_id, mode):
     if users.loc[u_id].type == "first_only" and mode[:6] !="single":
         ans = 0
     else:
@@ -113,9 +113,9 @@ if __name__ == "__main__":
     ############
     # gaussian #
     ############
-    # mode = "gaussian"
-    # param = [["gaussian",5,1]]
-    # distribution = dist(param, x)
+    mode = "gaussian"
+    param = [["gaussian",5,1]]
+    distribution = dist(param, x)
 
 
 
@@ -123,9 +123,9 @@ if __name__ == "__main__":
     # uniform #
     ###########
 
-    mode = "uniform"
-    param = [['uniform']]
-    distribution = dist(param, x)
+    # mode = "uniform"
+    # param = [['uniform']]
+    # distribution = dist(param, x)
 
     ###########################
     # single trustworthiness #
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     # datasets
 
     car_list = list(range(2,10))
-    modes = ['uniform']
+    modes = ['gaussian']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
 
@@ -169,8 +169,8 @@ if __name__ == "__main__":
                     annotation = pandas.DataFrame(data=annotdict)
 
 
-                    with Pool(16) as p:
-                        results = p.map(partial(dist_annot, user, annotation), range(nQuestions))
+                    with Pool(8) as p:
+                        results = p.map(partial(dist_annot, user, annotation, dup, car, mode), range(nQuestions))
 
 
                     res = np.array([np.concatenate(np.column_stack(i)) for i in results])
