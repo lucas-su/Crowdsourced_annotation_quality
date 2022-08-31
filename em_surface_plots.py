@@ -1,6 +1,7 @@
 import pickle
 
 import matplotlib.pyplot as plt
+
 import pandas
 from matplotlib import cm
 import numpy as np
@@ -34,16 +35,20 @@ def plot_duplication_factor():
             if j == 0:
                 axs[i, j].set_ylabel('Prop. correct')
     plt.subplots_adjust(hspace=0.4)
-    plt.show()
+    fig = plt.gcf()
+    fig.set_size_inches(15, 10)
+    plt.savefig(latexpath + 'dup_factor.png', dpi=200)
+    # plt.show()
 
 def plot_car():
     fig, axs = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
+
     for i, dup in enumerate(dups):
         for j, p_fo in enumerate(p_fos):
             axs[i,j].plot(car_list,em_data.loc[
                 (em_data['iterations'] == iter_select) &
                 pandas.Series([item in car_list for item in em_data['car']]) &
-                (em_data['mode'] == 'uniform')&
+                (em_data['mode'] == 'uniform') &
                 (em_data['p_fo'] == p_fo) &
                 (em_data['dup'] == dup),
                 'pc_n'
@@ -64,10 +69,13 @@ def plot_car():
             if j == 0:
                 axs[i, j].set_ylabel('Proportion correct')
     plt.subplots_adjust(hspace=0.4)
-    plt.show()
+    fig = plt.gcf()
+    fig.set_size_inches(15, 10)
+    plt.savefig(latexpath + 'cardinality_plot.png', dpi=200)
+    # plt.show()
 
 if __name__ == "__main__":
-
+    latexpath = 'C:\\users\\admin\\pacof\\notes\\Papers\\EM for annotations\\figures\\em surface plots\\'
     iterations_list = [5,10,15,20]
     iter_select = 5
     car_list = list(range(2,9))
@@ -78,7 +86,7 @@ if __name__ == "__main__":
     with open('data/em_data.pickle', 'rb') as file:
         em_data = pickle.load(file)
     plot_car()
-    # plot_duplication_factor()
+    plot_duplication_factor()
 
 
 
