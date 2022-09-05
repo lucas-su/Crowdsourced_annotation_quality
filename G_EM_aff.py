@@ -1,31 +1,13 @@
-"""
-some references
-em:
-https://github.com/RafaeNoor/Expectation-Maximization/blob/master/EM_Clustering.ipynb
-https://people.duke.edu/~ccc14/sta-663/EMAlgorithm.html
-https://www.jstor.org/stable/pdf/2346806.pdf?refreqid=excelsior%3A02dbe84713a99816418f5ddd3b41a93c&ab_segments=&origin=&acceptTC=1
+import csv
 
-annotator reliability:
-https://dl.acm.org/doi/pdf/10.1145/1743384.1743478
-https://aclanthology.org/D08-1027.pdf
-https://aclanthology.org/P99-1032.pdf
-https://onlinelibrary.wiley.com/doi/epdf/10.1111/j.0006-341X.2004.00187.x
-
-https://www.aaai.org/ocs/index.php/WS/AAAIW12/paper/view/5350/5599
-
-OG file:
-https://colab.research.google.com/drive/186F0yeqV_5OpIC4FkjHysEJ0tAiEW6Y-?authuser=1#scrollTo=XTLv7eS2NORn
-"""
-
+import numpy
 import numpy as np
 import pandas, pickle
 from multiprocessing import Pool
 from functools import partial
 import pprint
 
-
 class EM():
-
 
     def __init__(self, K):
         self.N = np.arange(0,user.__len__()) # annotators
@@ -35,60 +17,13 @@ class EM():
         self.cm = K-1 # -1 because there's one good answer and the rest is wrong
         self.gamma_ = pandas.DataFrame(columns=[i for i in range(K)])
 
-    def to_cat(y, num_classes=None, dtype=float):
-        """
-        Helpen function to transform to categorical format
-        :param num_classes:
-        :param dtype:
-        :return:
-        """
-        y = np.array(y, dtype='int')
-        input_shape = y.shape
-        if input_shape and input_shape[-1] == 1 and len(input_shape) > 1:
-            input_shape = tuple(input_shape[:-1])
-        y = y.ravel()
-        if not num_classes:
-            num_classes = np.max(y) + 1
-        n = y.shape[0]
-        categorical = np.zeros((n, num_classes), dtype=dtype)
-        categorical[np.arange(n), y] = 1
-        output_shape = input_shape + (num_classes,)
-        categorical = np.reshape(categorical, output_shape)
-        return categorical
-
-    def gamma_vectorized(self, m, k):
-        """
-        responsibilities implemented in vectorized manner to speed up processing, not done yet
-        :param m:
-        :param k:
-        :return:
-        """
-        pass
-        # n_Am_k = to_cat(user.loc[:,[f'q_{i}' for i in range(k)]]) # select question answered matrix and make categorical tensor from user table
-        # n_am_k_inv = 1- n_Am_k
-        #
-        # tn_k = np.tile(user.loc[:,"t_model"],k)
-        # tn_k_inv = (1-tn_k)/self.cm
-        #
-        # term1 = np.multiply(n_Am_k, tn_k)
-        # term2 = np.multiply(n_am_k_inv, tn_k_inv)
-        #
-        # factor1 = np.add(term1,term2) # n x m x k
-        # (factor1 / self.cm * (1 / self.K))
-        #
-        # denom = sum(np.prod((factor1 / self.cm * (1 / self.K)), axis=0).__array__(), axis=1) # vector of k?
-        #
-        # num =
-
-
-    def gamma(self, m, k):
+    def gamma(self, k, user, m):
         """
         probability of true label for question m being equal to option k given the provided labels and the trustworthiness
         :param m:
         :param k:
         :return:
         """
-
 
         # product of the modelled trustworthiness if answer is equal to k iterated over every user who answered question m
         # sum of all products of the modelled trustworthiness if answer is equal to answer option l iterated over every user who answered question m over all options l
@@ -99,6 +34,7 @@ class EM():
         """
         if list(user.loc[[type(i)== np.ndarray for i in user.loc[:,f"q_{m}"]]].iterrows()) == []:
             return 0
+
         else:
 
             num = np.prod([
@@ -119,10 +55,15 @@ class EM():
 
 
     def e_step(self):
-        for m in self.M: # for each question
-            for k in range(self.K): # for each option
-                self.gamma_.loc[m,k] = self.gamma(m, k)
+        # for m in self.M: # for each question
+        #     for k in range(self.K): # for each option
+        #         self.gamma_.loc[m,k] = self.gamma(k, m)
+        for k in range(self.K):  # for each option
+            with Pool(16) as p:
+                result = p.map(partial(self.gamma,k, user), self.M)
+            self.gamma_.loc[:,k] = result
         return self.gamma_
+
 
 
     def m_step(self, gamma, nq, car, n):
@@ -167,58 +108,94 @@ def run_em(iterations, car, nQuestions):
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
             (ems['p_fo'].values == p_fo), 'EM'].values[0].m_step, g, nQuestions, car), user.iterrows())
-        # for ann in user.ID:
-        #     user.loc[ann, f"t_weight_{i}"] = m.step(g, user.iloc[ann], nQuestions)
+
         user.loc[:, "T_model"] = results
         user.loc[:, f"t_weight_{i}"] = results
         i += 1
-    for q in range(nQuestions):
-        k_w = []
-        for k in range(car):
-            d_w = 0
-            for d in range(dup):
-                if annotations.loc[q, f'anno_{d}'] == k:
-                    d_w += user.loc[annotations.loc[q, f'id_{d}'], 'T_model']
-            k_w.append(d_w)
-        annotations.loc[q, 'model'] = k_w.index(max(k_w))
-    annotations.insert(annotations.columns.get_loc("model") + 1, "naive", np.zeros(nQuestions))
-    for q in range(nQuestions):
-        k_w = []
-        for k in range(car):
-            d_w = 0
-            for d in range(dup):
-                if annotations.loc[q, f'anno_{d}'] == k:
-                    d_w += 1
-            k_w.append(d_w)
-        annotations.loc[q, 'naive'] = k_w.index(max(k_w))
 
-    diff_m = annotations.loc[:, 'GT'] - annotations.loc[:, 'model']
-    diff_n = annotations.loc[:, 'GT'] - annotations.loc[:, 'naive']
-    diff_m_cnt = (diff_m != 0).sum()
-    diff_n_cnt = (diff_n != 0).sum()
-    ems.loc[(ems['iterations'].values == iterations) &
-            (ems['car'].values == car) &
-            (ems['mode'].values == mode) &
-            (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
-    ems.loc[(ems['iterations'].values == iterations) &
-            (ems['car'].values == car) &
-            (ems['mode'].values == mode) &
-            (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
+    # annotations.insert(annotations.columns.get_loc("object_label") + 1, "model", np.zeros(nQuestions))
+    # annotations['model'] = annotations['model'].astype('object')
+    model = pandas.Series(np.zeros(nQuestions), dtype='object')
+    naive = pandas.Series(np.zeros(nQuestions), dtype='object')
+    for q in range(nQuestions):
+        k_w = np.zeros(car)
+        for k in range(car):
+            # d_w = 0
+            dobreak = False
+
+            for d in range(dup):
+                u = annotations.loc[q, f'anno_{d+1}_id']-1
+                if np.isnan(u):
+                    dobreak = True
+                    break
+                if user.loc[u, f'q_{q}'][k] == 1:
+                    # k_w[k] += user.loc[annotations.loc[q, f'id_{d}'], 'T_model']
+                    k_w[k]  += user.loc[u, 'T_model']
+                else:
+                    k_w = [k_w[i] + ((1 - user.loc[u, 'T_model']) / (car - 1)) if i != k else
+                        k_w[i] for i in range(car)]
+            if dobreak:
+                break
+
+        if np.array_equal(k_w, np.zeros(car)):
+            # annotations.loc[q, 'model'] = np.nan
+            model.loc[q] = np.nan
+        else:
+            val = (pandas.Series([1 if kwi > 0 else 0 for kwi in k_w]))
+            # annotations.loc[q, 2:] = annotations.loc[q, :].astype('object')
+            # annotations.loc[q, 'model'] = np.array(val).astype('object')
+            model.loc[q] = np.array(val).astype('object')
+
+
+    for q in range(nQuestions):
+        k_w = []
+        for k in range(car):
+            d_w = 0
+            dobreak = False
+            for d in range(dup):
+                u = annotations.loc[q, f'anno_{d + 1}_id']-1
+                if np.isnan(u):
+                    dobreak = True
+                    break
+                if user.loc[u, f'q_{q}'][k] == 1:
+                    d_w += 1.1 # in a tie of 1-0, 1 should be kept
+                else:
+                    d_w -= 1
+            if dobreak:
+                break
+            k_w.append(d_w)
+
+        if k_w == []:
+            # annotations.loc[q, 'naive'] = np.nan
+            naive.loc[q] = np.nan
+        else:
+            val = (pandas.Series([1 if kwi > 0 else 0 for kwi in k_w]))
+            naive.loc[q] = np.array(val).astype('object')
+            # annotations.loc[q, 'naive'] = np.array([1 if kwi > 0 else 0 for kwi in k_w]).astype('object')
+
+    diff = []
+    for i, (n, m) in enumerate(zip(naive.loc[naive.notnull()],model.loc[model.notnull()])):
+        if not np.array_equal(n,m):
+            diff.append(i)
     summary = {"Mode": mode,
                "Cardinality": car,
                "Iterations": iterations,
-               "Duplication factor": dup,
-               "Proportion 'first only'": p_fo,
-               "Percentage correct modelled": 100 * (1 - (diff_m_cnt / nQuestions)),
-               "Percentage correct naive": 100 * (1 - (diff_n_cnt / nQuestions))}
+               'diff': diff,
+               'naive': naive.loc[naive.notnull()],
+               'model': model.loc[model.notnull()]
+               }
+    with open(f'data/aff_naive_{level}.csv', 'w') as file:
+        cw = csv.writer(file)
+        cw.writerows(naive.loc[naive.notnull()])
+    with open(f'data/aff_model_{level}.csv', 'w') as file:
+        cw = csv.writer(file)
+        cw.writerows(model.loc[model.notnull()])
     [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
 
 
 if __name__ == "__main__":
 
-    iterations_list = [5]
+    iterations_list = [3]
 
 
 
@@ -231,7 +208,7 @@ if __name__ == "__main__":
 
 
     ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'EM', 'pc_m', 'pc_n'])
-    level = 'high'
+    level = 'all'
     dup = 3
     p_fo = 0
     mode = 'real'
@@ -245,6 +222,13 @@ if __name__ == "__main__":
     elif level == 'low':
         car = 23
         affs = all_affs[8:]
+    elif level == 'high_low':
+        car = 30
+        affs = all_affs[:7] + all_affs[8:]
+    else:
+        car = 31
+        affs = all_affs
+
 
     with open('D:\\sunrgbd\\users.csv', 'r') as file:
         user = pandas.read_csv(file, header=None)
@@ -254,6 +238,8 @@ if __name__ == "__main__":
 
     with open('D:\\sunrgbd\\web_annotations updated.csv', 'r') as file:
         annotations = pandas.read_csv(file, names=colnames)
+    user[0] = user[0]-1 # sql export starts count at 1
+
 
     qs = pandas.DataFrame(np.zeros((user.__len__(), annotations.__len__())), columns=[f'q_{i}' for i in range(annotations.__len__())])
     user = pandas.concat((user, qs), axis=1)
@@ -261,9 +247,9 @@ if __name__ == "__main__":
     for i, row in enumerate(annotations.iterrows()):
         for annot in [1,2,3]:
             if ~np.isnan(row[1][f'anno_{annot}_id']):
-                val = ([row[1].loc[f'anno_{annot}_{j}'] for j in all_affs ])
-                user.loc[row[1][f'anno_{annot}_id'], :] = user.loc[row[1][f'anno_{annot}_id'], :].astype('object')
-                user.loc[row[1][f'anno_{annot}_id'], f'q_{i}'] = np.array(val).astype('object')
+                val = ([row[1].loc[f'anno_{annot}_{j}'] for j in affs ])
+                user.loc[row[1][f'anno_{annot}_id']-1, :] = user.loc[row[1][f'anno_{annot}_id']-1, :].astype('object')
+                user.loc[row[1][f'anno_{annot}_id']-1, f'q_{i}'] = np.array(val).astype('object')
 
     for iterations in iterations_list:
         for i in range(iterations + 1):
@@ -276,7 +262,7 @@ if __name__ == "__main__":
         ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
         run_em(iterations, car, nQuestions)
 
-        with open(f'data/user_data_{mode}.pickle', 'wb') as file:
+        with open(f'data/user_data_{mode}_{level}.pickle', 'wb') as file:
             pickle.dump(user, file)
-    with open(f'data/em_data_{mode}.pickle', 'wb') as file:
+    with open(f'data/em_data_{mode}_{level}.pickle', 'wb') as file:
         pickle.dump(ems, file)

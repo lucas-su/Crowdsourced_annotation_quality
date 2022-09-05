@@ -110,9 +110,9 @@ if __name__ == "__main__":
     ############
     # gaussian #
     ############
-    mode = "gaussian"
-    param = [["gaussian",5,1]]
-    distribution = dist(param, x)
+    # mode = "gaussian"
+    # param = [["gaussian",5,1]]
+    # distribution = dist(param, x)
 
 
 
@@ -137,14 +137,23 @@ if __name__ == "__main__":
     # distribution = dist(param, x)
 
     # datasets
-
-    car_list = list(range(2,10))
-    modes = ['gaussian']
-    dups = [3,5,7,9]
+    iterations_list = [1,2,3,5,7,9]
+    car_list = list(range(2,8))
+    modes = ['uniform', 'gaussian']
+    dups = [3,5,7]
     p_fos = [0.0,0.1,0.2,0.3]
+
 
     for car in car_list:
         for mode in modes:
+            if mode == 'uniform':
+                param = [['uniform']]
+                distribution = dist(param, x)
+            elif mode == 'gaussian':
+                param = [["gaussian", 5, 1]]
+                distribution = dist(param, x)
+            else:
+                raise ValueError
             for dup in dups:
                 for p_fo in p_fos:
                     udata = {"ID":range(nAnnot),

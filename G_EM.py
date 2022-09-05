@@ -37,7 +37,7 @@ class EM():
 
     def to_cat(y, num_classes=None, dtype=float):
         """
-        Helpen function to transform to categorical format
+        Helper function to transform to categorical format
         :param num_classes:
         :param dtype:
         :return:
@@ -81,7 +81,7 @@ class EM():
         # num =
 
 
-    def gamma(self, m, k):
+    def gamma(self, k, user, m):
         """
         probability of true label for question m being equal to option k given the provided labels and the trustworthiness
         :param m:
@@ -113,9 +113,13 @@ class EM():
 
 
     def e_step(self):
-        for m in self.M: # for each question
-            for k in range(self.K): # for each option
-                self.gamma_.loc[m,k] = self.gamma(m, k)
+        # for m in self.M: # for each question
+        #     for k in range(self.K): # for each option
+        #         self.gamma_.loc[m,k] = self.gamma(k, m)
+        for k in range(self.K):  # for each option
+            with Pool(16) as p:
+                result = p.map(partial(self.gamma,k, user), self.M)
+            self.gamma_.loc[:,k] = result
         return self.gamma_
 
 
@@ -165,13 +169,13 @@ def run_em(iterations, car, nQuestions):
         user.loc[:, f"t_weight_{i}"] = results
         i += 1
     for q in range(nQuestions):
-        k_w = []
+        k_w = np.zeros(car)
         for k in range(car):
-            d_w = 0
             for d in range(dup):
                 if annotations.loc[q, f'annot_{d}'] == k:
-                    d_w += user.loc[annotations.loc[q, f'id_{d}'], 'T_model']
-            k_w.append(d_w)
+                    k_w[k] += user.loc[annotations.loc[q, f'id_{d}'], 'T_model']
+                else:
+                    k_w = [k_w[i]+((1-user.loc[annotations.loc[q, f'id_{d}'], 'T_model'])/(car-1)) if i!= k else k_w[i] for i in range(car)]
         annotations.loc[q, 'model'] = k_w.index(max(k_w))
     annotations.insert(annotations.columns.get_loc("model") + 1, "naive", np.zeros(nQuestions))
     for q in range(nQuestions):
@@ -210,10 +214,10 @@ def run_em(iterations, car, nQuestions):
 
 if __name__ == "__main__":
 
-    iterations_list = [5,10,15,20]
-    car_list = list(range(2,5))
+    iterations_list = [2,3,5,7,9]
+    car_list = list(range(2,8))
     modes = ['uniform', 'gaussian']
-    dups = [3,5,7,9]
+    dups = [3,5,7]
     p_fos = [0.0,0.1,0.2,0.3]
 
 
