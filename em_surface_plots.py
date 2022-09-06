@@ -37,8 +37,8 @@ def plot_duplication_factor():
     plt.subplots_adjust(hspace=0.4)
     fig = plt.gcf()
     fig.set_size_inches(15, 10)
-    plt.savefig(latexpath + 'dup_factor.png', dpi=200)
-    # plt.show()
+    # plt.savefig(latexpath + 'dup_factor.png', dpi=200)
+    plt.show()
 
 def plot_car():
     fig, axs = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
@@ -48,7 +48,7 @@ def plot_car():
             axs[i,j].plot(car_list,em_data.loc[
                 (em_data['iterations'] == iter_select) &
                 pandas.Series([item in car_list for item in em_data['car']]) &
-                (em_data['mode'] == 'uniform') &
+                (em_data['mode'] == mode_select) &
                 (em_data['p_fo'] == p_fo) &
                 (em_data['dup'] == dup),
                 'pc_n'
@@ -56,7 +56,7 @@ def plot_car():
             axs[i,j].plot(car_list,em_data.loc[
                 (em_data['iterations'] == iter_select) &
                 pandas.Series([item in car_list for item in em_data['car']]) &
-                (em_data['mode'] == 'uniform')&
+                (em_data['mode'] == mode_select)&
                 (em_data['p_fo'] == p_fo) &
                 (em_data['dup'] == dup),
                 'pc_m'
@@ -71,26 +71,29 @@ def plot_car():
     plt.subplots_adjust(hspace=0.4)
     fig = plt.gcf()
     fig.set_size_inches(15, 10)
-    plt.savefig(latexpath + 'cardinality_plot.png', dpi=200)
-    # plt.show()
+    # plt.savefig(latexpath + 'cardinality_plot.png', dpi=200)
+    plt.show()
 
 if __name__ == "__main__":
     latexpath = 'C:\\users\\admin\\pacof\\notes\\Papers\\EM for annotations\\figures\\em surface plots\\'
+
+
 
     iterations_list = [2,3,5]
     car_list = list(range(3,8))
     modes = ['uniform', 'gaussian']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
-
+    # p_fos = [0.3]
     # iterations_list = [5,10,15,20]
     iter_select = 5
+    mode_select = modes[0]
     # car_list = list(range(2,9))
     # modes = ['uniform']
     # dups = [3,5,7,9]
     # p_fos = [0.0,0.1,0.2,0.3]
 
-    with open('data/em_data.pickle', 'rb') as file:
+    with open('data/em_data_uniform_gaussian.pickle', 'rb') as file:
         em_data = pickle.load(file)
     plot_car()
     plot_duplication_factor()

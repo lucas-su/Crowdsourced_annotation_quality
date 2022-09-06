@@ -251,16 +251,16 @@ if __name__ == "__main__":
                             annotations = pickle.load(file)
                         # car = annotations.loc[:,np.concatenate([[f'annot_{i}'] for i in range(dup)])].values.max()+1
                         # init user weights at 1
-                    for i in range(iterations + 1):
-                        user[f't_weight_{i}'] = np.ones(
-                            user.__len__()) * 0.5  # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
-                    user['included'] = np.ones(user.__len__())
+                        for i in range(iterations + 1):
+                            user[f't_weight_{i}'] = np.ones(
+                                user.__len__()) * 0.5  # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
+                        user['included'] = np.ones(user.__len__())
 
-                    # nAnnot = user.__len__()
-                    nQuestions = annotations.__len__()
-                    ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
-                    run_em(iterations, car, nQuestions)
-                    with open(f'data/user_data_{"_".join(modes)}.pickle', 'wb') as file:
-                        pickle.dump(user, file)
+                        # nAnnot = user.__len__()
+                        nQuestions = annotations.__len__()
+                        ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
+                        run_em(iterations, car, nQuestions)
+                        with open(f'data/user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'wb') as file:
+                            pickle.dump(user, file)
     with open(f'data/em_data_{"_".join(modes)}.pickle', 'wb') as file:
         pickle.dump(ems, file)
