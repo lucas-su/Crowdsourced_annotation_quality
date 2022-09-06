@@ -171,11 +171,17 @@ def run_em(iterations, car, nQuestions):
     for q in range(nQuestions):
         k_w = np.zeros(car)
         for k in range(car):
+
             for d in range(dup):
                 if annotations.loc[q, f'annot_{d}'] == k:
-                    k_w[k] += user.loc[annotations.loc[q, f'id_{d}'], 'T_model']
+                    k_w = [k_w[i] + ((1 - user.loc[annotations.loc[q, f'id_{d}'], 'T_model']) / (car - 1)) if i != k else
+                           k_w[i] + user.loc[annotations.loc[q, f'id_{d}'], 'T_model'] for i in range(car)]
+                    # k_w[k] += user.loc[annotations.loc[q, f'id_{d}'], 'T_model']
                 else:
-                    k_w = [k_w[i]+((1-user.loc[annotations.loc[q, f'id_{d}'], 'T_model'])/(car-1)) if i!= k else k_w[i] for i in range(car)]
+                    # k_w = [k_w[i]+((1-user.loc[annotations.loc[q, f'id_{d}'], 'T_model'])/(car-1)) if i!= k else k_w[i] for i in range(car)]
+                    k_w = [
+                        k_w[i] + ((user.loc[annotations.loc[q, f'id_{d}'], 'T_model']) / (car - 1)) if i != k else
+                        k_w[i] + 1-user.loc[annotations.loc[q, f'id_{d}'], 'T_model'] for i in range(car)]
         annotations.loc[q, 'model'] = k_w.index(max(k_w))
     annotations.insert(annotations.columns.get_loc("model") + 1, "naive", np.zeros(nQuestions))
     for q in range(nQuestions):
@@ -214,10 +220,10 @@ def run_em(iterations, car, nQuestions):
 
 if __name__ == "__main__":
 
-    iterations_list = [2,3,5,7,9]
-    car_list = list(range(2,8))
+    iterations_list = [2,3,5]
+    car_list = list(range(3,8))
     modes = ['uniform', 'gaussian']
-    dups = [3,5,7]
+    dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
 
 

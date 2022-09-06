@@ -122,26 +122,31 @@ def run_em(iterations, car, nQuestions):
         for k in range(car):
             # d_w = 0
             dobreak = False
-
+            n_ann = 0
             for d in range(dup):
                 u = annotations.loc[q, f'anno_{d+1}_id']-1
                 if np.isnan(u):
                     dobreak = True
                     break
+                else:
+                    n_ann += 1
                 if user.loc[u, f'q_{q}'][k] == 1:
                     # k_w[k] += user.loc[annotations.loc[q, f'id_{d}'], 'T_model']
                     k_w[k]  += user.loc[u, 'T_model']
+                    # k_w = [k_w[i] + ((1 - user.loc[u, 'T_model']) / (car - 1)) if i != k else
+                    #     k_w[i] + user.loc[u, 'T_model'] for i in range(car)]
                 else:
-                    k_w = [k_w[i] + ((1 - user.loc[u, 'T_model']) / (car - 1)) if i != k else
-                        k_w[i] for i in range(car)]
+                    k_w[k] += 1-user.loc[u, 'T_model']
+                    # k_w = [k_w[i] + (( user.loc[u, 'T_model']) / (car - 1)) if i != k else
+                    #        k_w[i] + 1-user.loc[u, 'T_model'] for i in range(car)]
             if dobreak:
                 break
 
-        if np.array_equal(k_w, np.zeros(car)):
+        if n_ann==0:
             # annotations.loc[q, 'model'] = np.nan
             model.loc[q] = np.nan
         else:
-            val = (pandas.Series([1 if kwi > 0 else 0 for kwi in k_w]))
+            val = (pandas.Series([1 if (kwi/(n_ann)) > 0.5 else 0 for kwi in k_w]))
             # annotations.loc[q, 2:] = annotations.loc[q, :].astype('object')
             # annotations.loc[q, 'model'] = np.array(val).astype('object')
             model.loc[q] = np.array(val).astype('object')
@@ -152,20 +157,22 @@ def run_em(iterations, car, nQuestions):
         for k in range(car):
             d_w = 0
             dobreak = False
+            n_ann = 0
             for d in range(dup):
                 u = annotations.loc[q, f'anno_{d + 1}_id']-1
                 if np.isnan(u):
                     dobreak = True
                     break
+                else:
+                    n_ann += 1
                 if user.loc[u, f'q_{q}'][k] == 1:
                     d_w += 1.1 # in a tie of 1-0, 1 should be kept
                 else:
                     d_w -= 1
-            if dobreak:
-                break
+
             k_w.append(d_w)
 
-        if k_w == []:
+        if n_ann == 0:
             # annotations.loc[q, 'naive'] = np.nan
             naive.loc[q] = np.nan
         else:
@@ -193,9 +200,10 @@ def run_em(iterations, car, nQuestions):
     [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
 
 
+
 if __name__ == "__main__":
 
-    iterations_list = [3]
+    iterations_list = [2]
 
 
 
