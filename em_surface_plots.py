@@ -76,12 +76,19 @@ def plot_car():
 
 if __name__ == "__main__":
     latexpath = 'C:\\users\\admin\\pacof\\notes\\Papers\\EM for annotations\\figures\\em surface plots\\'
-    iterations_list = [5,10,15,20]
-    iter_select = 5
-    car_list = list(range(2,9))
-    modes = ['uniform']
+
+    iterations_list = [2,3,5]
+    car_list = list(range(3,8))
+    modes = ['uniform', 'gaussian']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
+
+    # iterations_list = [5,10,15,20]
+    iter_select = 5
+    # car_list = list(range(2,9))
+    # modes = ['uniform']
+    # dups = [3,5,7,9]
+    # p_fos = [0.0,0.1,0.2,0.3]
 
     with open('data/em_data.pickle', 'rb') as file:
         em_data = pickle.load(file)

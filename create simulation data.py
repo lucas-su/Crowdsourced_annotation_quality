@@ -138,9 +138,10 @@ if __name__ == "__main__":
 
     # datasets
     iterations_list = [1,2,3,5,7,9]
-    car_list = list(range(2,8))
+    car_list = list(range(3,8))
     modes = ['uniform', 'gaussian']
-    dups = [3,5,7]
+    dups = [3,5,7,9]
+
     p_fos = [0.0,0.1,0.2,0.3]
 
 
