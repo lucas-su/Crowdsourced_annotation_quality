@@ -22,7 +22,7 @@ def plot_duplication_factor():
             ], label='Naive')
             axs[i,j].plot(dups,em_data.loc[
                 (em_data['iterations'] == iter_select) &
-                (em_data['mode'] == 'uniform')&
+                (em_data['mode'] == mode_select)&
                 (em_data['p_fo'] == p_fo) &
                 (em_data['car'] == car),
                 'pc_m'
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # p_fos = [0.3]
     # iterations_list = [5,10,15,20]
     iter_select = 5
-    mode_select = modes[0]
+    mode_select = modes[1]
     # car_list = list(range(2,9))
     # modes = ['uniform']
     # dups = [3,5,7,9]

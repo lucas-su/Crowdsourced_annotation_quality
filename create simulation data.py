@@ -42,6 +42,12 @@ class dist():
             cum += func(*dist[1:])
 
         return cum/self.param.__len__()
+    #
+    # def beta(self, a,b):
+    #     (((self.x)**(a-1))*((1-self.x)**(b-1)))/self.B(a,b)
+    #
+    # def B(self, a,b):
+    #     return
 
     def single(self, prob):
         if prob == 1:
@@ -54,11 +60,10 @@ class dist():
         # beta = 1
         return 1/(beta**(alpha)*math.gamma(alpha))*self.x**(alpha-1)*math.e**(-self.x/beta)
 
-    def beta(self, alpha, beta):
-        # alpha = 13
-        # beta = 13
-        y = (1/max(self.x))*self.x # normalize to entire space instead of 0,1
-        return ((math.gamma(alpha+beta))/(math.gamma(alpha)*math.gamma(beta)))*(y**(alpha-1))*(1-y)**(beta-1)
+    def beta(self, a,b):
+        return (((self.x) ** (a - 1)) * ((1 - self.x) ** (b - 1))) / ((math.gamma(a)*math.gamma(b))/math.gamma(a+b))
+
+        # return ((math.gamma(alpha+beta))/(math.gamma(alpha)*math.gamma(beta)))*(y**(alpha-1))*(1-y)**(beta-1)
 
     def gaussian(self, mu, sd):
         return (math.e ** (-((self.x - mu) ** 2) / 2 * (sd) ** (2))) / sd * math.sqrt(2 * math.pi)
@@ -139,7 +144,7 @@ if __name__ == "__main__":
     # datasets
     iterations_list = [1,2,3,5,7,9]
     car_list = list(range(3,8))
-    modes = ['uniform', 'gaussian']
+    modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
     dups = [3,5,7,9]
 
     p_fos = [0.0,0.1,0.2,0.3]
@@ -152,6 +157,21 @@ if __name__ == "__main__":
                 distribution = dist(param, x)
             elif mode == 'gaussian':
                 param = [["gaussian", 5, 1]]
+                distribution = dist(param, x)
+            elif mode == 'gaussian50_50':
+                param = [["gaussian",2,1],["gaussian",8,1]]
+                distribution = dist(param, x)
+            elif mode == "single0":
+                param = [['single', 0]]
+                distribution = dist(param, x)
+            elif mode == "single1":
+                param = [['single', 1]]
+                distribution = dist(param, x)
+            elif mode == "beta1_3":
+                param = [['beta', 1,3]]
+                distribution = dist(param, x)
+            elif mode == "beta3_1":
+                param = [['beta', 3, 1]]
                 distribution = dist(param, x)
             else:
                 raise ValueError
