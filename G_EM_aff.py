@@ -191,6 +191,22 @@ def run_em(iterations, car, nQuestions):
                'naive': naive.loc[naive.notnull()],
                'model': model.loc[model.notnull()]
                }
+    annotations.insert(4, 'model', model)
+    annotations.insert(5, 'naive', naive)
+    ndict = {}
+    for row in annotations.loc[annotations['naive'].notnull(), ['object_label', 'naive']].iterrows():
+        ndict[row[1][0]] = row[1][1]
+    mdict = {}
+    for row in annotations.loc[annotations['model'].notnull(), ['object_label', 'model']].iterrows():
+        mdict[row[1][0]] = row[1][1]
+
+
+    with open(f'D:\\sunrgbd\\transfer_table_naive_{level}.pickle', 'wb') as file:
+        pickle.dump(ndict, file)
+
+    with open(f'D:\\sunrgbd\\transfer_table_model_{level}.pickle', 'wb') as file:
+        pickle.dump(mdict, file)
+
     with open(f'data/aff_naive_{level}.csv', 'w') as file:
         cw = csv.writer(file)
         cw.writerows(naive.loc[naive.notnull()])

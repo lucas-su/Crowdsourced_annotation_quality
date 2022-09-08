@@ -21,7 +21,9 @@ def sim_answer(users, annotations, u_id, car, q_id, mode):
     if users.loc[u_id].type == "first_only" and mode[:6] !="single":
         ans = 0
     else:
-        ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else random.randint(0,car-1)
+        ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
+            random.choice(list(set(np.arange(0,car)) - set([annotations.loc[q_id,"GT"]])))
+ #random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
     return ans
 
 class dist():

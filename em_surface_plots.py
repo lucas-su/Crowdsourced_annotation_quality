@@ -15,7 +15,7 @@ def plot_duplication_factor():
         for j, p_fo in enumerate(p_fos):
             axs[i,j].plot(dups,em_data.loc[
                 (em_data['iterations'] == iter_select) &
-                (em_data['mode'] == 'uniform')&
+                (em_data['mode'] == mode_select)&
                 (em_data['p_fo'] == p_fo) &
                 (em_data['car'] == car),
                 'pc_n'
@@ -81,20 +81,25 @@ if __name__ == "__main__":
 
     iterations_list = [2,3,5]
     car_list = list(range(3,8))
-    modes = ['uniform', 'gaussian']
+    modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
     # p_fos = [0.3]
     # iterations_list = [5,10,15,20]
     iter_select = 5
-    mode_select = modes[1]
+    mode_select = modes[3]
     # car_list = list(range(2,9))
     # modes = ['uniform']
     # dups = [3,5,7,9]
     # p_fos = [0.0,0.1,0.2,0.3]
 
-    with open('data/em_data_uniform_gaussian.pickle', 'rb') as file:
+    with open('data/em_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle', 'rb') as file:
         em_data = pickle.load(file)
+    dup = 3
+    car = 5
+    p_fo = 0.3
+    with open(f'data/user/user_data_{mode_select}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'rb') as file:
+        user = pickle.load(file)
     plot_car()
     plot_duplication_factor()
 
