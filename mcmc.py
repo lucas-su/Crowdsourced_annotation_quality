@@ -261,10 +261,10 @@ if __name__ == "__main__":
 
     iterations_list = [400]        # iterations of mcmc algorithm
     car_list = list(range(3,8))     # cardinality of the questions
-    # modes = ['uniform', 'gaussian', # modes to cover
-    #          'gaussian50_50', 'single0',
-    #          'single1', 'beta1_3', 'beta3_1']
-    modes = ['single0', 'single1', 'beta1_3', 'beta3_1']
+    modes = ['uniform', 'gaussian', # modes to cover
+             'gaussian50_50', 'single0',
+             'single1', 'beta1_3', 'beta3_1']
+
     # modes = ['single0']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0,0.1,0.2,0.3]       # proportion 'first only' annotators who only ever select the first option
