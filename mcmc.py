@@ -268,8 +268,13 @@ if __name__ == "__main__":
     # modes = ['single0']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0,0.1,0.2,0.3]       # proportion 'first only' annotators who only ever select the first option
-
-
+    resume_mode = False
+    if resume_mode:
+        with open(f'data/mcmc_data_{"_".join(modes)}.pickle', 'rb') as file:
+            mcmc_data = pickle.load(file)
+    else:
+        mcmc_data = pandas.DataFrame(
+            columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'mcmc', 'pc_m', 'pc_n'])
     for iterations in iterations_list:
         for car in car_list:
             for mode in modes:
@@ -283,14 +288,8 @@ if __name__ == "__main__":
                                 f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
                                 'rb') as file:
                             annotations = pickle.load(file)
-                        resume_mode = False
-                        if resume_mode:
-                            with open(f'data/mcmc_data_{"_".join(modes)}.pickle', 'rb') as file:
-                                mcmc_data = pickle.load(file)
 
-                        else:
-                            mcmc_data = pandas.DataFrame(
-                                columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'mcmc', 'pc_m', 'pc_n'])
+
                         user[f'T_prop'] = np.ones(user.__len__())
                         user['a'] = np.ones(user.__len__())
                         user['b'] = np.ones(user.__len__())
