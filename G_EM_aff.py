@@ -38,12 +38,12 @@ class EM():
         else:
 
             num = np.prod([
-                            (n[1]["T_model"] if n[1][f"q_{m}"][k] == 1 else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) * n[1]["T_model"]
+                            (n[1]["T_model"] if n[1][f"q_{m}"][k] == 1 else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) #* n[1]["T_model"]
                            for n in user.loc[[type(i)==np.ndarray for i in user.loc[:,f"q_{m}"]]].iterrows()# user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows() # user.loc[[type(i)=='object' for i in user.loc[:,f"q_{m}"]]         ].iterrows()
                         ])
             denom = sum([
                         np.prod([
-                                (n[1]["T_model"] if n[1][f"q_{m}"][l] == 1 else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K) * n[1]["T_model"]
+                                (n[1]["T_model"] if n[1][f"q_{m}"][l] == 1 else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K) # * n[1]["T_model"]
                                   for n in user.loc[[type(i)==np.ndarray for i in user.loc[:,f"q_{m}"]]].iterrows()
                         ]
                         ) for l in self.L])
@@ -126,7 +126,7 @@ def run_em(iterations, car, nQuestions):
             for d in range(dup):
                 u = annotations.loc[q, f'anno_{d+1}_id']-1
                 if np.isnan(u):
-                    dobreak = True
+                    # dobreak = True
                     break
                 else:
                     n_ann += 1
@@ -139,8 +139,8 @@ def run_em(iterations, car, nQuestions):
                     k_w[k] += 1-user.loc[u, 'T_model']
                     # k_w = [k_w[i] + (( user.loc[u, 'T_model']) / (car - 1)) if i != k else
                     #        k_w[i] + 1-user.loc[u, 'T_model'] for i in range(car)]
-            if dobreak:
-                break
+            # if dobreak:
+            #     break
 
         if n_ann==0:
             # annotations.loc[q, 'model'] = np.nan
@@ -219,7 +219,7 @@ def run_em(iterations, car, nQuestions):
 
 if __name__ == "__main__":
 
-    iterations_list = [2]
+    iterations_list = [5]
 
 
 
@@ -232,7 +232,7 @@ if __name__ == "__main__":
 
 
     ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'EM', 'pc_m', 'pc_n'])
-    level = 'all'
+    level = 'high_low'
     dup = 3
     p_fo = 0
     mode = 'real'

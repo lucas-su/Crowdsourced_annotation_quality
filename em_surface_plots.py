@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # p_fos = [0.3]
     # iterations_list = [5,10,15,20]
     iter_select = 5
-    mode_select = modes[3]
+    mode_select = modes[0]
     # car_list = list(range(2,9))
     # modes = ['uniform']
     # dups = [3,5,7,9]

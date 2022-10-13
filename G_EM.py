@@ -99,12 +99,12 @@ class EM():
         """
 
         num = np.prod([
-                        (n[1]["T_model"] if k == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) * n[1]["T_model"]
+                        (n[1]["T_model"] if k == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) # * p(tn)
                        for n in user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows()
                     ])
         denom = sum([
                     np.prod([
-                            (n[1]["T_model"] if l == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K) * n[1]["T_model"]
+                            (n[1]["T_model"] if l == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K) # * p(tn)
                               for n in user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows()
                     ]
                     ) for l in self.L])
@@ -223,6 +223,7 @@ if __name__ == "__main__":
     iterations_list = [2,3,5]
     car_list = list(range(3,8))
     modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
+    # modes = ['single0']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
 
@@ -262,5 +263,5 @@ if __name__ == "__main__":
                         run_em(iterations, car, nQuestions)
                         with open(f'data/user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'wb') as file:
                             pickle.dump(user, file)
-    with open(f'data/em_data_{"_".join(modes)}.pickle', 'wb') as file:
-        pickle.dump(ems, file)
+                        with open(f'data/em_data_{"_".join(modes)}.pickle', 'wb') as file:
+                            pickle.dump(ems, file)

@@ -22,7 +22,7 @@ def sim_answer(users, annotations, u_id, car, q_id, mode):
         ans = 0
     else:
         ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
-            random.choice(list(set(np.arange(0,car)) - set([annotations.loc[q_id,"GT"]])))
+            random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
  #random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
     return ans
 
@@ -96,7 +96,7 @@ class dist():
 
 if __name__ == "__main__":
 
-    nAnnot = 300
+    nAnnot = 200
     nQuestions = 800
     # car = 5
     # duplication_factor = 3
@@ -146,7 +146,8 @@ if __name__ == "__main__":
     # datasets
     iterations_list = [1,2,3,5,7,9]
     car_list = list(range(3,8))
-    modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
+    # modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
+    modes = ['beta3_1', 'beta1_3']
     dups = [3,5,7,9]
 
     p_fos = [0.0,0.1,0.2,0.3]
@@ -169,8 +170,14 @@ if __name__ == "__main__":
             elif mode == "single1":
                 param = [['single', 1]]
                 distribution = dist(param, x)
+            elif mode == "beta3_4":
+                param = [['beta', 3,4]]
+                distribution = dist(param, x)
+            elif mode == "beta4_3":
+                param = [['beta', 4, 3]]
+                distribution = dist(param, x)
             elif mode == "beta1_3":
-                param = [['beta', 1,3]]
+                param = [['beta', 1, 3]]
                 distribution = dist(param, x)
             elif mode == "beta3_1":
                 param = [['beta', 3, 1]]
@@ -214,6 +221,11 @@ if __name__ == "__main__":
                     if user.__len__() != ulen:
                         print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
                     print(f"saving {car}, {mode}, {dup}, {p_fo}")
+
+                    with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.csv', 'w') as file:
+                        user.to_csv(file)
+                    with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.csv', 'w') as file:
+                        annotation.to_csv(file)
 
                     # save data
                     with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle', 'wb') as file:
