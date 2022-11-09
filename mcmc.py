@@ -17,14 +17,11 @@ OG file:
 https://colab.research.google.com/drive/186F0yeqV_5OpIC4FkjHysEJ0tAiEW6Y-?authuser=1#scrollTo=XTLv7eS2NORn
 """
 import math
-
 import numpy as np
 import pandas, pickle
 from multiprocessing import Pool
 from functools import partial
-import scipy.stats as sps
 from scipy.stats import beta
-
 import time
 
 def timeit(func):
@@ -106,7 +103,6 @@ class mcmc():
         #     (n['T_model'] / self.K)+((1-n['T_model'])/(self.K - 1)) for n in user.loc[~np.isnan(user.loc[:, f"q_{i}"])].iterrows()
         # ])
 
-
         num = np.prod([
                             (n[1]["T_model"] if k == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) * beta.pdf(n[1]["T_model"], n[1]['a'], n[1]['b'])
                            for n in user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows()
@@ -181,6 +177,8 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
 
 
             annotations.loc[:, 'model'] = results
+
+        with Pool(16) as p:
             results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
                                                   (mcmc_data['car'].values == car) &
                                                   (mcmc_data['mode'].values == mode) &
@@ -205,7 +203,7 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
         print(f'GT correct {sum(np.equal(np.array(annotations["model"]), np.array(annotations["GT"])))} out of {annotations.__len__()}')
         # print(sum(user['T_model']))
         print(f"average Tn offset: {np.mean(np.abs(user['T_given']-user['T_model']))}")
-        print(sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0)))
+        print(f"closeness: {sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0))}")
         i += 1
     for q in range(nQuestions):
         k_w = np.zeros(car)
@@ -288,7 +286,6 @@ if __name__ == "__main__":
                                 f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
                                 'rb') as file:
                             annotations = pickle.load(file)
-
 
                         user[f'T_prop'] = np.ones(user.__len__())
                         user['a'] = np.ones(user.__len__())

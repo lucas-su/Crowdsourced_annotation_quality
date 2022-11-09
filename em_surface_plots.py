@@ -93,7 +93,9 @@ if __name__ == "__main__":
     # dups = [3,5,7,9]
     # p_fos = [0.0,0.1,0.2,0.3]
 
-    with open('data/em_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle', 'rb') as file:
+    filepath = 'data/em_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
+    filepath = 'data/mcmc_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
+    with open(filepath, 'rb') as file:
         em_data = pickle.load(file)
     dup = 3
     car = 5
