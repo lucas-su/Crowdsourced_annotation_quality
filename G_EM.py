@@ -28,7 +28,7 @@ class EM():
 
 
     def __init__(self, K):
-        self.N = np.arange(0,user.__len__()) # annotators
+        self.N = user['ID'] # annotators
         self.M = np.arange(0,nQuestions) # questions
         self.L = np.arange(0,K) # given label per question
         self.K = K
