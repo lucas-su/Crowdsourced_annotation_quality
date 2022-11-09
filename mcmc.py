@@ -41,7 +41,7 @@ def timeit(func):
 class mcmc():
 
     def __init__(self, K, iters):
-        self.N = np.arange(0,user.__len__()) # annotators
+        self.N = user['ID'] # annotators
         self.M = np.arange(0,nQuestions) # questions
         self.L = np.arange(0,K) # given label per question
         self.K = K
@@ -92,7 +92,7 @@ class mcmc():
         # qs is a series of the questions answered by this annotator
         # n_eq is the number of times l is equal to lhat
         # returns expected value, alpha and beta
-        qs = user.loc[i, user.iloc[i].notnull()]
+        qs = user.loc[user['ID']==i, user.loc[user['ID']==i, :].notnull().squeeze()].squeeze()
         n_eq = sum(np.equal(np.array(qs[4:-4]),np.array(annotations.loc[[int(i[2:]) for i in qs.index[4:-4]],'model'])))
         return n_eq/qs[4:-4].__len__(), n_eq, qs[4:-4].__len__()-n_eq
 
@@ -111,12 +111,10 @@ class mcmc():
                     np.prod([
                             (n[1]["T_model"] if l == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K)  * beta.pdf(n[1]["T_model"], n[1]['a'], n[1]['b'])
                               for n in user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows()
-
                     ]
                     ) for l in self.L])
 
         y = num/denom
-
         return y
 
     def Gibbs_tn(self, user, annotations, i):
@@ -154,10 +152,10 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
 
     # accepted = []
     # rejected = []
-    acCols = []
-    for n in range(user.__len__()):
-        acCols += [f'n_{n}A', f'n_{n}R']
-    acceptionDF = pandas.DataFrame(columns=acCols)
+    # acCols = []
+    # for n in range(user.__len__()):
+    #     acCols += [f'n_{n}A', f'n_{n}R']
+    # acceptionDF = pandas.DataFrame(columns=acCols)
 
     while i < iterations:
         print("iteration: ", i)
@@ -183,7 +181,7 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
                                                   (mcmc_data['car'].values == car) &
                                                   (mcmc_data['mode'].values == mode) &
                                                   (mcmc_data['dup'].values == dup) &
-                                                  (mcmc_data['p_fo'].values == p_fo), 'mcmc'].values[0].Gibbs_tn, user, annotations), range(user.__len__()))
+                                                  (mcmc_data['p_fo'].values == p_fo), 'mcmc'].values[0].Gibbs_tn, user, annotations), user['ID'])
 
             # T_beta = beta.pdf(results, a,b)*100/sum(beta.pdf(results, a,b))
             # user.loc[:,'T_model']= (T_beta+np.spacing(3))/(1+np.spacing(3))
@@ -257,15 +255,15 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
 
 if __name__ == "__main__":
 
-    iterations_list = [400]        # iterations of mcmc algorithm
+    iterations_list = [500]        # iterations of mcmc algorithm
     car_list = list(range(3,8))     # cardinality of the questions
     modes = ['uniform', 'gaussian', # modes to cover
-             'gaussian50_50', 'single0',
-             'single1', 'beta1_3', 'beta3_1']
+             'single0', 'single1']
 
     # modes = ['single0']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0,0.1,0.2,0.3]       # proportion 'first only' annotators who only ever select the first option
+
     resume_mode = False
     if resume_mode:
         with open(f'data/mcmc_data_{"_".join(modes)}.pickle', 'rb') as file:
