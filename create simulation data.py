@@ -96,8 +96,8 @@ class dist():
 
 if __name__ == "__main__":
 
-    nAnnot = 200
-    nQuestions = 800
+    nAnnot = 50
+    nQuestions = 1000
     # car = 5
     # duplication_factor = 3
     # p_fo = 0.0
@@ -144,14 +144,10 @@ if __name__ == "__main__":
     # distribution = dist(param, x)
 
     # datasets
-    iterations_list = [1,2,3,5,7,9]
     car_list = list(range(3,8))
-    # modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
-    modes = ['beta3_1', 'beta1_3']
+    modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
-
-    p_fos = [0.0,0.1,0.2,0.3]
-
+    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
 
     for car in car_list:
         for mode in modes:
@@ -170,17 +166,20 @@ if __name__ == "__main__":
             elif mode == "single1":
                 param = [['single', 1]]
                 distribution = dist(param, x)
-            elif mode == "beta3_4":
-                param = [['beta', 3,4]]
+            elif mode == "beta3_2":
+                param = [['beta', 3,2]]
                 distribution = dist(param, x)
-            elif mode == "beta4_3":
-                param = [['beta', 4, 3]]
+            elif mode == "beta4_2":
+                param = [['beta', 4, 2]]
                 distribution = dist(param, x)
             elif mode == "beta1_3":
                 param = [['beta', 1, 3]]
                 distribution = dist(param, x)
             elif mode == "beta3_1":
                 param = [['beta', 3, 1]]
+                distribution = dist(param, x)
+            elif mode == "beta2_2":
+                param = [['beta', 2, 2]]
                 distribution = dist(param, x)
             else:
                 raise ValueError

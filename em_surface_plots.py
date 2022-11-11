@@ -87,21 +87,21 @@ if __name__ == "__main__":
     # p_fos = [0.3]
     # iterations_list = [5,10,15,20]
     iter_select = 5
-    mode_select = modes[0]
+    mode_select = modes[3]
     # car_list = list(range(2,9))
     # modes = ['uniform']
     # dups = [3,5,7,9]
     # p_fos = [0.0,0.1,0.2,0.3]
 
     filepath = 'data/em_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
-    filepath = 'data/mcmc_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
+    # filepath = 'data/mcmc_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
     with open(filepath, 'rb') as file:
         em_data = pickle.load(file)
     dup = 3
     car = 5
     p_fo = 0.3
-    with open(f'data/user/user_data_{mode_select}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'rb') as file:
-        user = pickle.load(file)
+    # with open(f'data/user/user_data_{mode_select}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'rb') as file:
+    #     user = pickle.load(file)
     plot_car()
     plot_duplication_factor()
 

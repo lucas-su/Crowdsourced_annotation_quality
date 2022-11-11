@@ -21,8 +21,7 @@ import numpy as np
 import pandas, pickle
 from multiprocessing import Pool
 from functools import partial
-import pprint
-
+from scipy.stats import beta
 
 class EM():
 
@@ -99,12 +98,12 @@ class EM():
         """
 
         num = np.prod([
-                        (n[1]["T_model"] if k == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) # * p(tn)
+                        (n[1]["T_model"] if k == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) * beta.pdf(n[1]["T_model"], n[1]['a'], n[1]['b'])
                        for n in user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows()
                     ])
         denom = sum([
                     np.prod([
-                            (n[1]["T_model"] if l == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K) # * p(tn)
+                            (n[1]["T_model"] if l == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K) * beta.pdf(n[1]["T_model"], n[1]['a'], n[1]['b'])
                               for n in user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows()
                     ]
                     ) for l in self.L])
@@ -167,6 +166,14 @@ def run_em(iterations, car, nQuestions):
         #     user.loc[ann, f"t_weight_{i}"] = m.step(g, user.iloc[ann], nQuestions)
         user.loc[:, "T_model"] = results
         user.loc[:, f"t_weight_{i}"] = results
+
+        for id in user["ID"]:
+            qs = user.loc[user['ID'] == id, user.loc[user['ID'] == id, :].notnull().squeeze()].squeeze()
+            n_eq = sum(
+                np.equal(np.array(qs[4:-4]), np.array(annotations.loc[[int(i[2:]) for i in qs.index[4:-4]], 'model'])))
+            user.loc[id, 'a']= n_eq + np.spacing(0)
+            user.loc[id, 'b']= qs[4:-4].__len__() - n_eq + np.spacing(0)
+
         i += 1
     for q in range(nQuestions):
         k_w = np.zeros(car)
@@ -220,7 +227,8 @@ def run_em(iterations, car, nQuestions):
 
 if __name__ == "__main__":
 
-    iterations_list = [2,3,5]
+    # iterations_list = [2,3,5,50]
+    iterations_list = [50]
     car_list = list(range(3,8))
     modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
     # modes = ['single0']
@@ -256,12 +264,13 @@ if __name__ == "__main__":
                             user[f't_weight_{i}'] = np.ones(
                                 user.__len__()) * 0.5  # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
                         user['included'] = np.ones(user.__len__())
-
+                        user['a'] = np.ones(user.__len__())
+                        user['b'] = np.ones(user.__len__())
                         # nAnnot = user.__len__()
                         nQuestions = annotations.__len__()
                         ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
                         run_em(iterations, car, nQuestions)
-                        with open(f'data/user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'wb') as file:
+                        with open(f'data/em_user_it-{iterations}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'wb') as file:
                             pickle.dump(user, file)
                         with open(f'data/em_data_{"_".join(modes)}.pickle', 'wb') as file:
                             pickle.dump(ems, file)
