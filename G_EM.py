@@ -170,9 +170,9 @@ def run_em(iterations, car, nQuestions):
         for id in user["ID"]:
             qs = user.loc[user['ID'] == id, user.loc[user['ID'] == id, :].notnull().squeeze()].squeeze()
             n_eq = sum(
-                np.equal(np.array(qs[4:-4]), np.array(annotations.loc[[int(i[2:]) for i in qs.index[4:-4]], 'model'])))
+                np.equal(np.array(qs[4:-iterations-4]), np.array(annotations.loc[[int(i[2:]) for i in qs.index[4:-iterations-4]], 'model'])))
             user.loc[id, 'a']= n_eq + np.spacing(0)
-            user.loc[id, 'b']= qs[4:-4].__len__() - n_eq + np.spacing(0)
+            user.loc[id, 'b']= qs[4:-iterations-4].__len__() - n_eq + np.spacing(0)
 
         i += 1
     for q in range(nQuestions):
