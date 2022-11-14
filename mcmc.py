@@ -127,8 +127,11 @@ class mcmc():
 
 
     def Gibbs_lhat(self, user, annotations, i):
-        p = [self.p_lhat_k(user, annotations, i, k) for k in self.L]
-        return np.random.choice(self.K, p=p)
+        if annotations.loc[i, 'KG'] == True:
+            return annotations.loc[i, 'GT']
+        else:
+            p = [self.p_lhat_k(user, annotations, i, k) for k in self.L]
+            return np.random.choice(self.K, p=p)
 
 
     def MH(self, user, annotations, n):
@@ -260,6 +263,7 @@ if __name__ == "__main__":
     modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]       # proportion 'first only' annotators who only ever select the first option
+    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
 
     resume_mode = False
     if resume_mode:
@@ -273,32 +277,33 @@ if __name__ == "__main__":
             for mode in modes:
                 for dup in dups:
                     for p_fo in p_fos:
-                        # open dataset for selected parameters
-                        with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle',
-                                  'rb') as file:
-                            user = pickle.load(file)
-                        with open(
-                                f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
-                                'rb') as file:
-                            annotations = pickle.load(file)
+                        for p_kg in p_kgs:
+                            # open dataset for selected parameters
+                            with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle',
+                                      'rb') as file:
+                                user = pickle.load(file)
+                            with open(
+                                    f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
+                                    'rb') as file:
+                                annotations = pickle.load(file)
+                            annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
+                            user[f'T_prop'] = np.ones(user.__len__())
+                            user['a'] = np.ones(user.__len__())
+                            user['b'] = np.ones(user.__len__())
+                            ucols = []
+                            for i in range(iterations):
+                                ucols += [f't_weight_{i}']
+                            weights = pandas.DataFrame(np.ones((user.__len__(),iterations))*0.5, columns= ucols)
+                            pandas.concat((user, weights) )
+                            user['included'] = np.ones(user.__len__())
+                            nQuestions = annotations.__len__()
+                            mcmc_data.loc[mcmc_data.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
 
-                        user[f'T_prop'] = np.ones(user.__len__())
-                        user['a'] = np.ones(user.__len__())
-                        user['b'] = np.ones(user.__len__())
-                        ucols = []
-                        for i in range(iterations):
-                            ucols += [f't_weight_{i}']
-                        weights = pandas.DataFrame(np.ones((user.__len__(),iterations))*0.5, columns= ucols)
-                        pandas.concat((user, weights) )
-                        user['included'] = np.ones(user.__len__())
-                        nQuestions = annotations.__len__()
-                        mcmc_data.loc[mcmc_data.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
-
-                        run_mcmc(iterations, car, nQuestions, user, annotations)
-                        with open(f'data/mcmc_user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
-                            pickle.dump(user, file)
-                        with open(f'data/mcmc_data_{"_".join(modes)}.pickle', 'wb') as file:
-                            pickle.dump(mcmc_data, file)
+                            run_mcmc(iterations, car, nQuestions, user, annotations)
+                            with open(f'data/mcmc_user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
+                                pickle.dump(user, file)
+                            with open(f'data/mcmc_data_{"_".join(modes)}.pickle', 'wb') as file:
+                                pickle.dump(mcmc_data, file)
 
 
 

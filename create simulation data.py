@@ -149,6 +149,7 @@ if __name__ == "__main__":
     dups = [3,5,7,9]
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
 
+
     for car in car_list:
         for mode in modes:
             if mode == 'uniform':
