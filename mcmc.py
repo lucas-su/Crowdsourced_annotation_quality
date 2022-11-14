@@ -300,7 +300,7 @@ if __name__ == "__main__":
                             mcmc_data.loc[mcmc_data.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
 
                             run_mcmc(iterations, car, nQuestions, user, annotations)
-                            with open(f'data/mcmc_user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
+                            with open(f'data/mcmc_user_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
                                 pickle.dump(user, file)
                             with open(f'data/mcmc_data_{"_".join(modes)}.pickle', 'wb') as file:
                                 pickle.dump(mcmc_data, file)

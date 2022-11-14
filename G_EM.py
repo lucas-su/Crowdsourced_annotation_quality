@@ -277,7 +277,7 @@ if __name__ == "__main__":
                             nQuestions = annotations.__len__()
                             ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
                             run_em(iterations, car, nQuestions)
-                            with open(f'data/em_user_it-{iterations}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'wb') as file:
+                            with open(f'data/em_user_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
                                 pickle.dump(user, file)
                             with open(f'data/em_data_{"_".join(modes)}.pickle', 'wb') as file:
                                 pickle.dump(ems, file)
