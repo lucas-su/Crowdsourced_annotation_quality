@@ -229,7 +229,7 @@ if __name__ == "__main__":
 
     iterations_list = [2,3,5,50]
     car_list = list(range(2,8))
-    modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
+    modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
     p_fos = [0.0,0.1,0.2,0.3]
 

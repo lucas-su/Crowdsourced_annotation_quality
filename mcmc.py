@@ -256,11 +256,8 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
 if __name__ == "__main__":
 
     iterations_list = [500]        # iterations of mcmc algorithm
-    car_list = list(range(3,8))     # cardinality of the questions
-    modes = ['uniform', 'gaussian', # modes to cover
-             'single0', 'single1']
-
-    # modes = ['single0']
+    car_list = list(range(2,8))     # cardinality of the questions
+    modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0,0.1,0.2,0.3]       # proportion 'first only' annotators who only ever select the first option
 
