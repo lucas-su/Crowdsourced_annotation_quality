@@ -238,8 +238,8 @@ if __name__ == "__main__":
     modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-    p_kgs = [0.25]
+    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    # p_kgs = [0.25]
 
     # iterations = 2     # iterations of EM algo
     # car = 5
