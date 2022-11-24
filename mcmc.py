@@ -24,18 +24,18 @@ from functools import partial
 from scipy.stats import beta
 import time
 
-def timeit(func):
-    """
-    Decorator for measuring function's running time.
-    """
-    def measure_time(*args, **kw):
-        start_time = time.time()
-        result = func(*args, **kw)
-        print("Processing time of %s(): %.2f seconds."
-              % (func.__qualname__, time.time() - start_time))
-        return result
-
-    return measure_time
+# def timeit(func):
+#     """
+#     Decorator for measuring function's running time.
+#     """
+#     def measure_time(*args, **kw):
+#         start_time = time.time()
+#         result = func(*args, **kw)
+#         print("Processing time of %s(): %.2f seconds."
+#               % (func.__qualname__, time.time() - start_time))
+#         return result
+#
+#     return measure_time
 
 
 class mcmc():
@@ -46,24 +46,11 @@ class mcmc():
         self.L = np.arange(0,K) # given label per question
         self.K = K
         self.cm = K-1 # -1 because there's one good answer and the rest is wrong
-        self.gamma_ = pandas.DataFrame(columns=[i for i in range(K)])
+        # self.gamma_ = pandas.DataFrame(columns=[i for i in range(K)])
         self.iterations= iters
 
-    # def transition_model(self, gamma, user):
-    #     #     \sum_n \sum_m \sum_k \gamma_m(k) I[\label_{nm}=k]\ln t_n + I[\label_{nm}\neq k] \ln (1-t_n)/c_m
-    #     y = sum([
-    #         sum([
-    #             sum([gamma.iloc[m, k] * (np.log(n[1]["T_model"]) if k == n[1][f"q_{m}"] else (np.log(1 - n[1]["T_model"])/ self.cm))
-    #
-    #                  for k in range(self.K)])
-    #
-    #             for m in self.M])
-    #
-    #         for n in user.iterrows()])
-    #
-    #     return y
-    def transition_model(self,x):
-        return np.random.normal(x, 0.3, (1,))[0]
+    # def transition_model(self,x):
+    #     return np.random.normal(x, 0.3, (1,))[0]
 
 
     def prior(self,tn):
@@ -74,17 +61,17 @@ class mcmc():
             return 1
         return np.spacing(0) # use spacing instead of 0 to prevent divide by zero
 
-    def acceptance(self, x, x_new):
-        if x_new > x:
-            return True
-        else:
-            # Since we did a log likelihood, we need to exponentiate in order to compare to the random number
-            # less likely x_new are less likely to be accepted
-            return (np.random.uniform(0, 1) < (np.exp(x_new - x)))
+    # def acceptance(self, x, x_new):
+    #     if x_new > x:
+    #         return True
+    #     else:
+    #         # Since we did a log likelihood, we need to exponentiate in order to compare to the random number
+    #         # less likely x_new are less likely to be accepted
+    #         return (np.random.uniform(0, 1) < (np.exp(x_new - x)))
 
 
-    def gamma(self, x, a, b):
-        return (math.gamma(a + b)*x**(a-1)*(1-x)**(b-1)) / (math.gamma(a) * math.gamma(b))
+    # def gamma(self, x, a, b):
+    #     return (math.gamma(a + b)*x**(a-1)*(1-x)**(b-1)) / (math.gamma(a) * math.gamma(b))
 
     def p_tn(self, user, annotations, i):
 
@@ -134,23 +121,24 @@ class mcmc():
             return np.random.choice(self.K, p=p)
 
 
-    def MH(self, user, annotations, n):
-        # n is a single row of user df
-
-        x_new = self.transition_model(n[1]['T_model'])
-        x_lik = self.p_D_theta(user, annotations, n, n[1]['T_model'])
-        x_new_lik = self.p_D_theta(user, annotations, n, x_new)
-        if self.acceptance(x_lik + np.log(self.prior(n[1]['T_model'])), x_new_lik + np.log(self.prior(x_new))):
-            return 1, x_new, n[1]['T_model']
-        else:
-            return 0, x_new, n[1]['T_model']
+    # def MH(self, user, annotations, n):
+    #     # n is a single row of user df
+    #
+    #     x_new = self.transition_model(n[1]['T_model'])
+    #     x_lik = self.p_D_theta(user, annotations, n, n[1]['T_model'])
+    #     x_new_lik = self.p_D_theta(user, annotations, n, x_new)
+    #     if self.acceptance(x_lik + np.log(self.prior(n[1]['T_model'])), x_new_lik + np.log(self.prior(x_new))):
+    #         return 1, x_new, n[1]['T_model']
+    #     else:
+    #         return 0, x_new, n[1]['T_model']
 
 def run_mcmc(iterations, car, nQuestions, user, annotations):
     mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
                   (mcmc_data['car'].values == car) &
                   (mcmc_data['mode'].values == mode) &
                   (mcmc_data['dup'].values == dup) &
-                  (mcmc_data['p_fo'].values == p_fo), 'mcmc'] = mcmc(car, iterations)
+                  (mcmc_data['p_fo'].values == p_fo) &
+                  (mcmc_data['p_kg'].values == p_kg), 'mcmc'] = mcmc(car, iterations)
     i = 0
 
     # accepted = []
@@ -174,7 +162,8 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
                                                   (mcmc_data['car'].values == car) &
                                                   (mcmc_data['mode'].values == mode) &
                                                   (mcmc_data['dup'].values == dup) &
-                                                  (mcmc_data['p_fo'].values == p_fo), 'mcmc'].values[0].Gibbs_lhat, user, annotations), range(annotations.__len__()))
+                                                  (mcmc_data['p_fo'].values == p_fo) &
+                                                  (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_lhat, user, annotations), range(annotations.__len__()))
 
 
             annotations.loc[:, 'model'] = results
@@ -184,7 +173,8 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
                                                   (mcmc_data['car'].values == car) &
                                                   (mcmc_data['mode'].values == mode) &
                                                   (mcmc_data['dup'].values == dup) &
-                                                  (mcmc_data['p_fo'].values == p_fo), 'mcmc'].values[0].Gibbs_tn, user, annotations), user['ID'])
+                                                  (mcmc_data['p_fo'].values == p_fo) &
+                                                  (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_tn, user, annotations), user['ID'])
 
             # T_beta = beta.pdf(results, a,b)*100/sum(beta.pdf(results, a,b))
             # user.loc[:,'T_model']= (T_beta+np.spacing(3))/(1+np.spacing(3))
@@ -240,25 +230,30 @@ def run_mcmc(iterations, car, nQuestions, user, annotations):
                   (mcmc_data['car'].values == car) &
                   (mcmc_data['mode'].values == mode) &
                   (mcmc_data['dup'].values == dup) &
-                  (mcmc_data['p_fo'].values == p_fo), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
+                  (mcmc_data['p_fo'].values == p_fo) &
+                  (mcmc_data['p_kg'].values == p_kg), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
     mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
                   (mcmc_data['car'].values == car) &
                   (mcmc_data['mode'].values == mode) &
                   (mcmc_data['dup'].values == dup) &
-                  (mcmc_data['p_fo'].values == p_fo), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
+                  (mcmc_data['p_fo'].values == p_fo) &
+                  (mcmc_data['p_kg'].values == p_kg), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
+
     summary = {"Mode": mode,
                "Cardinality": car,
                "Iterations": iterations,
                "Duplication factor": dup,
                "Proportion 'first only'": p_fo,
+               "Proportion 'known good'": p_kg,
                "Percentage correct modelled": 100 * (1 - (diff_m_cnt / nQuestions)),
                "Percentage correct naive": 100 * (1 - (diff_n_cnt / nQuestions))}
+
     [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
 
 
 if __name__ == "__main__":
 
-    iterations_list = [500]        # iterations of mcmc algorithm
+    iterations_list = [5,20]        # iterations of mcmc algorithm
     car_list = list(range(2,8))     # cardinality of the questions
     modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]                # duplication factor of the annotators
@@ -271,7 +266,7 @@ if __name__ == "__main__":
             mcmc_data = pickle.load(file)
     else:
         mcmc_data = pandas.DataFrame(
-            columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'mcmc', 'pc_m', 'pc_n'])
+            columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'mcmc', 'pc_m', 'pc_n'])
     for iterations in iterations_list:
         for car in car_list:
             for mode in modes:
@@ -297,10 +292,10 @@ if __name__ == "__main__":
                             pandas.concat((user, weights) )
                             user['included'] = np.ones(user.__len__())
                             nQuestions = annotations.__len__()
-                            mcmc_data.loc[mcmc_data.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
+                            mcmc_data.loc[mcmc_data.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, None, 0, 0]
 
                             run_mcmc(iterations, car, nQuestions, user, annotations)
-                            with open(f'data/mcmc_user_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
+                            with open(f'data/mcmc_user_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_iters-{iterations}.pickle', 'wb') as file:
                                 pickle.dump(user, file)
                             with open(f'data/mcmc_data_{"_".join(modes)}.pickle', 'wb') as file:
                                 pickle.dump(mcmc_data, file)

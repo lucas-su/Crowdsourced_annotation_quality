@@ -55,30 +55,6 @@ class EM():
         categorical = np.reshape(categorical, output_shape)
         return categorical
 
-    def gamma_vectorized(self, m, k):
-        """
-        responsibilities implemented in vectorized manner to speed up processing, not done yet
-        :param m:
-        :param k:
-        :return:
-        """
-        pass
-        # n_Am_k = to_cat(user.loc[:,[f'q_{i}' for i in range(k)]]) # select question answered matrix and make categorical tensor from user table
-        # n_am_k_inv = 1- n_Am_k
-        #
-        # tn_k = np.tile(user.loc[:,"t_model"],k)
-        # tn_k_inv = (1-tn_k)/self.cm
-        #
-        # term1 = np.multiply(n_Am_k, tn_k)
-        # term2 = np.multiply(n_am_k_inv, tn_k_inv)
-        #
-        # factor1 = np.add(term1,term2) # n x m x k
-        # (factor1 / self.cm * (1 / self.K))
-        #
-        # denom = sum(np.prod((factor1 / self.cm * (1 / self.K)), axis=0).__array__(), axis=1) # vector of k?
-        #
-        # num =
-
 
     def gamma(self, k, user, annotations, m):
         """
@@ -153,7 +129,8 @@ def run_em(iterations, car, nQuestions):
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'EM'] = EM(car)
+            (ems['p_fo'].values == p_fo) &
+            (ems['p_kg'].values == p_kg), 'EM'] = EM(car)
     i = 0
     while i < iterations:
         print("iteration: ", i)
@@ -161,13 +138,15 @@ def run_em(iterations, car, nQuestions):
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'EM'].values[0].e_step()
+            (ems['p_fo'].values == p_fo) &
+            (ems['p_kg'].values == p_kg), 'EM'].values[0].e_step()
         with Pool(16) as p:
             results = p.map(partial(ems.loc[(ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'EM'].values[0].m_step, g, nQuestions, car), user.iterrows())
+            (ems['p_fo'].values == p_fo) &
+            (ems['p_kg'].values == p_kg), 'EM'].values[0].m_step, g, nQuestions, car), user.iterrows())
         # for ann in user.ID:
         #     user.loc[ann, f"t_weight_{i}"] = m.step(g, user.iloc[ann], nQuestions)
         user.loc[:, "T_model"] = results
@@ -215,17 +194,20 @@ def run_em(iterations, car, nQuestions):
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
+            (ems['p_fo'].values == p_fo) &
+            (ems['p_kg'].values == p_kg), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
     ems.loc[(ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
+            (ems['p_fo'].values == p_fo) &
+            (ems['p_kg'].values == p_kg), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
     summary = {"Mode": mode,
                "Cardinality": car,
                "Iterations": iterations,
                "Duplication factor": dup,
                "Proportion 'first only'": p_fo,
+               "Proportion 'known good'": p_kg,
                "Percentage correct modelled": 100 * (1 - (diff_m_cnt / nQuestions)),
                "Percentage correct naive": 100 * (1 - (diff_n_cnt / nQuestions))}
     [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
@@ -233,23 +215,14 @@ def run_em(iterations, car, nQuestions):
 
 if __name__ == "__main__":
 
-    iterations_list = [2,3,5,50]
+    iterations_list = [5,20]
     car_list = list(range(2,8))
     modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
     p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-    # p_kgs = [0.25]
 
-    # iterations = 2     # iterations of EM algo
-    # car = 5
-    # mode = "uniform"    # data modes, options: real, single0 (perfectly bad trustworthiness), single1 (perfect trustworthiness), uniform, gaussian (all except real are simulated)
-    # dup = 3             # duplication factor, determines which premade simulation dataset to use
-    # p_fo = 0.0          # proportion 'first only' annotators, who are lazy and only ever click the first option
-    ###############################
-
-
-    ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'EM', 'pc_m', 'pc_n'])
+    ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'EM', 'pc_m', 'pc_n'])
     for iterations in iterations_list:
         for car in car_list:
             for mode in modes:
@@ -264,7 +237,6 @@ if __name__ == "__main__":
                                     f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
                                     'rb') as file:
                                 annotations = pickle.load(file)
-                            # car = annotations.loc[:,np.concatenate([[f'annot_{i}'] for i in range(dup)])].values.max()+1
                             # init user weights at 1
                             for i in range(iterations + 1):
                                 user[f't_weight_{i}'] = np.ones(
@@ -275,7 +247,7 @@ if __name__ == "__main__":
                             user['b'] = np.ones(user.__len__())
                             # nAnnot = user.__len__()
                             nQuestions = annotations.__len__()
-                            ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
+                            ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, None, 0, 0]
                             run_em(iterations, car, nQuestions)
                             with open(f'data/em_user_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
                                 pickle.dump(user, file)

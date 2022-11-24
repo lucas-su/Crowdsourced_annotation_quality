@@ -6,104 +6,235 @@ import pandas
 from matplotlib import cm
 import numpy as np
 from G_EM import EM
-
+from mcmc import mcmc
+from matplotlib.widgets import Slider, Button
 from mpl_toolkits.mplot3d.axes3d import get_test_data
 
-def plot_duplication_factor():
-    fig, axs = plt.subplots(car_list.__len__(), p_fos.__len__(), sharex=True, sharey=True)
-    for i, car in enumerate(car_list):
-        for j, p_fo in enumerate(p_fos):
-            axs[i,j].plot(dups,em_data.loc[
-                (em_data['iterations'] == iter_select) &
-                (em_data['mode'] == mode_select)&
-                (em_data['p_fo'] == p_fo) &
-                (em_data['car'] == car),
-                'pc_n'
-            ], label='Naive')
-            axs[i,j].plot(dups,em_data.loc[
-                (em_data['iterations'] == iter_select) &
-                (em_data['mode'] == mode_select)&
-                (em_data['p_fo'] == p_fo) &
-                (em_data['car'] == car),
-                'pc_m'
-            ], label='Modelled')
-            axs[i,j].set_title(f'car={car}, p_fo={p_fo}')
-            if i == car_list.__len__()-1:
-                axs[i,j].set_xlabel('Annotator duplication factor')
-                if j == p_fos.__len__()-1:
-                    axs[i,j].legend(loc='lower left', bbox_to_anchor=(1, -0.08, 1, 1))
-            if j == 0:
-                axs[i, j].set_ylabel('Prop. correct')
-    plt.subplots_adjust(hspace=0.4)
-    fig = plt.gcf()
-    fig.set_size_inches(15, 10)
-    # plt.savefig(latexpath + 'dup_factor.png', dpi=200)
-    plt.show()
 
-def plot_car():
-    fig, axs = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
+class plots():
+    def __init__(self, model):
+        self.figcar, self.axscar = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
+        self.figdups, self.axsdups = plt.subplots(car_list.__len__(), p_fos.__len__(), sharex=True, sharey=True)
 
-    for i, dup in enumerate(dups):
-        for j, p_fo in enumerate(p_fos):
-            axs[i,j].plot(car_list,em_data.loc[
-                (em_data['iterations'] == iter_select) &
-                pandas.Series([item in car_list for item in em_data['car']]) &
-                (em_data['mode'] == mode_select) &
-                (em_data['p_fo'] == p_fo) &
-                (em_data['dup'] == dup),
-                'pc_n'
-            ], label='Naive')
-            axs[i,j].plot(car_list,em_data.loc[
-                (em_data['iterations'] == iter_select) &
-                pandas.Series([item in car_list for item in em_data['car']]) &
-                (em_data['mode'] == mode_select)&
-                (em_data['p_fo'] == p_fo) &
-                (em_data['dup'] == dup),
-                'pc_m'
-            ], label='Modelled')
-            axs[i,j].set_title(f'dup={dup}, p_fo={p_fo}')
-            if i == dups.__len__()-1:
-                axs[i,j].set_xlabel('Cardinality')
-                if j == p_fos.__len__()-1:
-                    axs[i,j].legend(loc='lower left', bbox_to_anchor=(1, -0.04, 1, 1))
-            if j == 0:
-                axs[i, j].set_ylabel('Proportion correct')
-    plt.subplots_adjust(hspace=0.4)
-    fig = plt.gcf()
-    fig.set_size_inches(15, 10)
-    # plt.savefig(latexpath + 'cardinality_plot.png', dpi=200)
-    plt.show()
+    def plot_duplication_factor(self):
+        for i, car in enumerate(car_list):
+            for j, p_fo in enumerate(p_fos):
+                self.axsdups[i,j].plot(dups,em_data.loc[
+                    (em_data['iterations'] == iterations) &
+                    (em_data['mode'] == mode) &
+                    (em_data['p_fo'] == p_fo) &
+                    (em_data['p_kg'] == p_kg) &
+                    (em_data['car'] == car),
+                    'pc_n'
+                ], label='Naive')
+                self.axsdups[i,j].plot(dups,em_data.loc[
+                    (em_data['iterations'] == iterations) &
+                    (em_data['mode'] == mode) &
+                    (em_data['p_fo'] == p_fo) &
+                    (em_data['p_kg'] == p_kg) &
+                    (em_data['car'] == car),
+                    'pc_m'
+                ], label='Modelled')
+                self.axsdups[i,j].set_title(f'car={car}, p_fo={p_fo}')
+                if i == car_list.__len__()-1:
+                    self.axsdups[i,j].set_xlabel('Annotator duplication factor')
+                    if j == p_fos.__len__()-1:
+                        self.axsdups[i,j].legend(loc='lower left', bbox_to_anchor=(1, -0.08, 1, 1))
+                if j == 0:
+                    self.axsdups[i, j].set_ylabel('Prop. correct')
+
+    def plot_car(self):
+        print(p_kg)
+        for i, dup in enumerate(dups):
+            for j, p_fo in enumerate(p_fos):
+                self.axscar[i,j].plot(car_list,em_data.loc[
+                    (em_data['iterations'] == iterations) &
+                    pandas.Series([item in car_list for item in em_data['car']]) &
+                    (em_data['mode'] == mode) &
+                    (em_data['p_fo'] == p_fo) &
+                    (em_data['p_kg'] == p_kg) &
+                    (em_data['dup'] == dup),
+                    'pc_n'
+                ], label='Naive')
+                self.axscar[i,j].plot(car_list,em_data.loc[
+                    (em_data['iterations'] == iterations) &
+                    pandas.Series([item in car_list for item in em_data['car']]) &
+                    (em_data['mode'] == mode)&
+                    (em_data['p_fo'] == p_fo) &
+                    (em_data['p_kg'] == p_kg) &
+                    (em_data['dup'] == dup),
+                    'pc_m'
+                ], label='Modelled')
+                self.axscar[i,j].set_title(f'dup={dup}, p_fo={p_fo}')
+                if i == dups.__len__()-1:
+                    self.axscar[i,j].set_xlabel('Cardinality')
+                    if j == p_fos.__len__()-1:
+                        self.axscar[i,j].legend(loc='lower left', bbox_to_anchor=(1, -0.04, 1, 1))
+                if j == 0:
+                    self.axscar[i, j].set_ylabel('Proportion correct')
+        # plt.subplots_adjust(hspace=0.4)
+
+    def plot_interactive(self):
+
+
+        self.plot_car()
+        self.figcar.subplots_adjust(left=0.25, bottom=0.25)
+
+        axiter = self.figcar.add_axes([0.15, 0.25, 0.0225, 0.63])
+
+        def getIterSlider(val):
+            iter_slider = Slider(
+                ax=axiter,
+                label="iters",
+                valmin=0,
+                valmax=iterations_list[-1],
+                valinit=val,
+                valstep=iterations_list,
+                orientation="vertical"
+            )
+            return iter_slider
+
+        iter_slider = getIterSlider(iterations_list[0])
+
+        # Make a vertically oriented slider to control the amplitude
+        axpkg = self.figcar.add_axes([0.1, 0.25, 0.0225, 0.63])
+
+        def getKGSlider(val):
+            pkg_slider = Slider(
+                ax=axpkg,
+                label="prop known good",
+                valmin=0,
+                valmax= p_kgs[-1],
+                valinit= val,
+                valstep= p_kgs,
+                orientation="vertical"
+            )
+            return pkg_slider
+        pkg_slider = getKGSlider(p_kgs[0])
+
+        axmode = self.figcar.add_axes([0.05, 0.25, 0.0225, 0.63])
+
+        modeindex = range(modes.__len__())
+        def getModeSlider(val):
+            mode_slider = Slider(
+                ax=axmode,
+                label=f"Mode {modes[val]}",
+                valmin=0,
+                valmax= modeindex[-1],
+                valinit= val,
+                valstep= modeindex,
+                orientation="vertical"
+            )
+            return mode_slider
+        mode_slider = getModeSlider(modeindex[0])
+
+        def updatepkg(val):
+            global p_kg
+            global pkg_slider
+            p_kg = val
+            # self.figcar.clear()
+            # plt.cla()
+            for row in self.axscar:
+                for col in row:
+                    col.clear()
+            axpkg.clear()
+            self.plot_car()
+            pkg_slider = getKGSlider(val)
+            plt.show()
+
+        def updatemode(val):
+            global mode
+            global mode_slider
+            mode = modes[val]
+            # self.figcar.clear()
+            # plt.cla()
+            for row in self.axscar:
+                for col in row:
+                    col.clear()
+            axmode.clear()
+            self.plot_car()
+            mode_slider = getModeSlider(val)
+            plt.show()
+
+        def updateiter(val):
+            global iterations
+            global iter_slider
+            iterations = val
+            # self.figcar.clear()
+            # plt.cla()
+            for row in self.axscar:
+                for col in row:
+                    col.clear()
+            axiter.clear()
+            self.plot_car()
+            iter_slider = getIterSlider(val)
+            plt.show()
+
+        # register the update function with each slider
+
+        pkg_slider.on_changed(updatepkg)
+        mode_slider.on_changed(updatemode)
+        iter_slider.on_changed(updateiter)
+
+        plt.show()
 
 if __name__ == "__main__":
-    latexpath = 'C:\\users\\admin\\pacof\\notes\\Papers\\EM for annotations\\figures\\em surface plots\\'
+    model = "em"  # options "em" or "mcmc"
+    latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\{model} surface plots\\'
 
+    if model == "mcmc":
+        iterations_list = [500]
+        car_list = [2] # so far only 2 has been done.....
+    else:
+        iterations_list = [2,3,5,50]
+        car_list = list(range(2, 8))
 
-
-    iterations_list = [2,3,5]
-    car_list = list(range(3,8))
-    modes = ['uniform', 'gaussian', 'gaussian50_50', 'single0', 'single1', 'beta1_3', 'beta3_1']
+    modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
-    p_fos = [0.0,0.1,0.2,0.3]
-    # p_fos = [0.3]
-    # iterations_list = [5,10,15,20]
-    iter_select = 5
-    mode_select = modes[3]
-    # car_list = list(range(2,9))
-    # modes = ['uniform']
-    # dups = [3,5,7,9]
-    # p_fos = [0.0,0.1,0.2,0.3]
+    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
 
-    filepath = 'data/em_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
+    plot = plots(model)
+    filepath = f'data/modelled/{model}_data_{"_".join(modes)}.pickle'
     # filepath = 'data/mcmc_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
+
     with open(filepath, 'rb') as file:
         em_data = pickle.load(file)
-    dup = 3
-    car = 5
-    p_fo = 0.3
-    # with open(f'data/user/user_data_{mode_select}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'rb') as file:
-    #     user = pickle.load(file)
-    plot_car()
-    plot_duplication_factor()
+
+    if model == "mcmc":
+        em_data["p_kg"] = (p_kgs * 162) + [0.0, 0.05, 0.1, 0.15, 0.2]
+    else:
+        em_data["p_kg"] = (p_kgs * 3804) + [0.0, 0.05, 0.1, 0.15]
+
+    # inits
+    p_kg = p_kgs[0]
+    mode = modes[0]
+    iterations = iterations_list[0]
+
+    plot.plot_interactive()
+
+
+    # for iterations in iterations_list:
+    #     for car in car_list:
+    #         for mode in modes:
+    #             for p_kg in p_kgs:
+
+
+                    #
+
+                    # plt = plot_car(figdups, axsdups)
+                    # figdups.set_size_inches(15, 10)
+                    # plt.show()
+                    # plt.savefig(latexpath + f'carplot_{model}_p_kg-{p_kg}_data_{mode}_iters-{iterations}.png', dpi=200)
+                    # plt.cla()
+                    #
+                    #
+                    # plt = plot_duplication_factor(figcar, axscar)
+                    # plt.subplots_adjust(hspace=0.4)
+                    # # fig = plt.gcf()
+                    # figcar.set_size_inches(15, 10)
+                    # plt.savefig(latexpath + f'dupplot_{model}_p_kg-{p_kg}_data_{mode}_iters-{iterations}.png', dpi=200)
+                    # plt.clf()
 
 
 
