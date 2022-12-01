@@ -16,6 +16,7 @@ class mcmc():
         self.L = np.arange(0,K)             # Given label per question
         self.K = K                          # Number of answer options
         self.cm = K-1                       # -1 because there's one good answer and the rest is wrong
+        self.iter = 0
 
     def p_tn(self, user, annotations, i):
         """
@@ -24,7 +25,7 @@ class mcmc():
         returns expected value, alpha and beta
         """
         qs = user.loc[user['ID']==i, user.loc[user['ID']==i, :].notnull().squeeze()].squeeze()
-        endindex = -(qs.__len__()-4-self.M.__len__())
+        endindex = qs.__len__()-4-self.iter
         n_eq = sum(np.equal(np.array(qs[4:endindex]),np.array(annotations.loc[[int(i[2:]) for i in qs.index[4:endindex]],'model'])))
         return n_eq/qs[4:endindex].__len__(), n_eq, qs[4:endindex].__len__()-n_eq
 
@@ -59,110 +60,101 @@ class mcmc():
             return np.random.choice(self.K, p=p)
 
 
-def run_mcmc(iterations, car, nQuestions, user, annotations):
+    def run(self, iterations, car, nQuestions, user, annotations):
 
-    # init mcmc object
-    mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                  (mcmc_data['car'].values == car) &
-                  (mcmc_data['mode'].values == mode) &
-                  (mcmc_data['dup'].values == dup) &
-                  (mcmc_data['p_fo'].values == p_fo) &
-                  (mcmc_data['p_kg'].values == p_kg), 'mcmc'] = mcmc(car)
+        # run iterations
+        while self.iter < iterations:
+            if self.iter%10==0:
+                print("iteration: ", self.iter)
 
-    # run iterations
-    i = 0
-    while i < iterations:
-        if i%10==0:
-            print("iteration: ", i)
+            # sample l_hat
+            with Pool(32) as p:
+                results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                                                      (mcmc_data['car'].values == car) &
+                                                      (mcmc_data['mode'].values == mode) &
+                                                      (mcmc_data['dup'].values == dup) &
+                                                      (mcmc_data['p_fo'].values == p_fo) &
+                                                      (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_lhat, user, annotations), range(annotations.__len__()))
+                annotations.loc[:, 'model'] = results
+                annotations.loc[:, f'model_{self.iter}'] = results
 
-        with Pool(32) as p:
-            results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                                                  (mcmc_data['car'].values == car) &
-                                                  (mcmc_data['mode'].values == mode) &
-                                                  (mcmc_data['dup'].values == dup) &
-                                                  (mcmc_data['p_fo'].values == p_fo) &
-                                                  (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_lhat, user, annotations), range(annotations.__len__()))
+            # sample tn
+            with Pool(32) as p:
+                results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                                                      (mcmc_data['car'].values == car) &
+                                                      (mcmc_data['mode'].values == mode) &
+                                                      (mcmc_data['dup'].values == dup) &
+                                                      (mcmc_data['p_fo'].values == p_fo) &
+                                                      (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_tn, user, annotations), user['ID'])
 
+                user.loc[:, 'T_model'] = results
+                user.loc[:, f'T_model_{self.iter}'] = results
 
-            annotations.loc[:, 'model'] = results
-            annotations.loc[:, f'model_{i}'] = results
+            print_intermediate_results = False
+            if print_intermediate_results:
+                print(f'GT correct {sum(np.equal(np.array(annotations["model"]), np.array(annotations["GT"])))} out of {annotations.__len__()}')
+                print(f"average Tn offset: {np.mean(np.abs(user['T_given']-user['T_model']))}")
+                print(f"closeness: {sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0))}")
+            self.iter += 1
 
-        with Pool(32) as p:
-            results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                                                  (mcmc_data['car'].values == car) &
-                                                  (mcmc_data['mode'].values == mode) &
-                                                  (mcmc_data['dup'].values == dup) &
-                                                  (mcmc_data['p_fo'].values == p_fo) &
-                                                  (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_tn, user, annotations), user['ID'])
+        # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
+        posteriorindices = (10*[False])+[x%3==0 for x in range(30)]
 
-            user.loc[:, 'T_model'] = results
-            user.loc[:, f'T_model_{i}'] = results
+        # count occurences in posterior to produce estimate
+        for q in range(nQuestions):
+            cnt = Counter(annotations.loc[q,[f'model_{i}' for i,x in enumerate(posteriorindices) if x]])
+            mc = cnt.most_common(2)
+            if mc.__len__() > 1:
+                if mc[0][1] == mc[1][1]:
+                    print(f"values {mc[0][0]} and {mc[1][0]} are equally frequent")
+            annotations.loc[q, 'model'] = mc[0][0] # pick most common, which returns list of lists with value and occurences
 
-        print_intermediate_results = False
-        if print_intermediate_results:
-            print(f'GT correct {sum(np.equal(np.array(annotations["model"]), np.array(annotations["GT"])))} out of {annotations.__len__()}')
-            print(f"average Tn offset: {np.mean(np.abs(user['T_given']-user['T_model']))}")
-            print(f"closeness: {sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0))}")
-        i += 1
+        # do naive estimation for baseline
+        annotations.insert(annotations.columns.get_loc("model") + 1, "naive", np.zeros(nQuestions))
+        for q in range(nQuestions):
+            k_w = []
+            for k in range(car):
+                d_w = 0
+                for d in range(dup):
+                    if annotations.loc[q, f'annot_{d}'] == k:
+                        d_w += 1
+                k_w.append(d_w)
+            annotations.loc[q, 'naive'] = k_w.index(max(k_w))
 
-    # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
-    posteriorindices = (10*[False])+[x%3==0 for x in range(30)]
+        # determine differences
+        diff_m = annotations.loc[:, 'GT'] - annotations.loc[:, 'model']
+        diff_n = annotations.loc[:, 'GT'] - annotations.loc[:, 'naive']
 
-    # count occurences in posterior to produce estimate
-    for q in range(nQuestions):
-        cnt = Counter(annotations.loc[q,[f'model_{i}' for i,x in enumerate(posteriorindices) if x]])
-        mc = cnt.most_common(2)
-        if mc.__len__() > 1:
-            if mc[0][1] == mc[1][1]:
-                print(f"values {mc[0][0]} and {mc[1][0]} are equally frequent")
-        annotations.loc[q, 'model'] = mc[0][0] # pick most common, which returns list of lists with value and occurences
+        # count differences
+        diff_m_cnt = (diff_m != 0).sum()
+        diff_n_cnt = (diff_n != 0).sum()
 
-    # do naive estimation for baseline
-    annotations.insert(annotations.columns.get_loc("model") + 1, "naive", np.zeros(nQuestions))
-    for q in range(nQuestions):
-        k_w = []
-        for k in range(car):
-            d_w = 0
-            for d in range(dup):
-                if annotations.loc[q, f'annot_{d}'] == k:
-                    d_w += 1
-            k_w.append(d_w)
-        annotations.loc[q, 'naive'] = k_w.index(max(k_w))
+        # insert into mcmc_data dataframe
+        mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                      (mcmc_data['car'].values == car) &
+                      (mcmc_data['mode'].values == mode) &
+                      (mcmc_data['dup'].values == dup) &
+                      (mcmc_data['p_fo'].values == p_fo) &
+                      (mcmc_data['p_kg'].values == p_kg), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
+        mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                      (mcmc_data['car'].values == car) &
+                      (mcmc_data['mode'].values == mode) &
+                      (mcmc_data['dup'].values == dup) &
+                      (mcmc_data['p_fo'].values == p_fo) &
+                      (mcmc_data['p_kg'].values == p_kg), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
 
-    # determine differences
-    diff_m = annotations.loc[:, 'GT'] - annotations.loc[:, 'model']
-    diff_n = annotations.loc[:, 'GT'] - annotations.loc[:, 'naive']
+        summary = {"Mode": mode,
+                   "Cardinality": car,
+                   "Iterations": iterations,
+                   "Duplication factor": dup,
+                   "Proportion 'first only'": p_fo,
+                   "Proportion 'known good'": p_kg,
+                   "Percentage correct modelled": 100 * (1 - (diff_m_cnt / nQuestions)),
+                   "Percentage correct naive": 100 * (1 - (diff_n_cnt / nQuestions))}
 
-    # count differences
-    diff_m_cnt = (diff_m != 0).sum()
-    diff_n_cnt = (diff_n != 0).sum()
-
-    # insert into mcmc_data dataframe
-    mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                  (mcmc_data['car'].values == car) &
-                  (mcmc_data['mode'].values == mode) &
-                  (mcmc_data['dup'].values == dup) &
-                  (mcmc_data['p_fo'].values == p_fo) &
-                  (mcmc_data['p_kg'].values == p_kg), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
-    mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                  (mcmc_data['car'].values == car) &
-                  (mcmc_data['mode'].values == mode) &
-                  (mcmc_data['dup'].values == dup) &
-                  (mcmc_data['p_fo'].values == p_fo) &
-                  (mcmc_data['p_kg'].values == p_kg), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
-
-    summary = {"Mode": mode,
-               "Cardinality": car,
-               "Iterations": iterations,
-               "Duplication factor": dup,
-               "Proportion 'first only'": p_fo,
-               "Proportion 'known good'": p_kg,
-               "Percentage correct modelled": 100 * (1 - (diff_m_cnt / nQuestions)),
-               "Percentage correct naive": 100 * (1 - (diff_n_cnt / nQuestions))}
-
-    print_final_results = False
-    if print_final_results:
-        [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
+        print_final_results = False
+        if print_final_results:
+            [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
 
 
 if __name__ == "__main__":
@@ -214,7 +206,22 @@ if __name__ == "__main__":
         nQuestions = annotations.__len__()
         mcmc_data.loc[mcmc_data.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, None, 0, 0]
 
-        run_mcmc(iterations, car, nQuestions, user, annotations)
+        # init mcmc object
+        mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                      (mcmc_data['car'].values == car) &
+                      (mcmc_data['mode'].values == mode) &
+                      (mcmc_data['dup'].values == dup) &
+                      (mcmc_data['p_fo'].values == p_fo) &
+                      (mcmc_data['p_kg'].values == p_kg), 'mcmc'] = mcmc(car)
+
+        # todo make code here nicer
+        mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                      (mcmc_data['car'].values == car) &
+                      (mcmc_data['mode'].values == mode) &
+                      (mcmc_data['dup'].values == dup) &
+                      (mcmc_data['p_fo'].values == p_fo) &
+                      (mcmc_data['p_kg'].values == p_kg), 'mcmc'].item().run(iterations, car, nQuestions, user,
+                                                                             annotations)
         with open(f'data/{session_folder}/mcmc_annotations_small_test.pickle', 'wb') as file:
             pickle.dump(annotations, file)
     else:
@@ -244,8 +251,22 @@ if __name__ == "__main__":
                                 user['included'] = np.ones(user.__len__())
                                 nQuestions = annotations.__len__()
                                 mcmc_data.loc[mcmc_data.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, None, 0, 0]
+                                # init mcmc object
+                                mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                                              (mcmc_data['car'].values == car) &
+                                              (mcmc_data['mode'].values == mode) &
+                                              (mcmc_data['dup'].values == dup) &
+                                              (mcmc_data['p_fo'].values == p_fo) &
+                                              (mcmc_data['p_kg'].values == p_kg), 'mcmc'] = mcmc(car)
 
-                                run_mcmc(iterations, car, nQuestions, user, annotations)
+                                # todo make code here nicer
+                                mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                                              (mcmc_data['car'].values == car) &
+                                              (mcmc_data['mode'].values == mode) &
+                                              (mcmc_data['dup'].values == dup) &
+                                              (mcmc_data['p_fo'].values == p_fo) &
+                                              (mcmc_data['p_kg'].values == p_kg), 'mcmc'].item().run(iterations, car, nQuestions, user, annotations)
+
                                 with open(f'data/{session_folder}/mcmc_annotations_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_iters-{iterations}.pickle', 'wb') as file:
                                     pickle.dump(annotations, file)
                                 with open(f'data/{session_folder}/mcmc_user_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_iters-{iterations}.pickle', 'wb') as file:
