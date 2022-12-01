@@ -171,7 +171,7 @@ if __name__ == "__main__":
 
     iterations_list = [40]        # iterations of mcmc algorithm -- 10 warmup - keep 30 - sample 10 from these 30
     car_list = list(range(2,8))     # cardinality of the questions
-    modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]       # proportion 'first only' annotators who only ever select the first option
     p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
