@@ -96,8 +96,8 @@ class dist():
 
 if __name__ == "__main__":
 
-    nAnnot = 50
-    nQuestions = 1000
+    nAnnot = 50 # 50
+    nQuestions = 1000 # 1000
     # car = 5
     # duplication_factor = 3
     # p_fo = 0.0
@@ -145,9 +145,13 @@ if __name__ == "__main__":
 
     # datasets
     car_list = list(range(2,8))
+    # car_list = [3]
     modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    # modes = ['gaussian']
     dups = [3,5,7,9]
+    # dups = [5]
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    # p_fos = [0.2]
 
 
     for car in car_list:
@@ -221,14 +225,26 @@ if __name__ == "__main__":
                     if user.__len__() != ulen:
                         print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
                     print(f"saving {car}, {mode}, {dup}, {p_fo}")
+                    #
+                    # with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.csv', 'w') as file:
+                    #     user.to_csv(file)
+                    # with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.csv', 'w') as file:
+                    #     annotation.to_csv(file)
+                    #
+                    # # save data
+                    # with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle', 'wb') as file:
+                    #     pickle.dump(user, file)
+                    # with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle', 'wb') as file:
+                    #     pickle.dump(annotation, file)
 
-                    with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.csv', 'w') as file:
+
+                    with open(f'simulation data/small_test_user.csv', 'w') as file:
                         user.to_csv(file)
-                    with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.csv', 'w') as file:
+                    with open(f'simulation data/small_test_annotations_empty.csv', 'w') as file:
                         annotation.to_csv(file)
 
                     # save data
-                    with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle', 'wb') as file:
+                    with open(f'simulation data/small_test_user.pickle', 'wb') as file:
                         pickle.dump(user, file)
-                    with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle', 'wb') as file:
+                    with open(f'simulation data/small_test_annotations_empty.pickle', 'wb') as file:
                         pickle.dump(annotation, file)

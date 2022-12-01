@@ -78,10 +78,11 @@ class plots():
 
 
         self.plot_car()
+        # self.plot_duplication_factor()
         self.figcar.subplots_adjust(left=0.25, bottom=0.25)
 
+        ## iters ##
         axiter = self.figcar.add_axes([0.15, 0.25, 0.0225, 0.63])
-
         def getIterSlider(val):
             iter_slider = Slider(
                 ax=axiter,
@@ -93,12 +94,28 @@ class plots():
                 orientation="vertical"
             )
             return iter_slider
-
         iter_slider = getIterSlider(iterations_list[0])
 
-        # Make a vertically oriented slider to control the amplitude
-        axpkg = self.figcar.add_axes([0.1, 0.25, 0.0225, 0.63])
+        def updateiter(val):
+            global iterations
+            global iter_slider
+            iterations = val
+            # self.figcar.clear()
+            # plt.cla()
+            for row in self.axscar:
+                for col in row:
+                    col.clear()
+            axiter.clear()
+            # for row in self.axsdups:
+            #     for col in row:
+            #         col.clear()
+            self.plot_car()
+            # self.plot_duplication_factor()
+            iter_slider = getIterSlider(val)
+            plt.show()
 
+        ## known good ##
+        axpkg = self.figcar.add_axes([0.1, 0.25, 0.0225, 0.63])
         def getKGSlider(val):
             pkg_slider = Slider(
                 ax=axpkg,
@@ -112,22 +129,6 @@ class plots():
             return pkg_slider
         pkg_slider = getKGSlider(p_kgs[0])
 
-        axmode = self.figcar.add_axes([0.05, 0.25, 0.0225, 0.63])
-
-        modeindex = range(modes.__len__())
-        def getModeSlider(val):
-            mode_slider = Slider(
-                ax=axmode,
-                label=f"Mode {modes[val]}",
-                valmin=0,
-                valmax= modeindex[-1],
-                valinit= val,
-                valstep= modeindex,
-                orientation="vertical"
-            )
-            return mode_slider
-        mode_slider = getModeSlider(modeindex[0])
-
         def updatepkg(val):
             global p_kg
             global pkg_slider
@@ -137,10 +138,31 @@ class plots():
             for row in self.axscar:
                 for col in row:
                     col.clear()
+            # for row in self.axsdups:
+            #     for col in row:
+            #         col.clear()
             axpkg.clear()
             self.plot_car()
+            # self.plot_duplication_factor()
             pkg_slider = getKGSlider(val)
             plt.show()
+
+
+        ## dataset mode ##
+        axmode = self.figcar.add_axes([0.05, 0.25, 0.0225, 0.63])
+        modeindex = range(modes.__len__())
+        def getModeSlider(val):
+            mode_slider = Slider(
+                ax=axmode,
+                label=f"Sim distribution: {modes[val]}",
+                valmin=0,
+                valmax= modeindex[-1],
+                valinit= val,
+                valstep= modeindex,
+                orientation="vertical"
+            )
+            return mode_slider
+        mode_slider = getModeSlider(modeindex[0])
 
         def updatemode(val):
             global mode
@@ -151,27 +173,52 @@ class plots():
             for row in self.axscar:
                 for col in row:
                     col.clear()
+            # for row in self.axsdups:
+            #     for col in row:
+            #         col.clear()
+            # self.plot_duplication_factor()
             axmode.clear()
             self.plot_car()
             mode_slider = getModeSlider(val)
             plt.show()
 
-        def updateiter(val):
-            global iterations
-            global iter_slider
-            iterations = val
-            # self.figcar.clear()
-            # plt.cla()
-            for row in self.axscar:
-                for col in row:
-                    col.clear()
-            axiter.clear()
-            self.plot_car()
-            iter_slider = getIterSlider(val)
-            plt.show()
+        ## cardinality (for dup plot) ##
+        # axcar = self.figcar.add_axes([0.2, 0.25, 0.0225, 0.63])
+        #
+        # def getCarSlider(val):
+        #     car_slider = Slider(
+        #         ax=axcar,
+        #         label=f"Car {val}",
+        #         valmin=car_list[0],
+        #         valmax=car_list[-1],
+        #         valinit=val,
+        #         valstep=car_list,
+        #         orientation="vertical"
+        #     )
+        #     return car_slider
+        #
+        # car_slider = getCarSlider(modeindex[0])
+        #
+        # def updatecar(val):
+        #     global car
+        #     global car_slider
+        #     car = val
+        #     # self.figcar.clear()
+        #     # plt.cla()
+        #     for row in self.axscar:
+        #         for col in row:
+        #             col.clear()
+        #     for row in self.axsdups:
+        #         for col in row:
+        #             col.clear()
+        #     self.plot_duplication_factor()
+        #     axcar.clear()
+        #     self.plot_car()
+        #     car_slider = getCarSlider(val)
+        #     plt.show()
 
-        # register the update function with each slider
-
+        # register the update functions
+        # car_slider.on_changed(updatecar)
         pkg_slider.on_changed(updatepkg)
         mode_slider.on_changed(updatemode)
         iter_slider.on_changed(updateiter)
@@ -179,15 +226,13 @@ class plots():
         plt.show()
 
 if __name__ == "__main__":
-    model = "em"  # options "em" or "mcmc"
+    model = "mcmc"  # options "em" or "mcmc"
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\{model} surface plots\\'
 
-    if model == "mcmc":
-        iterations_list = [500]
-        car_list = [2] # so far only 2 has been done.....
-    else:
-        iterations_list = [2,3,5,50]
-        car_list = list(range(2, 8))
+    # car_list = list(range(2, 8))
+    car_list = list(range(2, 5))
+
+    iterations_list = [5, 20]
 
     modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
@@ -201,10 +246,6 @@ if __name__ == "__main__":
     with open(filepath, 'rb') as file:
         em_data = pickle.load(file)
 
-    if model == "mcmc":
-        em_data["p_kg"] = (p_kgs * 162) + [0.0, 0.05, 0.1, 0.15, 0.2]
-    else:
-        em_data["p_kg"] = (p_kgs * 3804) + [0.0, 0.05, 0.1, 0.15]
 
     # inits
     p_kg = p_kgs[0]

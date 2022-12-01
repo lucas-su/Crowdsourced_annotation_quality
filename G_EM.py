@@ -98,7 +98,7 @@ class EM():
         #     for k in range(self.K): # for each option
         #         self.gamma_.loc[m,k] = self.gamma(k, m)
         for k in range(self.K):  # for each option
-            with Pool(16) as p:
+            with Pool(32) as p:
                 result = p.map(partial(self.gamma,k, user, annotations), self.M)
             self.gamma_.loc[:,k] = result
         return self.gamma_
@@ -140,7 +140,7 @@ def run_em(iterations, car, nQuestions):
             (ems['dup'].values == dup) &
             (ems['p_fo'].values == p_fo) &
             (ems['p_kg'].values == p_kg), 'EM'].values[0].e_step()
-        with Pool(16) as p:
+        with Pool(32) as p:
             results = p.map(partial(ems.loc[(ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
