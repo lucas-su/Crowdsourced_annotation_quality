@@ -59,43 +59,7 @@ class mcmc():
             p = [self.p_lhat_k(user, i, k) for k in self.L]
             return np.random.choice(self.K, p=p)
 
-
-    def run(self, iterations, car, nQuestions, user, annotations):
-
-        # run iterations
-        while self.iter < iterations:
-            if self.iter%10==0:
-                print("iteration: ", self.iter)
-
-            # sample l_hat
-            with Pool(32) as p:
-                results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                                                      (mcmc_data['car'].values == car) &
-                                                      (mcmc_data['mode'].values == mode) &
-                                                      (mcmc_data['dup'].values == dup) &
-                                                      (mcmc_data['p_fo'].values == p_fo) &
-                                                      (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_lhat, user, annotations), range(annotations.__len__()))
-                annotations.loc[:, 'model'] = results
-                annotations.loc[:, f'model_{self.iter}'] = results
-
-            # sample tn
-            with Pool(32) as p:
-                results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                                                      (mcmc_data['car'].values == car) &
-                                                      (mcmc_data['mode'].values == mode) &
-                                                      (mcmc_data['dup'].values == dup) &
-                                                      (mcmc_data['p_fo'].values == p_fo) &
-                                                      (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_tn, user, annotations), user['ID'])
-
-                user.loc[:, 'T_model'] = results
-                user.loc[:, f'T_model_{self.iter}'] = results
-
-            print_intermediate_results = False
-            if print_intermediate_results:
-                print(f'GT correct {sum(np.equal(np.array(annotations["model"]), np.array(annotations["GT"])))} out of {annotations.__len__()}')
-                print(f"average Tn offset: {np.mean(np.abs(user['T_given']-user['T_model']))}")
-                print(f"closeness: {sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0))}")
-            self.iter += 1
+    def posterior(self, nQuestions, annotations):
 
         # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
         posteriorindices = (10*[False])+[x%3==0 for x in range(30)]
@@ -143,14 +107,65 @@ class mcmc():
                       (mcmc_data['p_fo'].values == p_fo) &
                       (mcmc_data['p_kg'].values == p_kg), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
 
+
+    def run(self, iterations, car, nQuestions, user, annotations):
+
+        # run iterations
+        while self.iter < iterations:
+            if self.iter%10==0:
+                print("iteration: ", self.iter)
+
+            # sample l_hat
+            with Pool(32) as p:
+                results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                                                      (mcmc_data['car'].values == car) &
+                                                      (mcmc_data['mode'].values == mode) &
+                                                      (mcmc_data['dup'].values == dup) &
+                                                      (mcmc_data['p_fo'].values == p_fo) &
+                                                      (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_lhat, user, annotations), range(annotations.__len__()))
+                annotations.loc[:, 'model'] = results
+                annotations.loc[:, f'model_{self.iter}'] = results
+
+            # sample tn
+            with Pool(32) as p:
+                results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                                                      (mcmc_data['car'].values == car) &
+                                                      (mcmc_data['mode'].values == mode) &
+                                                      (mcmc_data['dup'].values == dup) &
+                                                      (mcmc_data['p_fo'].values == p_fo) &
+                                                      (mcmc_data['p_kg'].values == p_kg), 'mcmc'].values[0].Gibbs_tn, user, annotations), user['ID'])
+
+                user.loc[:, 'T_model'] = results
+                user.loc[:, f'T_model_{self.iter}'] = results
+
+            print_intermediate_results = False
+            if print_intermediate_results:
+                print(f'GT correct {sum(np.equal(np.array(annotations["model"]), np.array(annotations["GT"])))} out of {annotations.__len__()}')
+                print(f"average Tn offset: {np.mean(np.abs(user['T_given']-user['T_model']))}")
+                print(f"closeness: {sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0))}")
+            self.iter += 1
+
+        self.posterior(nQuestions, annotations)
+
         summary = {"Mode": mode,
                    "Cardinality": car,
                    "Iterations": iterations,
                    "Duplication factor": dup,
                    "Proportion 'first only'": p_fo,
                    "Proportion 'known good'": p_kg,
-                   "Percentage correct modelled": 100 * (1 - (diff_m_cnt / nQuestions)),
-                   "Percentage correct naive": 100 * (1 - (diff_n_cnt / nQuestions))}
+                   "Percentage correct modelled": mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                                                  (mcmc_data['car'].values == car) &
+                                                  (mcmc_data['mode'].values == mode) &
+                                                  (mcmc_data['dup'].values == dup) &
+                                                  (mcmc_data['p_fo'].values == p_fo) &
+                                                  (mcmc_data['p_kg'].values == p_kg), 'pc_m'],
+                   "Percentage correct naive": mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                                                  (mcmc_data['car'].values == car) &
+                                                  (mcmc_data['mode'].values == mode) &
+                                                  (mcmc_data['dup'].values == dup) &
+                                                  (mcmc_data['p_fo'].values == p_fo) &
+                                                  (mcmc_data['p_kg'].values == p_kg), 'pc_n']
+                   }
 
         print_final_results = False
         if print_final_results:
@@ -158,7 +173,7 @@ class mcmc():
 
 
 if __name__ == "__main__":
-    session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}\\'
+    session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     os.makedirs(os.path.dirname(f'{os.getcwd()}/data/{session_folder}'), exist_ok=True)
 
     iterations_list = [40]        # iterations of mcmc algorithm -- 10 warmup - keep 30 - sample 10 from these 30
