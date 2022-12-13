@@ -99,10 +99,20 @@ class EM():
         # for m in self.M: # for each question
         #     for k in range(self.K): # for each option
         #         self.gamma_.loc[m,k] = self.gamma(k, m)
+        for i in range(self.K):
+            self.gamma_.loc[:, i] = np.zeros(annotations.__len__())
+        kgm = annotations.loc[(annotations['KG']==True), 'ID']
         for k in range(self.K):  # for each option
             with Pool(32) as p:
-                result = p.map(partial(self.gamma,k, user, annotations), self.M)
-            self.gamma_.loc[:,k] = result
+                result = p.map(partial(self.gamma,k, user, annotations), kgm)
+            self.gamma_.loc[(annotations['KG']==True),k] = result
+
+        m = annotations.loc[(annotations['KG'] == False), 'ID']
+        for k in range(self.K):  # for each option
+            with Pool(32) as p:
+                result = p.map(partial(self.gamma, k, user, annotations), m)
+            self.gamma_.loc[(annotations['KG']==False), k] = result
+
         return self.gamma_
 
 
@@ -148,24 +158,20 @@ def run_em(iterations, car, nQuestions):
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
             (ems['p_fo'].values == p_fo) &
-            (ems['p_kg'].values == p_kg), 'EM'].values[0].m_step, g, nQuestions, car), user.iterrows())
+            (ems['p_kg'].values == p_kg), 'EM'].values[0].m_step, g, nQuestions, car), user.loc[(user["type"]=='KG')].iterrows())
+        user.loc[(user["type"] == 'KG'), "T_model"] = results
+        user.loc[(user["type"] == 'KG'), f"t_weight_{i}"] = results
+        with Pool(32) as p:
+            results = p.map(partial(ems.loc[(ems['iterations'].values == iterations) &
+            (ems['car'].values == car) &
+            (ems['mode'].values == mode) &
+            (ems['dup'].values == dup) &
+            (ems['p_fo'].values == p_fo) &
+            (ems['p_kg'].values == p_kg), 'EM'].values[0].m_step, g, nQuestions, car), user.loc[(user["type"]!='KG')].iterrows())
         # for ann in user.ID:
         #     user.loc[ann, f"t_weight_{i}"] = m.step(g, user.iloc[ann], nQuestions)
-        user.loc[:, "T_model"] = results
-        user.loc[:, f"t_weight_{i}"] = results
-
-        for id in user["ID"]:
-            """
-            qs is a series of the questions answered by this annotator
-            n_eq is the number of times l is equal to lhat
-            alpha = n_eq beta = qs.len - n_eq
-            """
-            qs = user.loc[user['ID'] == id, user.loc[user['ID'] == id, :].notnull().squeeze()].squeeze()
-            n_eq = sum(
-                np.equal(np.array(qs[4:-iterations-4]), np.array(annotations.loc[[int(i[2:]) for i in qs.index[4:-iterations-4]], 'model'])))
-            user.loc[id, 'a']= n_eq + np.spacing(0)
-            user.loc[id, 'b']= qs[4:-iterations-4].__len__() - n_eq + np.spacing(0)
-
+        user.loc[(user["type"] != 'KG'), "T_model"] = results
+        user.loc[(user["type"] != 'KG'), f"t_weight_{i}"] = results
         i += 1
     for q in range(nQuestions):
         k_w = np.zeros(car)
@@ -223,14 +229,16 @@ def run_em(iterations, car, nQuestions):
 if __name__ == "__main__":
     session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     os.makedirs(f'{os.getcwd()}/data/{session_folder}', exist_ok=True)
-    iterations_list = [5,20]
+    iterations_list = [10]
     car_list = list(range(2,8))
 
     modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+    p_kgs = [0.2]
+    p_kg_us = [0.2]
 
     ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'EM', 'pc_m', 'pc_n'])
     for iterations in iterations_list:
@@ -241,11 +249,11 @@ if __name__ == "__main__":
                         for p_kg in p_kgs:
                             for p_kg_u in p_kg_us:
                                 # open dataset for selected parameters
-                                with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle',
+                                with open(f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
                                           'rb') as file:
                                     user = pickle.load(file)
                                 with open(
-                                        f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
+                                        f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
                                         'rb') as file:
                                     annotations = pickle.load(file)
                                 # init user weights at 1
@@ -253,11 +261,8 @@ if __name__ == "__main__":
                                     user[f't_weight_{i}'] = np.ones(
                                         user.__len__()) * 0.5  # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
                                 annotations[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg, p_kg]) for _ in range(annotations.__len__())]
-                                user[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg_u, p_kg_u]) for _ in range(user.__len__())]
+                                # user[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg_u, p_kg_u]) for _ in range(user.__len__())]
                                 user['included'] = np.ones(user.__len__())
-                                user['a'] = np.ones(user.__len__())
-                                user['b'] = np.ones(user.__len__())
-                                # nAnnot = user.__len__()
                                 nQuestions = annotations.__len__()
                                 ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, None, 0, 0]
                                 run_em(iterations, car, nQuestions)

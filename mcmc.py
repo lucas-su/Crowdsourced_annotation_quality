@@ -26,7 +26,7 @@ class mcmc():
 
         # define indices to take from qs
         startindex = 4
-        endindex = qs.__len__()-3-self.iter
+        endindex = qs.__len__()-2-self.iter
 
         n_eq = sum(np.equal(np.array(qs[startindex:endindex]),np.array(annotations.loc[[int(i[2:]) for i in qs.index[startindex:endindex]],'model'])))
         return n_eq/qs[startindex:endindex].__len__(), n_eq, qs[startindex:endindex].__len__()-n_eq
@@ -172,7 +172,7 @@ class mcmc():
             priorb = 0
 
             # first do the KG users
-            indices = user.loc[(user['KG']==True), 'ID']
+            indices = user.loc[(user['type']=='KG'), 'ID']
             if indices.__len__()>0:
                 with Pool(32) as p:
                     results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
@@ -183,11 +183,11 @@ class mcmc():
                                                           (mcmc_data['p_kg'].values == p_kg) &
                                                           (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priora, priorb), indices)
 
-                    user.loc[(user['KG']==True), 'T_model'] = results
-                    user.loc[(user['KG']==True), f'T_model_{self.iter}'] = results
+                    user.loc[(user['type']=='KG'), 'T_model'] = results
+                    user.loc[(user['type']=='KG'), f'T_model_{self.iter}'] = results
 
             # After KG users, do the rest
-            indices = user.loc[(user['KG'] == False), 'ID']
+            indices = user.loc[(user['type'] != 'KG'), 'ID']
             with Pool(32) as p:
                 results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
                                                       (mcmc_data['car'].values == car) &
@@ -197,8 +197,8 @@ class mcmc():
                                                       (mcmc_data['p_kg'].values == p_kg) &
                                                       (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priora, priorb), indices)
 
-                user.loc[(user['KG']==False), 'T_model'] = results
-                user.loc[(user['KG']==False), f'T_model_{self.iter}'] = results
+                user.loc[(user['type'] != 'KG'), 'T_model'] = results
+                user.loc[(user['type'] != 'KG'), f'T_model_{self.iter}'] = results
 
             print_intermediate_results = False
             if print_intermediate_results:
@@ -246,8 +246,10 @@ if __name__ == "__main__":
     modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
-    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+    p_kgs = [0.2]
+    p_kg_us = [0.2]
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
     # if not resuming, makes new empty dataframe with correct columns
@@ -278,8 +280,8 @@ if __name__ == "__main__":
                                 ## add parameters to dataframes
                                 # known goods
                                 annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
-                                user[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg_u, p_kg_u]) for _ in
-                                                      range(user.__len__())]
+                                # user[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg_u, p_kg_u]) for _ in
+                                #                       range(user.__len__())]
 
                                 # user parameters for beta sampling
                                 user['a'] = np.ones(user.__len__())
