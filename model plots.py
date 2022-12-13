@@ -12,9 +12,9 @@ from mpl_toolkits.mplot3d.axes3d import get_test_data
 
 
 class plots():
-    def __init__(self, model):
+    def __init__(self):
         self.figcar, self.axscar = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
-        self.figdups, self.axsdups = plt.subplots(car_list.__len__(), p_fos.__len__(), sharex=True, sharey=True)
+        # self.figdups, self.axsdups = plt.subplots(car_list.__len__(), p_fos.__len__(), sharex=True, sharey=True)
 
     def plot_duplication_factor(self):
         for i, car in enumerate(car_list):
@@ -44,9 +44,11 @@ class plots():
                     self.axsdups[i, j].set_ylabel('Prop. correct')
 
     def plot_car(self):
-        print(p_kg)
+
         for i, dup in enumerate(dups):
             for j, p_fo in enumerate(p_fos):
+                # for em, iterations is 5
+                iterations = 5
                 self.axscar[i,j].plot(car_list,em_data.loc[
                     (em_data['iterations'] == iterations) &
                     pandas.Series([item in car_list for item in em_data['car']]) &
@@ -64,14 +66,29 @@ class plots():
                     (em_data['p_kg'] == p_kg) &
                     (em_data['dup'] == dup),
                     'pc_m'
-                ], label='Modelled')
-                self.axscar[i,j].set_title(f'dup={dup}, p_fo={p_fo}')
+                ], label='EM')
+
+                # for mcmc, iterations is 40
+                iterations = 40
+                self.axscar[i, j].plot(car_list, mcmc_data.loc[
+                    (mcmc_data['iterations'] == iterations) &
+                    pandas.Series([item in car_list for item in mcmc_data['car']]) &
+                    (mcmc_data['mode'] == mode) &
+                    (mcmc_data['p_fo'] == p_fo) &
+                    (mcmc_data['p_kg'] == p_kg) &
+                    (mcmc_data['dup'] == dup),
+                    'pc_m'
+                ], label='MCMC')
+                # self.axscar[i,j].set_title(f'dup={dup}, p_fo={p_fo}')
+                if i == 0:
+                    self.axscar[i,j].set_title(f'proportion \n first only = {p_fo}')
+
                 if i == dups.__len__()-1:
                     self.axscar[i,j].set_xlabel('Cardinality')
                     if j == p_fos.__len__()-1:
                         self.axscar[i,j].legend(loc='lower left', bbox_to_anchor=(1, -0.04, 1, 1))
                 if j == 0:
-                    self.axscar[i, j].set_ylabel('Proportion correct')
+                    self.axscar[i, j].set_ylabel(f'duplication factor = {dup}\n\n Proportion correct')
         # plt.subplots_adjust(hspace=0.4)
 
     def plot_interactive(self):
@@ -82,40 +99,40 @@ class plots():
         self.figcar.subplots_adjust(left=0.25, bottom=0.25)
 
         ## iters ##
-        axiter = self.figcar.add_axes([0.15, 0.25, 0.0225, 0.63])
-        def getIterSlider(val):
-            iter_slider = Slider(
-                ax=axiter,
-                label="iters",
-                valmin=0,
-                valmax=iterations_list[-1],
-                valinit=val,
-                valstep=iterations_list,
-                orientation="vertical"
-            )
-            return iter_slider
-        iter_slider = getIterSlider(iterations_list[0])
+        # axiter = self.figcar.add_axes([0.15, 0.25, 0.0225, 0.63])
+        # def getIterSlider(val):
+        #     iter_slider = Slider(
+        #         ax=axiter,
+        #         label="iters",
+        #         valmin=0,
+        #         valmax=iterations_list[-1],
+        #         valinit=val,
+        #         valstep=iterations_list,
+        #         orientation="vertical"
+        #     )
+        #     return iter_slider
+        # iter_slider = getIterSlider(iterations_list[0])
 
-        def updateiter(val):
-            global iterations
-            global iter_slider
-            iterations = val
-            # self.figcar.clear()
-            # plt.cla()
-            for row in self.axscar:
-                for col in row:
-                    col.clear()
-            axiter.clear()
-            # for row in self.axsdups:
-            #     for col in row:
-            #         col.clear()
-            self.plot_car()
-            # self.plot_duplication_factor()
-            iter_slider = getIterSlider(val)
-            plt.show()
+        # def updateiter(val):
+        #     global iterations
+        #     global iter_slider
+        #     iterations = val
+        #     # self.figcar.clear()
+        #     # plt.cla()
+        #     for row in self.axscar:
+        #         for col in row:
+        #             col.clear()
+        #     axiter.clear()
+        #     # for row in self.axsdups:
+        #     #     for col in row:
+        #     #         col.clear()
+        #     self.plot_car()
+        #     # self.plot_duplication_factor()
+        #     # iter_slider = getIterSlider(val)
+        #     plt.show()
 
         ## known good ##
-        axpkg = self.figcar.add_axes([0.1, 0.25, 0.0225, 0.63])
+        axpkg = self.figcar.add_axes([0.15, 0.25, 0.0225, 0.63])
         def getKGSlider(val):
             pkg_slider = Slider(
                 ax=axpkg,
@@ -154,7 +171,7 @@ class plots():
         def getModeSlider(val):
             mode_slider = Slider(
                 ax=axmode,
-                label=f"Sim distribution: {modes[val]}",
+                label=f"Simulation distribution: \n {modes[val]}",
                 valmin=0,
                 valmax= modeindex[-1],
                 valinit= val,
@@ -221,36 +238,44 @@ class plots():
         # car_slider.on_changed(updatecar)
         pkg_slider.on_changed(updatepkg)
         mode_slider.on_changed(updatemode)
-        iter_slider.on_changed(updateiter)
+        # iter_slider.on_changed(updateiter)
 
         plt.show()
 
 if __name__ == "__main__":
-    model = "mcmc"  # options "em" or "mcmc"
-    latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\{model} surface plots\\'
+    # model = "mcmc"  # options "em" or "mcmc"
+    latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
+    session_folder = 'session_2022-12-01_15-54-47'
 
     # car_list = list(range(2, 8))
-    car_list = list(range(2, 5))
+    car_list = list(range(2, 6))
 
-    iterations_list = [5, 20]
+    # iterations_list = [5, 20]
 
+    # modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
     p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
 
-    plot = plots(model)
-    filepath = f'data/modelled/{model}_data_{"_".join(modes)}.pickle'
+    plot = plots()
+    em_filepath = f'data/{session_folder}/em_data_{"_".join(modes)}.pickle'
     # filepath = 'data/mcmc_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
 
-    with open(filepath, 'rb') as file:
+    with open(em_filepath, 'rb') as file:
         em_data = pickle.load(file)
+
+    modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    mcmc_filepath = f'data/{session_folder}/mcmc_data_{"_".join(modes)}.pickle'
+    with open(mcmc_filepath, 'rb') as file:
+        mcmc_data = pickle.load(file)
 
 
     # inits
     p_kg = p_kgs[0]
     mode = modes[0]
-    iterations = iterations_list[0]
+    # iterations = iterations_list[0]
 
     plot.plot_interactive()
 
@@ -260,9 +285,7 @@ if __name__ == "__main__":
     #         for mode in modes:
     #             for p_kg in p_kgs:
 
-
                     #
-
                     # plt = plot_car(figdups, axsdups)
                     # figdups.set_size_inches(15, 10)
                     # plt.show()

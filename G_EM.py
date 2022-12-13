@@ -16,6 +16,8 @@ https://www.aaai.org/ocs/index.php/WS/AAAIW12/paper/view/5350/5599
 OG file:
 https://colab.research.google.com/drive/186F0yeqV_5OpIC4FkjHysEJ0tAiEW6Y-?authuser=1#scrollTo=XTLv7eS2NORn
 """
+import os
+from datetime import datetime
 
 import numpy as np
 import pandas, pickle
@@ -80,12 +82,12 @@ class EM():
                 return 0
         else:
             num = np.prod([
-                            (n[1]["T_model"] if k == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) * beta.pdf(n[1]["T_model"], n[1]['a'], n[1]['b'])
+                            (n[1]["T_model"] if k == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm)) * (1 / self.K) #* beta.pdf(n[1]["T_model"], n[1]['a'], n[1]['b'])
                            for n in user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows()
                         ])
             denom = sum([
                         np.prod([
-                                (n[1]["T_model"] if l == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K) * beta.pdf(n[1]["T_model"], n[1]['a'], n[1]['b'])
+                                (n[1]["T_model"] if l == n[1][f"q_{m}"] else ((1 - n[1]["T_model"])/ self.cm )) * (1 / self.K) # * beta.pdf(n[1]["T_model"], n[1]['a'], n[1]['b'])
                                   for n in user.loc[~np.isnan(user.loc[:,f"q_{m}"])].iterrows()
                         ]
                         ) for l in self.L])
@@ -153,6 +155,11 @@ def run_em(iterations, car, nQuestions):
         user.loc[:, f"t_weight_{i}"] = results
 
         for id in user["ID"]:
+            """
+            qs is a series of the questions answered by this annotator
+            n_eq is the number of times l is equal to lhat
+            alpha = n_eq beta = qs.len - n_eq
+            """
             qs = user.loc[user['ID'] == id, user.loc[user['ID'] == id, :].notnull().squeeze()].squeeze()
             n_eq = sum(
                 np.equal(np.array(qs[4:-iterations-4]), np.array(annotations.loc[[int(i[2:]) for i in qs.index[4:-iterations-4]], 'model'])))
@@ -214,13 +221,16 @@ def run_em(iterations, car, nQuestions):
 
 
 if __name__ == "__main__":
-
+    session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    os.makedirs(f'{os.getcwd()}/data/{session_folder}', exist_ok=True)
     iterations_list = [5,20]
     car_list = list(range(2,8))
+
     modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
-    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
-    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
+    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
+    p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
     ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'EM', 'pc_m', 'pc_n'])
     for iterations in iterations_list:
@@ -229,27 +239,31 @@ if __name__ == "__main__":
                 for dup in dups:
                     for p_fo in p_fos:
                         for p_kg in p_kgs:
-                            # open dataset for selected parameters
-                            with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle',
-                                      'rb') as file:
-                                user = pickle.load(file)
-                            with open(
-                                    f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
-                                    'rb') as file:
-                                annotations = pickle.load(file)
-                            # init user weights at 1
-                            for i in range(iterations + 1):
-                                user[f't_weight_{i}'] = np.ones(
-                                    user.__len__()) * 0.5  # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
-                            annotations[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg, p_kg]) for _ in range(annotations.__len__())]
-                            user['included'] = np.ones(user.__len__())
-                            user['a'] = np.ones(user.__len__())
-                            user['b'] = np.ones(user.__len__())
-                            # nAnnot = user.__len__()
-                            nQuestions = annotations.__len__()
-                            ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, None, 0, 0]
-                            run_em(iterations, car, nQuestions)
-                            with open(f'data/em_user_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
-                                pickle.dump(user, file)
-                            with open(f'data/em_data_{"_".join(modes)}.pickle', 'wb') as file:
-                                pickle.dump(ems, file)
+                            for p_kg_u in p_kg_us:
+                                # open dataset for selected parameters
+                                with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle',
+                                          'rb') as file:
+                                    user = pickle.load(file)
+                                with open(
+                                        f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
+                                        'rb') as file:
+                                    annotations = pickle.load(file)
+                                # init user weights at 1
+                                for i in range(iterations + 1):
+                                    user[f't_weight_{i}'] = np.ones(
+                                        user.__len__()) * 0.5  # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
+                                annotations[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg, p_kg]) for _ in range(annotations.__len__())]
+                                user[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg_u, p_kg_u]) for _ in range(user.__len__())]
+                                user['included'] = np.ones(user.__len__())
+                                user['a'] = np.ones(user.__len__())
+                                user['b'] = np.ones(user.__len__())
+                                # nAnnot = user.__len__()
+                                nQuestions = annotations.__len__()
+                                ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, None, 0, 0]
+                                run_em(iterations, car, nQuestions)
+                                with open(f'data/{session_folder}/em_user_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
+                                    pickle.dump(user, file)
+                                with open(f'data/{session_folder}/em_annotations_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_iters-{iterations}.pickle', 'wb') as file:
+                                    pickle.dump(annotations, file)
+                                with open(f'data/{session_folder}/em_data_{"_".join(modes)}.pickle', 'wb') as file:
+                                    pickle.dump(ems, file)

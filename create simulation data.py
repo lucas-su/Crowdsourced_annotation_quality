@@ -1,4 +1,5 @@
 import math
+import os
 import pickle
 from multiprocessing import Pool
 from functools import partial
@@ -20,6 +21,8 @@ def dist_annot(users, annotations, dup, car, mode, q_id):
 def sim_answer(users, annotations, u_id, car, q_id, mode):
     if users.loc[u_id].type == "first_only" and mode[:6] !="single":
         ans = 0
+    elif users.loc[u_id].type == "KG" and mode != "single0":
+        ans = annotations.loc[q_id,"GT"]
     else:
         ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
             random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
@@ -93,11 +96,18 @@ class dist():
         ax.plot(np.linspace(0,10,self.cum.__len__()), self.cum, 'o')
         plt.show()
 
+def detType(nAnnot, p_fo, p_KG_u):
+    rans = [random.random() for _ in range(nAnnot)]
+    type = ["normal" if ran > p_fo + p_KG_u
+            else "KG" if ran > p_fo
+            else "first_only" for ran in rans]
+    return type
+
 
 if __name__ == "__main__":
 
-    nAnnot = 50 # 50
-    nQuestions = 1000 # 1000
+    nAnnot = 10 # 50
+    nQuestions = 200 # 1000
     # car = 5
     # duplication_factor = 3
     # p_fo = 0.0
@@ -146,11 +156,12 @@ if __name__ == "__main__":
     # datasets
     car_list = list(range(2,8))
     # car_list = [3]
-    modes = ['uniform', 'gaussian', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     # modes = ['gaussian']
     dups = [3,5,7,9]
     # dups = [5]
-    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
+    p_KG_us = [0.0, 0.05, 0.1, 0.15, 0.2]
     # p_fos = [0.2]
 
 
@@ -190,61 +201,67 @@ if __name__ == "__main__":
                 raise ValueError
             for dup in dups:
                 for p_fo in p_fos:
-                    udata = {"ID":range(nAnnot),
-                             "type": ["normal" if random.random() > p_fo else "first_only" for _ in range(nAnnot)],
-                             "T_given": random.choices(x, distribution(), k=nAnnot),
-                             "T_model": np.ones(nAnnot)*0.5}
+                    for p_KG_u in p_KG_us:
+                        udata = {"ID":range(nAnnot),
+                                 "type": detType(nAnnot, p_fo,  p_KG_u),
+                                 "T_given": random.choices(x, distribution(), k=nAnnot),
+                                 "T_model": np.ones(nAnnot)*0.5}
 
-                    for q in range(nQuestions): # keep track of labels in broad format
-                        udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
+                        for q in range(nQuestions): # keep track of labels in broad format
+                            udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
 
-                    user = pandas.DataFrame(data=udata)
+                        user = pandas.DataFrame(data=udata)
 
-                    annotdict = {"GT": random.choices(range(car), k=nQuestions),
-                                 "model": np.zeros(nQuestions)}
-                    for i in range(dup):
-                        annotdict[f'id_{i}'] = np.zeros(nQuestions)
-                        annotdict[f'annot_{i}'] = np.zeros(nQuestions)
+                        annotdict = {"ID":range(nQuestions),
+                                     "GT": random.choices(range(car), k=nQuestions),
+                                     "model": np.zeros(nQuestions)}
+                        for i in range(dup):
+                            annotdict[f'id_{i}'] = np.zeros(nQuestions)
+                            annotdict[f'annot_{i}'] = np.zeros(nQuestions)
 
-                    annotation = pandas.DataFrame(data=annotdict)
-
-
-                    with Pool(16) as p:
-                        results = p.map(partial(dist_annot, user, annotation, dup, car, mode), range(nQuestions))
+                        annotation = pandas.DataFrame(data=annotdict)
 
 
-                    res = np.array([np.concatenate(np.column_stack(i)) for i in results])
-
-                    annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(dup)])] = res
-
-                    for i, q in enumerate(results):
-                        for u_a_pair in zip(q[0],q[1]):
-                            user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
-                    ulen = user.__len__()
-                    user = user.drop(np.where(np.all(np.array([np.isnan(user[f'q_{i}']) for i in range(nQuestions)]), axis=0) == True)[0])
-                    if user.__len__() != ulen:
-                        print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
-                    print(f"saving {car}, {mode}, {dup}, {p_fo}")
-                    #
-                    # with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.csv', 'w') as file:
-                    #     user.to_csv(file)
-                    # with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.csv', 'w') as file:
-                    #     annotation.to_csv(file)
-                    #
-                    # # save data
-                    # with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle', 'wb') as file:
-                    #     pickle.dump(user, file)
-                    # with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle', 'wb') as file:
-                    #     pickle.dump(annotation, file)
+                        with Pool(16) as p:
+                            results = p.map(partial(dist_annot, user, annotation, dup, car, mode), range(nQuestions))
 
 
-                    with open(f'simulation data/small_test_user.csv', 'w') as file:
-                        user.to_csv(file)
-                    with open(f'simulation data/small_test_annotations_empty.csv', 'w') as file:
-                        annotation.to_csv(file)
+                        res = np.array([np.concatenate(np.column_stack(i)) for i in results])
 
-                    # save data
-                    with open(f'simulation data/small_test_user.pickle', 'wb') as file:
-                        pickle.dump(user, file)
-                    with open(f'simulation data/small_test_annotations_empty.pickle', 'wb') as file:
-                        pickle.dump(annotation, file)
+                        annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(dup)])] = res
+
+                        for i, q in enumerate(results):
+                            for u_a_pair in zip(q[0],q[1]):
+                                user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
+                        ulen = user.__len__()
+                        user = user.drop(np.where(np.all(np.array([np.isnan(user[f'q_{i}']) for i in range(nQuestions)]), axis=0) == True)[0])
+
+                        if user.__len__() != ulen:
+                            print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
+                        print(f"saving {car}, {mode}, {dup}, {p_fo}")
+
+                        os.makedirs(f'{os.getcwd()}/simulation data/{mode}/', exist_ok=True)
+                        os.makedirs(f'{os.getcwd()}/simulation data/{mode}/csv', exist_ok=True)
+                        os.makedirs(f'{os.getcwd()}/simulation data/{mode}/pickle', exist_ok=True)
+                        with open(f'simulation data/{mode}/csv/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.csv', 'w') as file:
+                            user.to_csv(file)
+                        with open(f'simulation data/{mode}/csv/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.csv', 'w') as file:
+                            annotation.to_csv(file)
+
+                        # save data
+                        with open(f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
+                            pickle.dump(user, file)
+                        with open(f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
+                            pickle.dump(annotation, file)
+
+                        #
+                        # with open(f'simulation data/small_test_user.csv', 'w') as file:
+                        #     user.to_csv(file)
+                        # with open(f'simulation data/small_test_annotations_empty.csv', 'w') as file:
+                        #     annotation.to_csv(file)
+                        #
+                        # # save data
+                        # with open(f'simulation data/small_test_user.pickle', 'wb') as file:
+                        #     pickle.dump(user, file)
+                        # with open(f'simulation data/small_test_annotations_empty.pickle', 'wb') as file:
+                        #     pickle.dump(annotation, file)
