@@ -146,12 +146,15 @@ def run_em(iterations, car, nQuestions):
     i = 0
     while i < iterations:
         print("iteration: ", i)
+        # e step
         g = ems.loc[(ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
             (ems['p_fo'].values == p_fo) &
             (ems['p_kg'].values == p_kg), 'EM'].values[0].e_step()
+
+        # m step for known good
         with Pool(32) as p:
             results = p.map(partial(ems.loc[(ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
@@ -161,6 +164,8 @@ def run_em(iterations, car, nQuestions):
             (ems['p_kg'].values == p_kg), 'EM'].values[0].m_step, g, nQuestions, car), user.loc[(user["type"]=='KG')].iterrows())
         user.loc[(user["type"] == 'KG'), "T_model"] = results
         user.loc[(user["type"] == 'KG'), f"t_weight_{i}"] = results
+
+        # m step for the rest
         with Pool(32) as p:
             results = p.map(partial(ems.loc[(ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
@@ -235,10 +240,10 @@ if __name__ == "__main__":
     modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
-    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
-    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_kgs = [0.2]
-    p_kg_us = [0.2]
+    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
+    p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kgs = [0.2]
+    # p_kg_us = [0.2]
 
     ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'EM', 'pc_m', 'pc_n'])
     for iterations in iterations_list:
