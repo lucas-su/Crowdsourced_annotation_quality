@@ -41,17 +41,26 @@ def alpha_uerror_metrics(session_folder, model):
                                  (data['p_kg'].values == p_kg) &
                                  (data['p_kg_u'].values == p_kg_u), 'uerror'] += ((u_norm_error + u_kg_error + u_fo_error)/tmp_user.__len__())/sessionlen[model]
 
+                            # do krippendorf pruning and pc calculation, is the same for all sessions so needs to be done only once
+                            if data.loc[(data['model'].values == model) &
+                                     (data['car'].values == car) &
+                                     (data['mode'].values == mode) &
+                                     (data['dup'].values == dup) &
+                                     (data['p_fo'].values == p_fo) &
+                                     (data['p_kg'].values == p_kg) &
+                                     (data['p_kg_u'].values == p_kg_u), 'n_annot_aftr_prun'].item() != 0:
+                                continue
                             a = 0
                             endindex = -42 if model == 'mcmc' else -12
-                            q = tmp_user.iloc[:, 4:endindex]
-                            while (a < 0.8) & (q.__len__()>0):
-                                alphas = process_alpha(q)
+                            users = tmp_user.iloc[:, 4:endindex]
+                            while (a < 0.8) & (users.__len__()>2):
+                                alphas = process_alpha(users)
                                 a = max(alphas)
                                 i = alphas.index(max(alphas))
                                 if i == 0:  # if i == 0, alpha is highest when no annotator is pruned
                                     break
-                                q = q.drop(i - 1).reset_index(
-                                    drop=True)  # -1 because the full set is prepended in a_high
+
+                                users = users.drop(users.iloc[i-1].name)  # -1 because the full set is prepended in a_high
 
                             data.loc[(data['model'].values == model) &
                                      (data['car'].values == car) &
@@ -59,21 +68,64 @@ def alpha_uerror_metrics(session_folder, model):
                                      (data['dup'].values == dup) &
                                      (data['p_fo'].values == p_fo) &
                                      (data['p_kg'].values == p_kg) &
-                                     (data['p_kg_u'].values == p_kg_u), 'n_annot_aftr_prun'] = q.__len__()
+                                     (data['p_kg_u'].values == p_kg_u), 'n_annot_aftr_prun'] = users.__len__()
                             data.loc[(data['model'].values == model) &
                                      (data['car'].values == car) &
                                      (data['mode'].values == mode) &
                                      (data['dup'].values == dup) &
                                      (data['p_fo'].values == p_fo) &
                                      (data['p_kg'].values == p_kg) &
-                                     (data['p_kg_u'].values == p_kg_u), 'n_answ_aftr_prun'] = np.count_nonzero(np.sum(q.notnull()))
+                                     (data['p_kg_u'].values == p_kg_u), 'alpha_aftr_prun'] = a
                             data.loc[(data['model'].values == model) &
                                      (data['car'].values == car) &
                                      (data['mode'].values == mode) &
                                      (data['dup'].values == dup) &
                                      (data['p_fo'].values == p_fo) &
                                      (data['p_kg'].values == p_kg) &
-                                     (data['p_kg_u'].values == p_kg_u), 'pc_aftr_prun'] = q.__len__()
+                                     (data['p_kg_u'].values == p_kg_u), 'n_answ_aftr_prun'] = np.count_nonzero(np.sum(users.notnull()))
+
+                            tmp_annotations['krip'] = [np.nan]*tmp_annotations.__len__()
+
+                            for q in range(nQuestions):
+                                k_w = []
+                                for k in range(car):
+                                    d_w = 0
+                                    u_include = [x[0] for x in users.iterrows()]
+                                    for d in range(dup):
+                                        if (tmp_annotations.loc[q, f'annot_{d}'] == k) & (tmp_annotations.loc[q, f'id_{d}'] in u_include):
+                                            d_w += 1
+                                    k_w.append(d_w)
+                                if sum(k_w) > 0:
+                                    tmp_annotations.loc[q, 'krip'] = k_w.index(max(k_w))
+
+                            # determine differences
+                            diff_k = tmp_annotations.loc[tmp_annotations['krip'].notnull(), 'GT'] - tmp_annotations.loc[tmp_annotations['krip'].notnull(), 'krip']
+
+
+                            # count differences
+                            diff_k_cnt = (diff_k != 0).sum()
+
+
+                            data.loc[(data['model'].values == model) &
+                                     (data['car'].values == car) &
+                                     (data['mode'].values == mode) &
+                                     (data['dup'].values == dup) &
+                                     (data['p_fo'].values == p_fo) &
+                                     (data['p_kg'].values == p_kg) &
+                                     (data['p_kg_u'].values == p_kg_u), 'pc_aftr_prun'] =  100 * (1 - (diff_k_cnt / sum(tmp_annotations['krip'].notnull())))
+                            data.loc[(data['model'].values == model) &
+                                     (data['car'].values == car) &
+                                     (data['mode'].values == mode) &
+                                     (data['dup'].values == dup) &
+                                     (data['p_fo'].values == p_fo) &
+                                     (data['p_kg'].values == p_kg) &
+                                     (data['p_kg_u'].values == p_kg_u), 'pc_aftr_prun_total'] =  data.loc[(data['model'].values == model) &
+                                                     (data['car'].values == car) &
+                                                     (data['mode'].values == mode) &
+                                                     (data['dup'].values == dup) &
+                                                     (data['p_fo'].values == p_fo) &
+                                                     (data['p_kg'].values == p_kg) &
+                                                     (data['p_kg_u'].values == p_kg_u), 'pc_aftr_prun']*(np.count_nonzero(np.sum(users.notnull()))/nQuestions)
 
 
 if __name__ == "__main__":
@@ -81,7 +133,7 @@ if __name__ == "__main__":
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
     em_sessions = ["session_2022-12-16_11-34-04"]
     mcmc_sessions = ["session_2022-12-13_11-33-52"]
-
+    nQuestions = 200
     sessionlen = {'em': em_sessions.__len__(),
                   'mcmc': mcmc_sessions.__len__()}
 
@@ -96,7 +148,7 @@ if __name__ == "__main__":
     p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
     datalen = 2*car_list.__len__()*modes.__len__()*dups.__len__()*p_fos.__len__()*p_kgs.__len__()*p_kg_us.__len__()
-    cols = ['model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n', 'uerror', 'n_annot_aftr_prun','n_answ_aftr_prun', 'pc_aftr_prun' ]
+    cols = ['model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n', 'uerror', 'n_annot_aftr_prun','n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
     data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
     data.loc[:datalen/2,'model'] = "em"
     data.loc[:datalen / 2, 'iterations'] = 10
