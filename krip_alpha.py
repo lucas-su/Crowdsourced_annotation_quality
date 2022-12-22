@@ -48,9 +48,3 @@ if __name__ == "__main__":
                                     if i == 0: # if i == 0, alpha is highest when no annotator is pruned
                                         break
                                     q = q.drop(i-1).reset_index(drop=True) # -1 because the full set is prepended in a_high
-
-        """        
-        n_annot after pruning
-        n_answers after pruning
-        pc_after pruning
-        """

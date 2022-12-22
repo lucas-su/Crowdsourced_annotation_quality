@@ -15,7 +15,7 @@ def process_alpha(data):
 def alpha_uerror_metrics(session_folder, model):
 
     for car in car_list:
-        for mode in modes[:1]:
+        for mode in modes:
             for dup in dups:
                 for p_fo in p_fos:
                     for p_kg in p_kgs:
@@ -101,10 +101,8 @@ def alpha_uerror_metrics(session_folder, model):
                             # determine differences
                             diff_k = tmp_annotations.loc[tmp_annotations['krip'].notnull(), 'GT'] - tmp_annotations.loc[tmp_annotations['krip'].notnull(), 'krip']
 
-
                             # count differences
                             diff_k_cnt = (diff_k != 0).sum()
-
 
                             data.loc[(data['model'].values == model) &
                                      (data['car'].values == car) &
@@ -131,7 +129,7 @@ def alpha_uerror_metrics(session_folder, model):
 if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
-    em_sessions = ["session_2022-12-16_11-34-04"]
+    em_sessions = ["session_2022-12-16_14-23-14"]
     mcmc_sessions = ["session_2022-12-13_11-33-52"]
     nQuestions = 200
     sessionlen = {'em': em_sessions.__len__(),
@@ -139,8 +137,7 @@ if __name__ == "__main__":
 
     iterations = {'em':10,
                   'mcmc': 40}
-    # car_list = list(range(2, 8))
-    car_list = list(range(2, 6))
+    car_list = list(range(2, 8))
     modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
@@ -162,7 +159,7 @@ if __name__ == "__main__":
 
     with open(f'data/{mcmc_sessions[0]}/mcmc_data_{"_".join(modes)}.pickle', 'rb') as file:
         tmp_data = pickle.load(file)
-    data.loc[(data['model']=='mcmc'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = tmp_data.loc[:,['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']]
+    data.loc[(data['model']=='mcmc'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[:,['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
     for session in em_sessions:
         em_filepath = f'data/{session}/em_data_{"_".join(modes)}.pickle'
@@ -179,7 +176,10 @@ if __name__ == "__main__":
         data.loc[(data['model'] == 'mcmc'), ['pc_m', 'pc_n']] += mcmc_data.loc[:, ['pc_m', 'pc_n']]/em_sessions.__len__()
         alpha_uerror_metrics(session, 'mcmc')
 
+    with open(f'exports/data.pickle','wb') as file:
+        pickle.dump(data, file)
 
-    # inits
-    p_kg = p_kgs[0]
-    mode = modes[0]
+    summary = {"Average n annotators after pruning: ":np.mean(data['n_annot_aftr_prun']),
+               "Average n answers after pruning: ": np.mean(data['n_answ_aftr_prun']),
+               "Average alpha after pruning: ":np.mean(data['alpha_aftr_prun'])}
+    print(summary)
