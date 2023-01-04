@@ -228,12 +228,26 @@ if __name__ == "__main__":
     #
     iterations = {'em':10,
                   'mcmc': 40}
-    car_list = list(range(2, 8))
-    modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    dups = [3,5,7,9]                # duplication factor of the annotators
-    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
-    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+
+
+    # car_list = list(range(2, 8))
+    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    # dups = [3,5,7,9]                # duplication factor of the annotators
+    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
+    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+
+
+
+    car_list = [3, 5, 7]
+    modes = ['beta2_4', 'beta2_2', 'beta4_2']
+    dups = [2, 5, 9]
+    p_fos = [0.0, 0.1, 0.2]
+    p_kgs = [0.0, 0.1, 0.2]
+    p_kg_us = [0.0, 0.1, 0.2]
+
+
+
 
     # datalen = 2*car_list.__len__()*modes.__len__()*dups.__len__()*p_fos.__len__()*p_kgs.__len__()*p_kg_us.__len__()
     # cols = ['model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n', 'uerror']

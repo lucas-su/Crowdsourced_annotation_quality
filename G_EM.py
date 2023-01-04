@@ -282,9 +282,9 @@ if __name__ == "__main__":
                                     nQuestions = annotations.__len__()
                                     ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
                                     run_em(iterations, car, nQuestions)
-                                    with open(f'data/{session_folder}/em_user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'data/{session_folder}/em_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
-                                    with open(f'data/{session_folder}/em_annotations_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'data/{session_folder}/em_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(annotations, file)
-                                    with open(f'data/{session_folder}/em_data_{"_".join(modes)}.pickle', 'wb') as file:
+                                    with open(f'data/{session_folder}/em_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
                                         pickle.dump(ems, file)
