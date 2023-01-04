@@ -256,8 +256,6 @@ if __name__ == "__main__":
     p_kgs = [0.0, 0.1, 0.2]
     p_kg_us = [0.0, 0.1, 0.2]
 
-
-
     ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg','p_kg_u', 'EM', 'pc_m', 'pc_n'])
     for size in ['small', 'medium', 'large']:
         for iterations in iterations_list:

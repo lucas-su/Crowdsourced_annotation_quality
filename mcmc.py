@@ -275,11 +275,11 @@ if __name__ == "__main__":
                         for p_kg in p_kgs:
                             for p_kg_u in p_kg_us:
                                 # open dataset for selected parameters
-                                with open(f'simulation data/{mode}/pickle/small_test_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                with open(f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
                                           'rb') as file:
                                     user = pickle.load(file)
                                 with open(
-                                        f'simulation data/{mode}/pickle/small_test_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                        f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
                                         'rb') as file:
                                     annotations = pickle.load(file)
 
