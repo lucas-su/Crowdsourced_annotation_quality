@@ -106,8 +106,8 @@ def detType(nAnnot, p_fo, p_KG_u):
 
 if __name__ == "__main__":
 
-    nAnnot = 10 # 50
-    nQuestions = 200 # 1000
+    nAnnot = 20 # 50
+    nQuestions = 80 # 1000
     # car = 5
     # duplication_factor = 3
     # p_fo = 0.0
@@ -117,151 +117,113 @@ if __name__ == "__main__":
     steps = 1000
     x = np.linspace(0, xmax, steps)
 
-    ##################
-    # 50 50 gaussian #
-    ##################
-    # mode = "50_50_gaussian"
-    # param = [["gaussian",2,1],["gaussian",8,1]]
-    # distribution = dist(param, x)
+    ## datasets
 
-    ############
-    # gaussian #
-    ############
-    # mode = "gaussian"
-    # param = [["gaussian",5,1]]
-    # distribution = dist(param, x)
+    # car_list = list(range(2,8))
+    car_list = [3,5,7]
 
+    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    modes = ['beta2_4', 'beta2_2', 'beta4_2']
 
+    # dups = [3, 5, 7, 9]
+    dups = [2,5,9]
 
-    ###########
-    # uniform #
-    ###########
-    #
-    # mode = "uniform"
-    # param = [['uniform']]
-    # distribution = dist(param, x)
+    p_fos = [0.0, 0.1,  0.2]
+    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
+    p_KG_us = [0.0, 0.1, 0.2]
+    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
-    ###########################
-    # single trustworthiness #
-    ###########################
+    for size in ['small', 'medium', 'large']:
+        if size == 'small':
+            nQuestions = 80
+        elif size == 'medium':
+            nQuestions = 200
+        else:
+            nQuestions = 400
+        for car in car_list:
+            for mode in modes:
+                if mode == 'uniform':
+                    param = [['uniform']]
+                    distribution = dist(param, x)
+                elif mode == 'gaussian':
+                    param = [["gaussian", 5, 1]]
+                    distribution = dist(param, x)
+                elif mode == 'gaussian50_50':
+                    param = [["gaussian",2,1],["gaussian",8,1]]
+                    distribution = dist(param, x)
+                elif mode == "single0":
+                    param = [['single', 0]]
+                    distribution = dist(param, x)
+                elif mode == "single1":
+                    param = [['single', 1]]
+                    distribution = dist(param, x)
+                elif mode == "beta3_2":
+                    param = [['beta', 3,2]]
+                    distribution = dist(param, x)
+                elif mode == "beta4_2":
+                    param = [['beta', 4, 2]]
+                    distribution = dist(param, x)
+                elif mode == "beta2_4":
+                    param = [['beta', 2, 4]]
+                    distribution = dist(param, x)
+                elif mode == "beta1_3":
+                    param = [['beta', 1, 3]]
+                    distribution = dist(param, x)
+                elif mode == "beta3_1":
+                    param = [['beta', 3, 1]]
+                    distribution = dist(param, x)
+                elif mode == "beta2_2":
+                    param = [['beta', 2, 2]]
+                    distribution = dist(param, x)
+                else:
+                    raise ValueError
+                for dup in dups:
+                    for p_fo in p_fos:
+                        for p_KG_u in p_KG_us:
+                            udata = {"ID":range(nAnnot),
+                                     "type": detType(nAnnot, p_fo,  p_KG_u),
+                                     "T_given": random.choices(x, distribution(), k=nAnnot),
+                                     "T_model": np.ones(nAnnot)*0.5}
 
-    # mode = "single0"
-    # param = [['single', 0]]
-    # distribution = dist(param, x)
-    #
-    # mode = "single1"
-    # param = [['single', 1]]
-    # distribution = dist(param, x)
+                            for q in range(nQuestions): # keep track of labels in broad format
+                                udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
 
-    # datasets
-    car_list = list(range(2,8))
-    # car_list = [3]
-    modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    # modes = ['gaussian']
-    dups = [3,5,7,9]
-    # dups = [5]
-    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_KG_us = [0.0, 0.05, 0.1, 0.15, 0.2]
-    # p_fos = [0.2]
+                            user = pandas.DataFrame(data=udata)
 
+                            annotdict = {"ID":range(nQuestions),
+                                         "GT": random.choices(range(car), k=nQuestions),
+                                         "model": np.zeros(nQuestions)}
+                            for i in range(dup):
+                                annotdict[f'id_{i}'] = np.zeros(nQuestions)
+                                annotdict[f'annot_{i}'] = np.zeros(nQuestions)
 
-    for car in car_list:
-        for mode in modes:
-            if mode == 'uniform':
-                param = [['uniform']]
-                distribution = dist(param, x)
-            elif mode == 'gaussian':
-                param = [["gaussian", 5, 1]]
-                distribution = dist(param, x)
-            elif mode == 'gaussian50_50':
-                param = [["gaussian",2,1],["gaussian",8,1]]
-                distribution = dist(param, x)
-            elif mode == "single0":
-                param = [['single', 0]]
-                distribution = dist(param, x)
-            elif mode == "single1":
-                param = [['single', 1]]
-                distribution = dist(param, x)
-            elif mode == "beta3_2":
-                param = [['beta', 3,2]]
-                distribution = dist(param, x)
-            elif mode == "beta4_2":
-                param = [['beta', 4, 2]]
-                distribution = dist(param, x)
-            elif mode == "beta1_3":
-                param = [['beta', 1, 3]]
-                distribution = dist(param, x)
-            elif mode == "beta3_1":
-                param = [['beta', 3, 1]]
-                distribution = dist(param, x)
-            elif mode == "beta2_2":
-                param = [['beta', 2, 2]]
-                distribution = dist(param, x)
-            else:
-                raise ValueError
-            for dup in dups:
-                for p_fo in p_fos:
-                    for p_KG_u in p_KG_us:
-                        udata = {"ID":range(nAnnot),
-                                 "type": detType(nAnnot, p_fo,  p_KG_u),
-                                 "T_given": random.choices(x, distribution(), k=nAnnot),
-                                 "T_model": np.ones(nAnnot)*0.5}
-
-                        for q in range(nQuestions): # keep track of labels in broad format
-                            udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
-
-                        user = pandas.DataFrame(data=udata)
-
-                        annotdict = {"ID":range(nQuestions),
-                                     "GT": random.choices(range(car), k=nQuestions),
-                                     "model": np.zeros(nQuestions)}
-                        for i in range(dup):
-                            annotdict[f'id_{i}'] = np.zeros(nQuestions)
-                            annotdict[f'annot_{i}'] = np.zeros(nQuestions)
-
-                        annotation = pandas.DataFrame(data=annotdict)
+                            annotation = pandas.DataFrame(data=annotdict)
 
 
-                        with Pool(16) as p:
-                            results = p.map(partial(dist_annot, user, annotation, dup, car, mode), range(nQuestions))
+                            with Pool(32) as p:
+                                results = p.map(partial(dist_annot, user, annotation, dup, car, mode), range(nQuestions))
 
 
-                        res = np.array([np.concatenate(np.column_stack(i)) for i in results])
+                            res = np.array([np.concatenate(np.column_stack(i)) for i in results])
 
-                        annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(dup)])] = res
+                            annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(dup)])] = res
 
-                        for i, q in enumerate(results):
-                            for u_a_pair in zip(q[0],q[1]):
-                                user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
-                        ulen = user.__len__()
-                        user = user.drop(np.where(np.all(np.array([np.isnan(user[f'q_{i}']) for i in range(nQuestions)]), axis=0) == True)[0])
+                            for i, q in enumerate(results):
+                                for u_a_pair in zip(q[0],q[1]):
+                                    user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
+                            ulen = user.__len__()
+                            user = user.drop(np.where(np.all(np.array([np.isnan(user[f'q_{i}']) for i in range(nQuestions)]), axis=0) == True)[0])
 
-                        if user.__len__() != ulen:
-                            print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
-                        print(f"saving {car}, {mode}, {dup}, {p_fo}")
+                            if user.__len__() != ulen:
+                                print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
+                            print(f"saving {car}, {mode}, {dup}, {p_fo}")
 
-                        os.makedirs(f'{os.getcwd()}/simulation data/{mode}/', exist_ok=True)
-                        os.makedirs(f'{os.getcwd()}/simulation data/{mode}/csv', exist_ok=True)
-                        os.makedirs(f'{os.getcwd()}/simulation data/{mode}/pickle', exist_ok=True)
-                        with open(f'simulation data/{mode}/csv/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.csv', 'w') as file:
-                            user.to_csv(file)
-                        with open(f'simulation data/{mode}/csv/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.csv', 'w') as file:
-                            annotation.to_csv(file)
+                            os.makedirs(f'{os.getcwd()}/simulation data/{mode}/', exist_ok=True)
+                            os.makedirs(f'{os.getcwd()}/simulation data/{mode}/csv', exist_ok=True)
+                            os.makedirs(f'{os.getcwd()}/simulation data/{mode}/pickle', exist_ok=True)
 
-                        # save data
-                        with open(f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
-                            pickle.dump(user, file)
-                        with open(f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
-                            pickle.dump(annotation, file)
-
-                        #
-                        # with open(f'simulation data/small_test_user.csv', 'w') as file:
-                        #     user.to_csv(file)
-                        # with open(f'simulation data/small_test_annotations_empty.csv', 'w') as file:
-                        #     annotation.to_csv(file)
-                        #
-                        # # save data
-                        # with open(f'simulation data/small_test_user.pickle', 'wb') as file:
-                        #     pickle.dump(user, file)
-                        # with open(f'simulation data/small_test_annotations_empty.pickle', 'wb') as file:
-                        #     pickle.dump(annotation, file)
+                            # save data
+                            with open(f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
+                                pickle.dump(user, file)
+                            with open(f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
+                                pickle.dump(annotation, file)

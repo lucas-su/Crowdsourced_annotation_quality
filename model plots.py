@@ -27,9 +27,10 @@ class plots():
                     (data['mode'] == mode) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
+                    (data['p_kg_u'] == p_kg_u) &
                     (data['dup'] == dup),
                     'pc_n'
-                ], label='Naive')
+                ], label='Maj. vote')
 
                 # plot EM
                 self.axscar[i,j].plot(car_list,data.loc[
@@ -39,6 +40,7 @@ class plots():
                     (data['mode'] == mode)&
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
+                    (data['p_kg_u'] == p_kg_u) &
                     (data['dup'] == dup),
                     'pc_m'
                 ], label='EM')
@@ -46,14 +48,15 @@ class plots():
                 # plot em uerror
                 self.axsuerror[i, j].plot(car_list, data.loc[
                     (data['model'] == 'em') &
-                    (data['iterations'] == iterations['mcmc']) &
+                    (data['iterations'] == iterations['em']) &
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == mode) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
+                    (data['p_kg_u'] == p_kg_u) &
                     (data['dup'] == dup),
                     'uerror'
-                ], label='U_error')
+                ], label='EM')
 
 
                 # plot MCMC
@@ -64,6 +67,7 @@ class plots():
                     (data['mode'] == mode) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
+                    (data['p_kg_u'] == p_kg_u) &
                     (data['dup'] == dup),
                     'pc_m'
                 ], label='MCMC')
@@ -76,9 +80,10 @@ class plots():
                     (data['mode'] == mode) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
+                    (data['p_kg_u'] == p_kg_u) &
                     (data['dup'] == dup),
                     'uerror'
-                ], label='U_error')
+                ], label='MCMC')
 
                 # plot krippendorf a pruned pc
                 self.axscar[i, j].plot(car_list, data.loc[
@@ -88,9 +93,10 @@ class plots():
                     (data['mode'] == mode) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
+                    (data['p_kg_u'] == p_kg_u) &
                     (data['dup'] == dup),
-                    'pc_aftr_prun' # pc_aftr_prun_total
-                ], label='krip a')
+                    'pc_aftr_prun_total' # pc_aftr_prun_total pc_aftr_prun
+                ], label='Krip a')
 
                 # self.axscar[i,j].set_title(f'dup={dup}, p_fo={p_fo}')
                 if i == 0:
@@ -105,7 +111,7 @@ class plots():
                         self.axsuerror[i, j].legend(loc='lower left', bbox_to_anchor=(1, -0.04, 1, 1))
                 if j == 0:
                     self.axscar[i, j].set_ylabel(f'duplication factor = {dup}\n\n Proportion correct')
-                    self.axsuerror[i, j].set_ylabel(f'duplication factor = {dup}\n\n Proportion correct')
+                    self.axsuerror[i, j].set_ylabel(f'duplication factor = {dup}\n\n Trustworthiness error')
         # plt.subplots_adjust(hspace=0.4)
 
     def plot_interactive(self):
@@ -118,7 +124,7 @@ class plots():
         def getKGSlider(val):
             pkg_slider = Slider(
                 ax=axpkg,
-                label="prop known good",
+                label="proportion\nknown good\nitems",
                 valmin=0,
                 valmax= p_kgs[-1],
                 valinit= val,
@@ -135,6 +141,9 @@ class plots():
             for row in self.axscar:
                 for col in row:
                     col.clear()
+            for row in self.axsuerror:
+                for col in row:
+                    col.clear()
             axpkg.clear()
             self.plot()
             pkg_slider = getKGSlider(val)
@@ -145,7 +154,7 @@ class plots():
         def getKGUSlider(val):
             pkgu_slider = Slider(
                 ax=axpkgu,
-                label="prop known good users",
+                label="proportion\nknown good\nusers",
                 valmin=0,
                 valmax= p_kg_us[-1],
                 valinit= val,
@@ -162,6 +171,9 @@ class plots():
             for row in self.axscar:
                 for col in row:
                     col.clear()
+            for row in self.axsuerror:
+                for col in row:
+                    col.clear()
             axpkgu.clear()
             self.plot()
             pkgu_slider = getKGUSlider(val)
@@ -175,7 +187,7 @@ class plots():
         def getModeSlider(val):
             mode_slider = Slider(
                 ax=axmode,
-                label=f"Simulation distribution: \n {modes[val]}",
+                label=f"Simulation\ndistribution:\n{modes[val]}",
                 valmin=0,
                 valmax= modeindex[-1],
                 valinit= val,
@@ -190,6 +202,9 @@ class plots():
             global mode_slider
             mode = modes[val]
             for row in self.axscar:
+                for col in row:
+                    col.clear()
+            for row in self.axsuerror:
                 for col in row:
                     col.clear()
             axmode.clear()
@@ -213,8 +228,7 @@ if __name__ == "__main__":
     #
     iterations = {'em':10,
                   'mcmc': 40}
-    # car_list = list(range(2, 8))
-    car_list = list(range(2, 6))
+    car_list = list(range(2, 8))
     modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     dups = [3,5,7,9]                # duplication factor of the annotators
     p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
@@ -252,15 +266,31 @@ if __name__ == "__main__":
     #     data.loc[(data['model'] == 'mcmc'), ['pc_m', 'pc_n']] += mcmc_data.loc[:, ['pc_m', 'pc_n']]/em_sessions.__len__()
     #     process_u_error(session, 'mcmc')
 
-    with open(f'exports/data.pickle', 'rb') as file:
+    with open(f'exports/data_nq-200.pickle', 'rb') as file:
         data = pickle.load(file)
 
     plot = plots()
 
     # inits
     p_kg = p_kgs[0]
+    p_kg_u = p_kg_us[0]
     mode = modes[0]
     # iterations = iterations_list[0]
 
+    stats = {"mcmc > naive": sum(np.where(data.loc[(data['model']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_n'], 1,0))/sum((data['model']=='mcmc')),
+             "em > naive": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_m'] >= data.loc[(data['model'] == 'em'), 'pc_n'], 1,0))/sum((data['model']=='em')),
+             "mcmc > em": sum(np.where(np.array(data.loc[(data['model'] == 'mcmc'), 'pc_m']) >= np.array(data.loc[(data['model'] == 'em'), 'pc_m']), 1,0))/sum((data['model']=='mcmc')),
+             "mcmc > krip a":sum(np.where(data.loc[(data['model']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_aftr_prun_total'], 1,0))/sum((data['model']=='mcmc')),
+             "em > krip a": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_m'] >= data.loc[(data['model'] == 'em'), 'pc_aftr_prun_total'], 1, 0))/sum((data['model']=='em')),
+             "krip a > naive": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_aftr_prun_total'] >= data.loc[(data['model'] == 'em'), 'pc_n'], 1, 0))/sum((data['model']=='em')),
+    }
+    ## mcmc better than em on beta dists
+    # sum(np.where(np.array(np.array(data.loc[(data['model'] == 'mcmc') & (
+    #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (
+    #                 data['mode'] == 'beta4_2')), 'pc_m'])) >= np.array(np.array(data.loc[(data['model'] == 'em') & (
+    #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')), 'pc_m'])), 1,
+    #              0)) / sum((data['model'] == 'mcmc') & (
+    #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')))
+    print(stats)
     plot.plot_interactive()
 
