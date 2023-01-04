@@ -241,44 +241,52 @@ if __name__ == "__main__":
     session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     os.makedirs(f'{os.getcwd()}/data/{session_folder}', exist_ok=True)
     iterations_list = [10]
-    car_list = list(range(2,8))
 
-    modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    dups = [3,5,7,9]
-    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
-    # p_kgs = [0.2]
-    # p_kg_us = [0.2]
+    # car_list = list(range(2,8))
+    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    # dups = [3,5,7,9]
+    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+
+    car_list = [3, 5, 7]
+    modes = ['beta2_4', 'beta2_2', 'beta4_2']
+    dups = [2, 5, 9]
+    p_fos = [0.0, 0.1, 0.2]
+    p_kgs = [0.0, 0.1, 0.2]
+    p_kg_us = [0.0, 0.1, 0.2]
+
+
 
     ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg','p_kg_u', 'EM', 'pc_m', 'pc_n'])
-    for iterations in iterations_list:
-        for car in car_list:
-            for mode in modes:
-                for dup in dups:
-                    for p_fo in p_fos:
-                        for p_kg in p_kgs:
-                            for p_kg_u in p_kg_us:
-                                # open dataset for selected parameters
-                                with open(f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
-                                          'rb') as file:
-                                    user = pickle.load(file)
-                                with open(
-                                        f'simulation data/{mode}/pickle/small_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
-                                        'rb') as file:
-                                    annotations = pickle.load(file)
-                                # init user weights at 1
-                                for i in range(iterations + 1):
-                                    user[f't_weight_{i}'] = np.ones(
-                                        user.__len__()) * 0.5  # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
-                                annotations[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg, p_kg]) for _ in range(annotations.__len__())]
-                                user['included'] = np.ones(user.__len__())
-                                nQuestions = annotations.__len__()
-                                ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
-                                run_em(iterations, car, nQuestions)
-                                with open(f'data/{session_folder}/em_user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
-                                    pickle.dump(user, file)
-                                with open(f'data/{session_folder}/em_annotations_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
-                                    pickle.dump(annotations, file)
-                                with open(f'data/{session_folder}/em_data_{"_".join(modes)}.pickle', 'wb') as file:
-                                    pickle.dump(ems, file)
+    for size in ['small', 'medium', 'large']:
+        for iterations in iterations_list:
+            for car in car_list:
+                for mode in modes:
+                    for dup in dups:
+                        for p_fo in p_fos:
+                            for p_kg in p_kgs:
+                                for p_kg_u in p_kg_us:
+                                    # open dataset for selected parameters
+                                    with open(f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                              'rb') as file:
+                                        user = pickle.load(file)
+                                    with open(
+                                            f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                            'rb') as file:
+                                        annotations = pickle.load(file)
+                                    # init user weights at 1
+                                    for i in range(iterations + 1):
+                                        user[f't_weight_{i}'] = np.ones(
+                                            user.__len__()) * 0.5  # all users start at weight 0.5 as prob(good|agree) is 0.5 at starting time
+                                    annotations[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg, p_kg]) for _ in range(annotations.__len__())]
+                                    user['included'] = np.ones(user.__len__())
+                                    nQuestions = annotations.__len__()
+                                    ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
+                                    run_em(iterations, car, nQuestions)
+                                    with open(f'data/{session_folder}/em_user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                        pickle.dump(user, file)
+                                    with open(f'data/{session_folder}/em_annotations_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                        pickle.dump(annotations, file)
+                                    with open(f'data/{session_folder}/em_data_{"_".join(modes)}.pickle', 'wb') as file:
+                                        pickle.dump(ems, file)
