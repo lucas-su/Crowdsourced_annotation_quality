@@ -266,7 +266,7 @@ if __name__ == "__main__":
     else:
         mcmc_data = pandas.DataFrame(
             columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
-    for size in ['small', 'medium', 'large']:
+    for size in ['medium', 'large']:
         for iterations in iterations_list:
             for car in car_list:
                 for mode in modes:
