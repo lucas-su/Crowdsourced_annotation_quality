@@ -280,7 +280,7 @@ if __name__ == "__main__":
     #     data.loc[(data['model'] == 'mcmc'), ['pc_m', 'pc_n']] += mcmc_data.loc[:, ['pc_m', 'pc_n']]/em_sessions.__len__()
     #     process_u_error(session, 'mcmc')
 
-    with open(f'exports/data_nq-200.pickle', 'rb') as file:
+    with open(f'exports/data_small.pickle', 'rb') as file:
         data = pickle.load(file)
 
     plot = plots()

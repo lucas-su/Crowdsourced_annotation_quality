@@ -113,14 +113,16 @@ class mcmc():
         diff_n_cnt = (diff_n != 0).sum()
 
         # insert into mcmc_data dataframe
-        mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+        mcmc_data.loc[(mcmc_data['size'].values == size) &
+                      (mcmc_data['iterations'].values == iterations) &
                       (mcmc_data['car'].values == car) &
                       (mcmc_data['mode'].values == mode) &
                       (mcmc_data['dup'].values == dup) &
                       (mcmc_data['p_fo'].values == p_fo) &
                       (mcmc_data['p_kg'].values == p_kg) &
                       (mcmc_data['p_kg_u'].values == p_kg_u), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
-        mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+        mcmc_data.loc[(mcmc_data['size'].values == size) &
+                      (mcmc_data['iterations'].values == iterations) &
                       (mcmc_data['car'].values == car) &
                       (mcmc_data['mode'].values == mode) &
                       (mcmc_data['dup'].values == dup) &
@@ -142,7 +144,8 @@ class mcmc():
             indices = annotations.loc[(annotations['KG']==True), 'ID']
             if indices.__len__()>0:
                 with Pool(32) as p:
-                    results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                    results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
+                                                          (mcmc_data['iterations'].values == iterations) &
                                                           (mcmc_data['car'].values == car) &
                                                           (mcmc_data['mode'].values == mode) &
                                                           (mcmc_data['dup'].values == dup) &
@@ -155,7 +158,8 @@ class mcmc():
             # after the KG's, do the rest of the samples
             indices = annotations.loc[(annotations['KG'] == False), 'ID']
             with Pool(32) as p:
-                results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
+                                                      (mcmc_data['iterations'].values == iterations) &
                                                       (mcmc_data['car'].values == car) &
                                                       (mcmc_data['mode'].values == mode) &
                                                       (mcmc_data['dup'].values == dup) &
@@ -175,7 +179,8 @@ class mcmc():
             indices = user.loc[(user['type']=='KG'), 'ID']
             if indices.__len__()>0:
                 with Pool(32) as p:
-                    results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                    results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
+                                                          (mcmc_data['iterations'].values == iterations) &
                                                           (mcmc_data['car'].values == car) &
                                                           (mcmc_data['mode'].values == mode) &
                                                           (mcmc_data['dup'].values == dup) &
@@ -189,7 +194,8 @@ class mcmc():
             # After KG users, do the rest
             indices = user.loc[(user['type'] != 'KG'), 'ID']
             with Pool(32) as p:
-                results = p.map(partial(mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
+                                                      (mcmc_data['iterations'].values == iterations) &
                                                       (mcmc_data['car'].values == car) &
                                                       (mcmc_data['mode'].values == mode) &
                                                       (mcmc_data['dup'].values == dup) &
@@ -215,14 +221,16 @@ class mcmc():
                    "Duplication factor": dup,
                    "Proportion 'first only'": p_fo,
                    "Proportion 'known good'": p_kg,
-                   "Percentage correct modelled": mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                   "Percentage correct modelled": mcmc_data.loc[(mcmc_data['size'].values == size) &
+                                                                (mcmc_data['iterations'].values == iterations) &
                                                                 (mcmc_data['car'].values == car) &
                                                                 (mcmc_data['mode'].values == mode) &
                                                                 (mcmc_data['dup'].values == dup) &
                                                                 (mcmc_data['p_fo'].values == p_fo) &
                                                                 (mcmc_data['p_kg'].values == p_kg) &
                                                                 (mcmc_data['p_kg_u'].values == p_kg_u), 'pc_m'],
-                   "Percentage correct naive": mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
+                   "Percentage correct naive": mcmc_data.loc[(mcmc_data['size'].values == size) &
+                                                             (mcmc_data['iterations'].values == iterations) &
                                                              (mcmc_data['car'].values == car) &
                                                              (mcmc_data['mode'].values == mode) &
                                                              (mcmc_data['dup'].values == dup) &
@@ -265,68 +273,71 @@ if __name__ == "__main__":
             mcmc_data = pickle.load(file)
     else:
         mcmc_data = pandas.DataFrame(
-            columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
+            columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
     size = 'large' # options: 'small', 'medium', 'large'
-    for iterations in iterations_list:
-        for car in car_list:
-            for mode in modes:
-                for dup in dups:
-                    for p_fo in p_fos:
-                        for p_kg in p_kgs:
-                            for p_kg_u in p_kg_us:
-                                # open dataset for selected parameters
-                                with open(f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
-                                          'rb') as file:
-                                    user = pickle.load(file)
-                                with open(
-                                        f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
-                                        'rb') as file:
-                                    annotations = pickle.load(file)
+    for size in ['small','medium','large']:
+        for iterations in iterations_list:
+            for car in car_list:
+                for mode in modes:
+                    for dup in dups:
+                        for p_fo in p_fos:
+                            for p_kg in p_kgs:
+                                for p_kg_u in p_kg_us:
+                                    # open dataset for selected parameters
+                                    with open(f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                              'rb') as file:
+                                        user = pickle.load(file)
+                                    with open(
+                                            f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                            'rb') as file:
+                                        annotations = pickle.load(file)
 
-                                ## add parameters to dataframes
-                                # known goods
-                                annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
-                                # user[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg_u, p_kg_u]) for _ in
-                                #                       range(user.__len__())]
+                                    ## add parameters to dataframes
+                                    # known goods
+                                    annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
+                                    # user[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg_u, p_kg_u]) for _ in
+                                    #                       range(user.__len__())]
 
-                                # user parameters for beta sampling
-                                user['a'] = np.ones(user.__len__())
-                                user['b'] = np.ones(user.__len__())
+                                    # user parameters for beta sampling
+                                    user['a'] = np.ones(user.__len__())
+                                    user['b'] = np.ones(user.__len__())
 
-                                # trustworthiness over iterations
-                                ucols = []
-                                for i in range(iterations):
-                                    ucols += [f't_weight_{i}']
-                                weights = pandas.DataFrame(np.ones((user.__len__(),iterations))*0.5, columns= ucols)
-                                pandas.concat((user, weights) )
+                                    # trustworthiness over iterations
+                                    ucols = []
+                                    for i in range(iterations):
+                                        ucols += [f't_weight_{i}']
+                                    weights = pandas.DataFrame(np.ones((user.__len__(),iterations))*0.5, columns= ucols)
+                                    pandas.concat((user, weights) )
 
-                                # global nQuestions
-                                nQuestions = annotations.__len__()
+                                    # global nQuestions
+                                    nQuestions = annotations.__len__()
 
-                                # create mcmc_data dataframe
-                                mcmc_data.loc[mcmc_data.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
-                                # init mcmc object
-                                mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                                              (mcmc_data['car'].values == car) &
-                                              (mcmc_data['mode'].values == mode) &
-                                              (mcmc_data['dup'].values == dup) &
-                                              (mcmc_data['p_fo'].values == p_fo) &
-                                              (mcmc_data['p_kg'].values == p_kg) &
-                                              (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'] = mcmc(car)
+                                    # create mcmc_data dataframe
+                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
+                                    # init mcmc object
+                                    mcmc_data.loc[(mcmc_data['size'].values == size) &
+                                                  (mcmc_data['iterations'].values == iterations) &
+                                                  (mcmc_data['car'].values == car) &
+                                                  (mcmc_data['mode'].values == mode) &
+                                                  (mcmc_data['dup'].values == dup) &
+                                                  (mcmc_data['p_fo'].values == p_fo) &
+                                                  (mcmc_data['p_kg'].values == p_kg) &
+                                                  (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'] = mcmc(car)
 
-                                mcmc_data.loc[(mcmc_data['iterations'].values == iterations) &
-                                              (mcmc_data['car'].values == car) &
-                                              (mcmc_data['mode'].values == mode) &
-                                              (mcmc_data['dup'].values == dup) &
-                                              (mcmc_data['p_fo'].values == p_fo) &
-                                              (mcmc_data['p_kg'].values == p_kg) &
-                                              (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].item().run(iterations, car, nQuestions, user, annotations)
+                                    mcmc_data.loc[(mcmc_data['size'].values == size) &
+                                                  (mcmc_data['iterations'].values == iterations) &
+                                                  (mcmc_data['car'].values == car) &
+                                                  (mcmc_data['mode'].values == mode) &
+                                                  (mcmc_data['dup'].values == dup) &
+                                                  (mcmc_data['p_fo'].values == p_fo) &
+                                                  (mcmc_data['p_kg'].values == p_kg) &
+                                                  (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].item().run(iterations, car, nQuestions, user, annotations)
 
-                                with open(f'data/{session_folder}/mcmc_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
-                                    pickle.dump(annotations, file)
-                                with open(f'data/{session_folder}/mcmc_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
-                                    pickle.dump(user, file)
-                                with open(f'data/{session_folder}/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
-                                    pickle.dump(mcmc_data, file)
+                                    with open(f'data/{session_folder}/mcmc_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                        pickle.dump(annotations, file)
+                                    with open(f'data/{session_folder}/mcmc_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                        pickle.dump(user, file)
+                                    with open(f'data/{session_folder}/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
+                                        pickle.dump(mcmc_data, file)
 
 

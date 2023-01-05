@@ -36,7 +36,7 @@ def queue_alpha_uerror_metrics(session_folder, model):
                         for p_kg in p_kgs:
                             # for p_kg_u in p_kg_us:
 
-                            result = p.map_async(partial(alpha_uerror_metrics, session_folder, model, car, mode, dup, p_fo, p_kg, iterations, sessionlen), p_kg_us)
+                            result = p.map_async(partial(alpha_uerror_metrics, session_folder, model, car, mode, dup, p_fo, p_kg, iterations, sessionlen, size), p_kg_us)
                             data.loc[(data['model'].values == model) &
                                      (data['car'].values == car) &
                                      (data['mode'].values == mode) &
@@ -49,7 +49,7 @@ def queue_alpha_uerror_metrics(session_folder, model):
                                              (data['dup'].values == dup) &
                                              (data['p_fo'].values == p_fo) &
                                              (data['p_kg'].values == p_kg), 'n_annot_aftr_prun']) == 0:
-                                result = p.map(partial(process_krip, session_folder, model, car, mode, dup, p_fo, p_kg, iterations, nQuestions), p_kg_us)
+                                result = p.map(partial(process_krip, session_folder, model, car, mode, dup, p_fo, p_kg, iterations, nQuestions, size), p_kg_us)
                                 data.loc[(data['model'].values == model) &
                                          (data['car'].values == car) &
                                          (data['mode'].values == mode) &
@@ -62,8 +62,8 @@ def queue_alpha_uerror_metrics(session_folder, model):
                                                                          'pc_aftr_prun',
                                                                          'pc_aftr_prun_total']] = result
 
-def alpha_uerror_metrics(session_folder, model, car, mode, dup, p_fo, p_kg, iterations, sessionlen, p_kg_u):
-    with open(f'data/{session_folder}/{model}_user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+def alpha_uerror_metrics(session_folder, model, car, mode, dup, p_fo, p_kg, iterations, sessionlen, size, p_kg_u):
+    with open(f'data/{session_folder}/{model}_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_user = pickle.load(file)
     # error for normal users: modelled T - GT
     u_norm_error = sum(abs(tmp_user.loc[(tmp_user['type']=='normal'), 'T_model']-tmp_user.loc[(tmp_user['type']=='normal'), 'T_given']))
@@ -76,11 +76,11 @@ def alpha_uerror_metrics(session_folder, model, car, mode, dup, p_fo, p_kg, iter
 
     return ((u_norm_error + u_kg_error + u_fo_error)/tmp_user.__len__())/sessionlen[model]
 
-def process_krip(session_folder, model, car, mode, dup, p_fo, p_kg, iterations, nQuestions, p_kg_u):
+def process_krip(session_folder, model, car, mode, dup, p_fo, p_kg, iterations, nQuestions, size, p_kg_u):
     # do krippendorf pruning and pc calculation, is the same for all sessions so needs to be done only once per condition combination
-    with open(f'data/{session_folder}/{model}_user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+    with open(f'data/{session_folder}/{model}_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_user = pickle.load(file)
-    with open(f'data/{session_folder}/{model}_annotations_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+    with open(f'data/{session_folder}/{model}_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_annotations = pickle.load(file)
     a = 0
     endindex = -42 if model == 'mcmc' else -12
@@ -127,20 +127,40 @@ def process_krip(session_folder, model, car, mode, dup, p_fo, p_kg, iterations, 
 if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
-    em_sessions = ["session_2022-12-16_14-23-14"]
-    mcmc_sessions = ["session_2022-12-13_11-33-52", "session_2022-12-19_09-43-51", "session_2022-12-24_23-32-22"]
-    nQuestions = 200
+
+    em_sessions = ['session_2023-01-04_16-19-16']
+    mcmc_sessions = ['session_2023-01-04_20-32-13'] #'session_2023-01-04_16-19-10',
+    # em_sessions = ["session_2022-12-16_14-23-14"]
+    # mcmc_sessions = ["session_2022-12-13_11-33-52", "session_2022-12-19_09-43-51", "session_2022-12-24_23-32-22"]
+
     sessionlen = {'em': em_sessions.__len__(),
                   'mcmc': mcmc_sessions.__len__()}
 
     iterations = {'em':10,
                   'mcmc': 40}
-    car_list = list(range(2, 8))
-    modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    dups = [3,5,7,9]                # duplication factor of the annotators
-    p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
-    p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # car_list = list(range(2, 8))
+    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    # dups = [3,5,7,9]                # duplication factor of the annotators
+    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
+    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
+    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+
+    car_list = [3, 5, 7]
+    modes = ['beta2_4', 'beta2_2', 'beta4_2']
+    dups = [2, 5, 9]
+    p_fos = [0.0, 0.1, 0.2]
+    p_kgs = [0.0, 0.1, 0.2]
+    p_kg_us = [0.0, 0.1, 0.2]
+
+    size = 'medium'
+
+    # for size in ['small', 'medium', 'large']:
+    if size == 'small':
+        nQuestions = 80
+    elif size == 'medium':
+        nQuestions = 200
+    else:
+        nQuestions = 400
 
     datalen = 2*car_list.__len__()*modes.__len__()*dups.__len__()*p_fos.__len__()*p_kgs.__len__()*p_kg_us.__len__()
     cols = ['model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
@@ -151,16 +171,16 @@ if __name__ == "__main__":
     data.loc[datalen / 2:, 'iterations'] = 40
 
     # init correct values in combined dataframe
-    with open(f'data/{em_sessions[0]}/em_data_{"_".join(modes)}.pickle', 'rb') as file:
+    with open(f'data/{em_sessions[0]}/em_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
         tmp_data = pickle.load(file)
     data.loc[(data['model']=='em'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = tmp_data.loc[:,['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']]
 
-    with open(f'data/{mcmc_sessions[0]}/mcmc_data_{"_".join(modes)}.pickle', 'rb') as file:
+    with open(f'data/{mcmc_sessions[0]}/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
         tmp_data = pickle.load(file)
     data.loc[(data['model']=='mcmc'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[:,['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
     for session in em_sessions:
-        em_filepath = f'data/{session}/em_data_{"_".join(modes)}.pickle'
+        em_filepath = f'data/{session}/em_data_size-{size}{"_".join(modes)}.pickle'
         with open(em_filepath, 'rb') as file:
             em_data = pickle.load(file)
         data.loc[(data['model']=='em'),['pc_m', 'pc_n']] = data.loc[(data['model']=='em'),['pc_m', 'pc_n']] + (np.array(em_data.loc[:,['pc_m', 'pc_n']]/em_sessions.__len__()))
@@ -170,13 +190,13 @@ if __name__ == "__main__":
     #     data = pickle.load(file)
 
     for session in mcmc_sessions:
-        mcmc_filepath = f'data/{session}/mcmc_data_{"_".join(modes)}.pickle'
+        mcmc_filepath = f'data/{session}/mcmc_data_size-{size}{"_".join(modes)}.pickle'
         with open(mcmc_filepath, 'rb') as file:
             mcmc_data = pickle.load(file)
         data.loc[(data['model'] == 'mcmc'), ['pc_m', 'pc_n']] =  data.loc[(data['model'] == 'mcmc'), ['pc_m', 'pc_n']] + np.array(mcmc_data.loc[:, ['pc_m', 'pc_n']]/mcmc_sessions.__len__())
         queue_alpha_uerror_metrics(session, 'mcmc')
 
-    with open(f'exports/data_nq-200.pickle', 'wb') as file:
+    with open(f'exports/data_{size}.pickle', 'wb') as file:
         pickle.dump(data, file)
 
     summary = {"Average n annotators after pruning: ":np.mean(data['n_annot_aftr_prun']),

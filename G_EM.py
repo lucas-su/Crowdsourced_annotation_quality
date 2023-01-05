@@ -137,7 +137,8 @@ class EM():
         return nom/denom
 
 def run_em(iterations, car, nQuestions):
-    ems.loc[(ems['iterations'].values == iterations) &
+    ems.loc[(ems['size'].values == size) &
+            (ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
@@ -148,35 +149,38 @@ def run_em(iterations, car, nQuestions):
     while i < iterations:
         print("iteration: ", i)
         # e step
-        g = ems.loc[(ems['iterations'].values == iterations) &
-            (ems['car'].values == car) &
-            (ems['mode'].values == mode) &
-            (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo) &
-            (ems['p_kg'].values == p_kg) &
-            (ems['p_kg_u'].values == p_kg_u), 'EM'].values[0].e_step()
+        g = ems.loc[(ems['size'].values == size) &
+                    (ems['iterations'].values == iterations) &
+                    (ems['car'].values == car) &
+                    (ems['mode'].values == mode) &
+                    (ems['dup'].values == dup) &
+                    (ems['p_fo'].values == p_fo) &
+                    (ems['p_kg'].values == p_kg) &
+                    (ems['p_kg_u'].values == p_kg_u), 'EM'].values[0].e_step()
 
         # m step for known good
         with Pool(32) as p:
-            results = p.map(partial(ems.loc[(ems['iterations'].values == iterations) &
-            (ems['car'].values == car) &
-            (ems['mode'].values == mode) &
-            (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo) &
-            (ems['p_kg'].values == p_kg) &
-            (ems['p_kg_u'].values == p_kg_u), 'EM'].values[0].m_step, g, nQuestions, car), user.loc[(user["type"]=='KG')].iterrows())
+            results = p.map(partial(ems.loc[(ems['size'].values == size) &
+                                            (ems['iterations'].values == iterations) &
+                                            (ems['car'].values == car) &
+                                            (ems['mode'].values == mode) &
+                                            (ems['dup'].values == dup) &
+                                            (ems['p_fo'].values == p_fo) &
+                                            (ems['p_kg'].values == p_kg) &
+                                            (ems['p_kg_u'].values == p_kg_u), 'EM'].values[0].m_step, g, nQuestions, car), user.loc[(user["type"]=='KG')].iterrows())
         user.loc[(user["type"] == 'KG'), "T_model"] = results
         user.loc[(user["type"] == 'KG'), f"t_weight_{i}"] = results
 
         # m step for the rest
         with Pool(32) as p:
-            results = p.map(partial(ems.loc[(ems['iterations'].values == iterations) &
-            (ems['car'].values == car) &
-            (ems['mode'].values == mode) &
-            (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo) &
-            (ems['p_kg'].values == p_kg) &
-            (ems['p_kg_u'].values == p_kg_u), 'EM'].values[0].m_step, g, nQuestions, car), user.loc[(user["type"]!='KG')].iterrows())
+            results = p.map(partial(ems.loc[(ems['size'].values == size) &
+                                            (ems['iterations'].values == iterations) &
+                                            (ems['car'].values == car) &
+                                            (ems['mode'].values == mode) &
+                                            (ems['dup'].values == dup) &
+                                            (ems['p_fo'].values == p_fo) &
+                                            (ems['p_kg'].values == p_kg) &
+                                            (ems['p_kg_u'].values == p_kg_u), 'EM'].values[0].m_step, g, nQuestions, car), user.loc[(user["type"]!='KG')].iterrows())
         # for ann in user.ID:
         #     user.loc[ann, f"t_weight_{i}"] = m.step(g, user.iloc[ann], nQuestions)
         user.loc[(user["type"] != 'KG'), "T_model"] = results
@@ -212,14 +216,16 @@ def run_em(iterations, car, nQuestions):
     diff_n = annotations.loc[:, 'GT'] - annotations.loc[:, 'naive']
     diff_m_cnt = (diff_m != 0).sum()
     diff_n_cnt = (diff_n != 0).sum()
-    ems.loc[(ems['iterations'].values == iterations) &
+    ems.loc[(ems['size'].values == size) &
+            (ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
             (ems['p_fo'].values == p_fo) &
             (ems['p_kg'].values == p_kg) &
             (ems['p_kg_u'].values == p_kg_u), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
-    ems.loc[(ems['iterations'].values == iterations) &
+    ems.loc[(ems['size'].values == size) &
+            (ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
             (ems['mode'].values == mode) &
             (ems['dup'].values == dup) &
@@ -256,7 +262,7 @@ if __name__ == "__main__":
     p_kgs = [0.0, 0.1, 0.2]
     p_kg_us = [0.0, 0.1, 0.2]
 
-    ems = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg','p_kg_u', 'EM', 'pc_m', 'pc_n'])
+    ems = pandas.DataFrame(columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg','p_kg_u', 'EM', 'pc_m', 'pc_n'])
     for size in ['small', 'medium', 'large']:
         for iterations in iterations_list:
             for car in car_list:
@@ -280,7 +286,7 @@ if __name__ == "__main__":
                                     annotations[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg, p_kg]) for _ in range(annotations.__len__())]
                                     user['included'] = np.ones(user.__len__())
                                     nQuestions = annotations.__len__()
-                                    ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
+                                    ems.loc[ems.__len__(), :] = [size, iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
                                     run_em(iterations, car, nQuestions)
                                     with open(f'data/{session_folder}/em_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
