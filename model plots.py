@@ -15,14 +15,95 @@ class plots():
     def __init__(self):
         self.figcar, self.axscar = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
         self.figuerror, self.axsuerror = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
+        self.figsave, self.axssave = plt.subplots()
+        self.figsave.set_size_inches(8,4)
+        self.figsave.subplots_adjust(top=0.98, bottom=0.12,right=0.83,left=0.08)
+
+    def plot_one(self, mode, dup, p_fo, p_kg, iterations, size, p_kg_u):
+        self.axssave.plot(car_list, data.loc[
+            (data['size'] == size) &
+            (data['model'] == 'mcmc') &
+            (data['iterations'] == iterations['mcmc']) &
+            pandas.Series([item in car_list for item in data['car']]) &
+            (data['mode'] == mode) &
+            (data['p_fo'] == p_fo) &
+            (data['p_kg'] == p_kg) &
+            (data['p_kg_u'] == p_kg_u) &
+            (data['dup'] == dup),
+            'pc_n'
+        ], label='Maj. vote')
+
+        # plot EM
+        self.axssave.plot(car_list, data.loc[
+            (data['size'] == size) &
+            (data['model'] == 'em') &
+            (data['iterations'] == iterations['em']) &
+            pandas.Series([item in car_list for item in data['car']]) &
+            (data['mode'] == mode) &
+            (data['p_fo'] == p_fo) &
+            (data['p_kg'] == p_kg) &
+            (data['p_kg_u'] == p_kg_u) &
+            (data['dup'] == dup),
+            'pc_m'
+        ], label='EM')
+
+        # plot MCMC
+        self.axssave.plot(car_list, data.loc[
+            (data['size'] == size) &
+            (data['model'] == 'mcmc') &
+            (data['iterations'] == iterations['mcmc']) &
+            pandas.Series([item in car_list for item in data['car']]) &
+            (data['mode'] == mode) &
+            (data['p_fo'] == p_fo) &
+            (data['p_kg'] == p_kg) &
+            (data['p_kg_u'] == p_kg_u) &
+            (data['dup'] == dup),
+            'pc_m'
+        ], label='MCMC')
+
+        # plot krippendorf a pruned pc
+        self.axssave.plot(car_list, data.loc[
+            (data['size'] == size) &
+            (data['model'] == 'mcmc') &
+            (data['iterations'] == iterations['mcmc']) &
+            pandas.Series([item in car_list for item in data['car']]) &
+            (data['mode'] == mode) &
+            (data['p_fo'] == p_fo) &
+            (data['p_kg'] == p_kg) &
+            (data['p_kg_u'] == p_kg_u) &
+            (data['dup'] == dup),
+            'pc_aftr_prun_total'  # pc_aftr_prun_total pc_aftr_prun
+        ], label='Krip. α')
+        self.axssave.set_xlabel('Cardinality')
+        self.axssave.set_xticks([3,5,7])
+        self.axssave.legend(loc='lower left', bbox_to_anchor=(1, 0, 1, 1))
+        self.axssave.set_ylabel(f'Proportion correct')
+
+
+
+    def saveplots(self):
+        # mode, dup, p_fo, p_kg, iterations, size, p_kg_u
+        plotdata = [['beta2_4', 2,0,0,iterations,'small', 0],
+                    ['beta2_4', 9,0,0,iterations,'small', 0],
+                    ['beta4_2', 2, 0, .2, iterations, 'comb', .2],
+                    ['beta4_2', 2, 0, .1, iterations, 'large', .1],
+                    ['beta2_2', 2, 0, .2, iterations, 'comb', .2],
+                    ['beta2_2', 2, 0.2, .2, iterations, 'comb', .2]]
+        for plotdatum in plotdata:
+            self.plot_one(*plotdatum)
+            plt.savefig(f'C:\\Users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\PC_mode-{plotdatum[0]}_dup-{plotdatum[1]}_p_fo-{plotdatum[2]}_p_kg-{plotdatum[3]}_size-{plotdatum[5]}_p_kg_u{plotdatum[6]}.png', dpi=300)
+            self.axssave.clear()
+
 
     def plot(self):
+        # todo make non-global
         for i, dup in enumerate(dups):
             for j, p_fo in enumerate(p_fos):
                 # plot naive
                 self.axscar[i,j].plot(car_list,data.loc[
-                    (data['model'] == 'em') &
-                    (data['iterations'] == iterations['em']) &
+                    (data['size'] == size) &
+                    (data['model'] == 'mcmc') &
+                    (data['iterations'] == iterations['mcmc']) &
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == mode) &
                     (data['p_fo'] == p_fo) &
@@ -34,6 +115,7 @@ class plots():
 
                 # plot EM
                 self.axscar[i,j].plot(car_list,data.loc[
+                    (data['size'] == size) &
                     (data['model'] == 'em') &
                     (data['iterations'] == iterations['em']) &
                     pandas.Series([item in car_list for item in data['car']]) &
@@ -47,6 +129,7 @@ class plots():
 
                 # plot em uerror
                 self.axsuerror[i, j].plot(car_list, data.loc[
+                    (data['size'] == size) &
                     (data['model'] == 'em') &
                     (data['iterations'] == iterations['em']) &
                     pandas.Series([item in car_list for item in data['car']]) &
@@ -61,6 +144,7 @@ class plots():
 
                 # plot MCMC
                 self.axscar[i, j].plot(car_list, data.loc[
+                    (data['size'] == size) &
                     (data['model'] == 'mcmc') &
                     (data['iterations'] == iterations['mcmc']) &
                     pandas.Series([item in car_list for item in data['car']]) &
@@ -74,6 +158,7 @@ class plots():
 
                 # plot mcmc uerror
                 self.axsuerror[i, j].plot(car_list, data.loc[
+                    (data['size'] == size) &
                     (data['model'] == 'mcmc') &
                     (data['iterations'] == iterations['mcmc']) &
                     pandas.Series([item in car_list for item in data['car']]) &
@@ -87,6 +172,7 @@ class plots():
 
                 # plot krippendorf a pruned pc
                 self.axscar[i, j].plot(car_list, data.loc[
+                    (data['size'] == size) &
                     (data['model'] == 'mcmc') &
                     (data['iterations'] == iterations['mcmc']) &
                     pandas.Series([item in car_list for item in data['car']]) &
@@ -217,6 +303,9 @@ class plots():
 
         plt.show()
 
+# def gentables(data):
+#     beta2_4tab = [["",sum(np.where(data.loc[(data['model']=='mcmc') & (data['size']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_n'], 1,0))/sum((data['model']=='mcmc'))]]
+
 if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
@@ -280,9 +369,34 @@ if __name__ == "__main__":
     #     data.loc[(data['model'] == 'mcmc'), ['pc_m', 'pc_n']] += mcmc_data.loc[:, ['pc_m', 'pc_n']]/em_sessions.__len__()
     #     process_u_error(session, 'mcmc')
 
-    with open(f'exports/data_small.pickle', 'rb') as file:
-        data = pickle.load(file)
+    # nQuestions = {'small': 80,
+    #               'medium': 200,
+    #               'large': 400}
 
+    sizes = ['small', 'medium', 'large']
+    # datalen = 2*car_list.__len__()*modes.__len__()*dups.__len__()*p_fos.__len__()*p_kgs.__len__()*p_kg_us.__len__()
+    # cols = ['model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n', 'uerror',
+    #         'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun',
+    #         'pc_aftr_prun_total']
+    # data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
+    # data.loc[:datalen / 2, 'model'] = "em"
+    # data.loc[:datalen / 2, 'iterations'] = 10
+    # data.loc[datalen / 2:, 'model'] = "mcmc"
+    # data.loc[datalen / 2:, 'iterations'] = 40
+
+    with open(f'exports/data_{sizes[0]}.pickle', 'rb') as file:
+        data = pickle.load(file)
+    data['size'] = 'small'
+    for size in sizes[1:]:
+        with open(f'exports/data_{size}.pickle', 'rb') as file:
+            tmp_data = pickle.load(file)
+            data = pandas.concat((data,tmp_data), ignore_index=True)
+            data.loc[data["size"].isnull(), 'size'] = size
+    data = pandas.concat((data, tmp_data), ignore_index=True)
+    data.loc[data["size"].isnull(), 'size'] = 'comb'
+    data.loc[data["size"] == 'comb', ['pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']] = (np.array(data.loc[(data['size']=='small'), ['pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
+                np.array(data.loc[(data['size']=='medium'), ['pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
+                np.array(data.loc[(data['size']=='large'), ['pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]))/3
     plot = plots()
 
     # inits
@@ -306,5 +420,7 @@ if __name__ == "__main__":
     #              0)) / sum((data['model'] == 'mcmc') & (
     #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')))
     print(stats)
+    size = 'small'
+    # plot.saveplots()
     plot.plot_interactive()
 

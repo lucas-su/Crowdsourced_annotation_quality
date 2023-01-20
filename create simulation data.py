@@ -55,10 +55,12 @@ class dist():
     #     return
 
     def single(self, prob):
-        if prob == 1:
-            return np.append(np.zeros(self.x.shape[0]-1),prob)
-        elif prob == 0:
-            return np.append(1-prob, np.zeros(self.x.shape[0] - 1))
+        probs = np.zeros(self.x.shape[0])
+        if float(prob) == 1.:
+            probs[-1] = 1
+        else:
+            probs[int(float(prob) * self.x.shape[0])] = 1
+        return probs
 
     def gamma(self, alpha, beta):
         # alpha = 1
@@ -120,17 +122,18 @@ if __name__ == "__main__":
     ## datasets
 
     # car_list = list(range(2,8))
-    car_list = [3,5,7]
+    car_list = [3]
 
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    modes = ['beta2_4', 'beta2_2', 'beta4_2']
-
+    # modes = ['beta2_4', 'beta2_2', 'beta4_2']
+    modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     # dups = [3, 5, 7, 9]
-    dups = [2,5,9]
+    # dups = [2,5,9]
+    dups = [3]
 
-    p_fos = [0.0, 0.1,  0.2]
+    p_fos = [0.0, 0.1]
     # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_KG_us = [0.0, 0.1, 0.2]
+    p_KG_us = [0.0, 0.1]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
     for size in ['small', 'medium', 'large']:
@@ -156,6 +159,9 @@ if __name__ == "__main__":
                     distribution = dist(param, x)
                 elif mode == "single1":
                     param = [['single', 1]]
+                    distribution = dist(param, x)
+                elif mode[:6] == 'single':
+                    param = [['single', mode[6:]]]
                     distribution = dist(param, x)
                 elif mode == "beta3_2":
                     param = [['beta', 3,2]]
