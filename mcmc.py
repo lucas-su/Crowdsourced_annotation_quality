@@ -257,12 +257,12 @@ if __name__ == "__main__":
     # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
-    car_list = [3, 5, 7]
+    car_list = [3]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
-    dups = [2, 5, 9]
-    p_fos = [0.0, 0.1, 0.2]
-    p_kgs = [0.0, 0.1, 0.2]
-    p_kg_us = [0.0, 0.1, 0.2]
+    dups = [3]
+    p_fos = [0.0, 0.1]
+    p_kgs = [0.0, 0.1]
+    p_kg_us = [0.0, 0.1]
 
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
