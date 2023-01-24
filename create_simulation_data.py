@@ -9,6 +9,12 @@ import numpy as np
 import pandas
 import  random
 
+# set globals
+xmax = 1
+steps = 1000
+x = np.linspace(0, xmax, steps)
+
+
 def dist_annot(users, annotations, dup, car, mode, q_id):
     userlist = np.zeros(dup)
 
@@ -106,35 +112,8 @@ def detType(nAnnot, p_fo, p_KG_u):
     return type
 
 
-if __name__ == "__main__":
-
+def createData(path, car_list, modes, dups, p_fos, p_KG_us):
     nAnnot = 20 # 50
-    nQuestions = 80 # 1000
-    # car = 5
-    # duplication_factor = 3
-    # p_fo = 0.0
-
-    # other globals
-    xmax = 1
-    steps = 1000
-    x = np.linspace(0, xmax, steps)
-
-    ## datasets
-
-    # car_list = list(range(2,8))
-    car_list = [3]
-
-    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    # modes = ['beta2_4', 'beta2_2', 'beta4_2']
-    modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
-    # dups = [3, 5, 7, 9]
-    # dups = [2,5,9]
-    dups = [3]
-
-    p_fos = [0.0, 0.1]
-    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_KG_us = [0.0, 0.1]
-    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
     for size in ['small', 'medium', 'large']:
         if size == 'small':
@@ -222,14 +201,31 @@ if __name__ == "__main__":
 
                             if user.__len__() != ulen:
                                 print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
-                            print(f"saving {car}, {mode}, {dup}, {p_fo}")
+                            print(f"saving {size}, {car}, {mode}, {dup}, {p_fo}, {p_KG_u}")
 
-                            os.makedirs(f'{os.getcwd()}/simulation data/{mode}/', exist_ok=True)
-                            os.makedirs(f'{os.getcwd()}/simulation data/{mode}/csv', exist_ok=True)
-                            os.makedirs(f'{os.getcwd()}/simulation data/{mode}/pickle', exist_ok=True)
+                            os.makedirs(f'{path}/simulation data/{mode}/', exist_ok=True)
+                            os.makedirs(f'{path}/simulation data/{mode}/csv', exist_ok=True)
+                            os.makedirs(f'{path}/simulation data/{mode}/pickle', exist_ok=True)
 
                             # save data
-                            with open(f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
+                            with open(f'{path}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
                                 pickle.dump(user, file)
-                            with open(f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
+                            with open(f'{path}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
                                 pickle.dump(annotation, file)
+if __name__ == "__main__":
+
+    # car_list = list(range(2,8))
+    car_list = [3]
+
+    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+    # modes = ['beta2_4', 'beta2_2', 'beta4_2']
+    modes = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+    # dups = [3, 5, 7, 9]
+    # dups = [2,5,9]
+    dups = [3]
+
+    p_fos = [0.0, 0.1]
+    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
+    p_KG_us = [0.0, 0.1]
+    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+    createData(os.getcwd(), car_list, modes, dups, p_fos, p_KG_us)

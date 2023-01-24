@@ -6,6 +6,7 @@ from functools import partial
 from scipy.stats import beta
 from datetime import datetime
 import os
+from create_simulation_data import createData
 
 class mcmc():
 
@@ -249,6 +250,7 @@ if __name__ == "__main__":
     # os.makedirs(os.path.dirname(f'{os.getcwd()}/data/{session_folder}'), exist_ok=True)
     os.makedirs(f'{os.getcwd()}/data/{session_folder}', exist_ok=True)
 
+
     iterations_list = [40]        # iterations of mcmc algorithm -- 10 warmup - keep 30 - sample 10 from these 30
     # car_list = list(range(2,8))     # cardinality of the questions
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
@@ -264,6 +266,7 @@ if __name__ == "__main__":
     p_kgs = [0.0, 0.1]
     p_kg_us = [0.0, 0.1]
 
+    createData(session_folder, car_list, modes, dups, p_fos, p_kg_us)
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
     # if not resuming, makes new empty dataframe with correct columns
@@ -274,7 +277,7 @@ if __name__ == "__main__":
     else:
         mcmc_data = pandas.DataFrame(
             columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
-    size = 'large' # options: 'small', 'medium', 'large'
+
     for size in ['small','medium','large']:
         for iterations in iterations_list:
             for car in car_list:
@@ -284,11 +287,11 @@ if __name__ == "__main__":
                             for p_kg in p_kgs:
                                 for p_kg_u in p_kg_us:
                                     # open dataset for selected parameters
-                                    with open(f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                    with open(f'{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
                                               'rb') as file:
                                         user = pickle.load(file)
                                     with open(
-                                            f'simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                            f'{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
                                             'rb') as file:
                                         annotations = pickle.load(file)
 
