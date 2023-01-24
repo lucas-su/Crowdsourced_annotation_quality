@@ -248,7 +248,7 @@ class mcmc():
 if __name__ == "__main__":
     session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     # os.makedirs(os.path.dirname(f'{os.getcwd()}/data/{session_folder}'), exist_ok=True)
-    os.makedirs(f'{os.getcwd()}/sessions/{session_folder}', exist_ok=True)
+    os.makedirs(f'{os.getcwd()}/sessions/{session_folder}/output', exist_ok=True)
 
 
     iterations_list = [40]        # iterations of mcmc algorithm -- 10 warmup - keep 30 - sample 10 from these 30
