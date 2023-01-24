@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas
 from matplotlib import cm
 import numpy as np
-from G_EM import EM
+from em import EM
 from mcmc import mcmc
 from matplotlib.widgets import Slider, Button
 from mpl_toolkits.mplot3d.axes3d import get_test_data

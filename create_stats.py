@@ -7,7 +7,7 @@ import krippendorff
 import matplotlib.pyplot as plt
 import pandas
 import numpy as np
-from G_EM import EM
+from em import EM
 from mcmc import mcmc
 def timeit(func):
     """

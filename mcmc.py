@@ -248,7 +248,7 @@ class mcmc():
 if __name__ == "__main__":
     session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
     # os.makedirs(os.path.dirname(f'{os.getcwd()}/data/{session_folder}'), exist_ok=True)
-    os.makedirs(f'{os.getcwd()}/data/{session_folder}', exist_ok=True)
+    os.makedirs(f'{os.getcwd()}/sessions/{session_folder}', exist_ok=True)
 
 
     iterations_list = [40]        # iterations of mcmc algorithm -- 10 warmup - keep 30 - sample 10 from these 30
@@ -266,13 +266,13 @@ if __name__ == "__main__":
     p_kgs = [0.0, 0.1]
     p_kg_us = [0.0, 0.1]
 
-    createData(session_folder, car_list, modes, dups, p_fos, p_kg_us)
+    createData(f'sessions/{session_folder}', car_list, modes, dups, p_fos, p_kg_us)
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
     # if not resuming, makes new empty dataframe with correct columns
     resume_mode = False
     if resume_mode:
-        with open(f'data/mcmc_data_{"_".join(modes)}.pickle', 'rb') as file:
+        with open(f'sessions/mcmc_data_{"_".join(modes)}.pickle', 'rb') as file:
             mcmc_data = pickle.load(file)
     else:
         mcmc_data = pandas.DataFrame(
@@ -287,11 +287,11 @@ if __name__ == "__main__":
                             for p_kg in p_kgs:
                                 for p_kg_u in p_kg_us:
                                     # open dataset for selected parameters
-                                    with open(f'{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                    with open(f'sessions/{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
                                               'rb') as file:
                                         user = pickle.load(file)
                                     with open(
-                                            f'{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                            f'sessions/{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
                                             'rb') as file:
                                         annotations = pickle.load(file)
 
@@ -336,11 +336,9 @@ if __name__ == "__main__":
                                                   (mcmc_data['p_kg'].values == p_kg) &
                                                   (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].item().run(iterations, car, nQuestions, user, annotations)
 
-                                    with open(f'data/{session_folder}/mcmc_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'sessions/{session_folder}/output/mcmc_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(annotations, file)
-                                    with open(f'data/{session_folder}/mcmc_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'sessions/{session_folder}/output/mcmc_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
-                                    with open(f'data/{session_folder}/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
+                                    with open(f'sessions/{session_folder}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
                                         pickle.dump(mcmc_data, file)
-
-
