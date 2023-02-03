@@ -247,8 +247,7 @@ def run_em(iterations, car, nQuestions):
 
 
 if __name__ == "__main__":
-    session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-    os.makedirs(f'{os.getcwd()}/sessions/{session_folder}/output', exist_ok=True)
+
     iterations_list = [10]
 
     # car_list = list(range(2,8))
@@ -258,14 +257,18 @@ if __name__ == "__main__":
     # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
-    car_list = [3]
+    car_list = [7]
 
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
     p_fos = [0.0, 0.1]
     p_kgs = [0.0, 0.1]
     p_kg_us = [0.0, 0.1]
-    createData(f'sessions/{session_folder}', car_list, modes, dups, p_fos, p_kg_us)
+
+    session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+    os.makedirs(f'{os.getcwd()}/sessions/car{car_list[0]}/{session_folder}/output', exist_ok=True)
+
+    createData(f'sessions/car{car_list[0]}/{session_folder}', car_list, modes, dups, p_fos, p_kg_us)
     ems = pandas.DataFrame(columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg','p_kg_u', 'EM', 'pc_m', 'pc_n'])
     for size in ['small', 'medium', 'large']:
         for iterations in iterations_list:
@@ -276,11 +279,11 @@ if __name__ == "__main__":
                             for p_kg in p_kgs:
                                 for p_kg_u in p_kg_us:
                                     # open dataset for selected parameters
-                                    with open(f'sessions/{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                    with open(f'sessions/car{car_list[0]}/{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
                                               'rb') as file:
                                         user = pickle.load(file)
                                     with open(
-                                            f'sessions/{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                            f'sessions/car{car_list[0]}/{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
                                             'rb') as file:
                                         annotations = pickle.load(file)
                                     # init user weights at 1
@@ -292,9 +295,9 @@ if __name__ == "__main__":
                                     nQuestions = annotations.__len__()
                                     ems.loc[ems.__len__(), :] = [size, iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
                                     run_em(iterations, car, nQuestions)
-                                    with open(f'sessions/{session_folder}/output/em_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
-                                    with open(f'sessions/{session_folder}/output/em_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(annotations, file)
-                                    with open(f'sessions/{session_folder}/output/em_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
+                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
                                         pickle.dump(ems, file)

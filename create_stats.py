@@ -1,3 +1,4 @@
+import os
 import pickle
 import time
 from functools import partial
@@ -7,6 +8,8 @@ import krippendorff
 import matplotlib.pyplot as plt
 import pandas
 import numpy as np
+import pandas as pd
+
 from em import EM
 from mcmc import mcmc
 def timeit(func):
@@ -37,20 +40,23 @@ def queue_alpha_uerror_metrics(session_folder, model):
                             # for p_kg_u in p_kg_us:
 
                             result = p.map_async(partial(alpha_uerror_metrics, session_folder, model, car, mode, dup, p_fo, p_kg, iterations, sessionlen, size), p_kg_us)
-                            data.loc[(data['model'].values == model) &
+                            data.loc[(data['session'].values == 'avg') &
+                                     (data['model'].values == model) &
                                      (data['car'].values == car) &
                                      (data['mode'].values == mode) &
                                      (data['dup'].values == dup) &
                                      (data['p_fo'].values == p_fo) &
                                      (data['p_kg'].values == p_kg), 'uerror'] += result.get()
-                            if min(data.loc[(data['model'].values == model) &
+                            if min(data.loc[(data['session'].values == 'avg') &
+                                            (data['model'].values == model) &
                                              (data['car'].values == car) &
                                              (data['mode'].values == mode) &
                                              (data['dup'].values == dup) &
                                              (data['p_fo'].values == p_fo) &
                                              (data['p_kg'].values == p_kg), 'n_annot_aftr_prun']) == 0:
                                 result = p.map(partial(process_krip, session_folder, model, car, mode, dup, p_fo, p_kg, iterations, nQuestions, size), p_kg_us)
-                                data.loc[(data['model'].values == model) &
+                                data.loc[(data['session'].values == 'avg') &
+                                         (data['model'].values == model) &
                                          (data['car'].values == car) &
                                          (data['mode'].values == mode) &
                                          (data['dup'].values == dup) &
@@ -63,7 +69,7 @@ def queue_alpha_uerror_metrics(session_folder, model):
                                                                          'pc_aftr_prun_total']] = result
 
 def alpha_uerror_metrics(session_folder, model, car, mode, dup, p_fo, p_kg, iterations, sessionlen, size, p_kg_u):
-    with open(f'data/{session_folder}/{model}_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+    with open(f'sessions/{session_folder}/output/{model}_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_user = pickle.load(file)
     # error for normal users: modelled T - GT
     u_norm_error = sum(abs(tmp_user.loc[(tmp_user['type']=='normal'), 'T_model']-tmp_user.loc[(tmp_user['type']=='normal'), 'T_given']))
@@ -78,9 +84,9 @@ def alpha_uerror_metrics(session_folder, model, car, mode, dup, p_fo, p_kg, iter
 
 def process_krip(session_folder, model, car, mode, dup, p_fo, p_kg, iterations, nQuestions, size, p_kg_u):
     # do krippendorf pruning and pc calculation, is the same for all sessions so needs to be done only once per condition combination
-    with open(f'data/{session_folder}/{model}_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+    with open(f'sessions/{session_folder}/output/{model}_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_user = pickle.load(file)
-    with open(f'data/{session_folder}/{model}_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+    with open(f'sessions/{session_folder}/output/{model}_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_annotations = pickle.load(file)
     a = 0
     endindex = -42 if model == 'mcmc' else -12
@@ -124,12 +130,26 @@ def process_krip(session_folder, model, car, mode, dup, p_fo, p_kg, iterations, 
     pc_aftr_prun_total =  pc_aftr_prun*(np.count_nonzero(np.sum(users.notnull()))/nQuestions)
     return alpha_bfr_prun, n_annot_aftr_prun, alpha_aftr_prun, n_answ_aftr_prun, pc_aftr_prun, pc_aftr_prun_total
 
+def makeplaceholderframe(model, idx, datalen, cols):
+    assert datalen % 1 == 0
+    datalen = int(datalen)
+    return pandas.DataFrame(np.concatenate((np.full((1,datalen), idx).T,np.full((1,datalen), model).T, np.zeros((datalen, cols.__len__()-2))), axis=1), columns=cols)
+
 if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
 
-    em_sessions = ['session_2023-01-05_15-48-46', 'session_2023-01-06_20-22-26', 'session_2023-01-09_12-58-40'] #'session_2023-01-10_02-00-59'
-    mcmc_sessions = ['session_2023-01-05_15-48-28', 'session_2023-01-06_10-10-01'] # 'session_2023-01-10_07-18-18'
+    walk = next(os.walk('sessions'))[1]
+    em_sessions = []
+    mcmc_sessions = []
+    for dir in walk:
+        type = next(os.walk(f"sessions/{dir}/output"))[2][0][:2]
+        if type == 'em':
+            em_sessions.append(dir)
+        elif type == 'mc':
+            mcmc_sessions.append(dir)
+        else:
+            raise ValueError
 
     sessionlen = {'em': em_sessions.__len__(),
                   'mcmc': mcmc_sessions.__len__()}
@@ -143,62 +163,102 @@ if __name__ == "__main__":
     # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
-    car_list = [3, 5, 7]
-    # modes = ['beta2_4', 'beta2_2', 'beta4_2']
+    car_list = [3]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
-    dups = [2, 5, 9]
-    p_fos = [0.0, 0.1, 0.2]
-    p_kgs = [0.0, 0.1, 0.2]
-    p_kg_us = [0.0, 0.1, 0.2]
+    dups = [3]
+    p_fos = [0.0, 0.1]
+    p_kgs = [0.0, 0.1]
+    p_kg_us = [0.0, 0.1]
 
-    size = 'large'
 
-    # for size in ['small', 'medium', 'large']:
-    if size == 'small':
-        nQuestions = 80
-    elif size == 'medium':
-        nQuestions = 200
-    else:
-        nQuestions = 400
 
     datalen = 2*car_list.__len__()*modes.__len__()*dups.__len__()*p_fos.__len__()*p_kgs.__len__()*p_kg_us.__len__()
-    cols = ['model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
+    # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
+    cols = ['session', 'model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
     data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
     data.loc[:datalen/2,'model'] = "em"
     data.loc[:datalen / 2, 'iterations'] = 10
     data.loc[datalen / 2:, 'model'] = "mcmc"
     data.loc[datalen / 2:, 'iterations'] = 40
+    data.loc[:,'session'] = 'avg'
 
-    # init correct values in combined dataframe
-    with open(f'data/{em_sessions[0]}/em_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
-        tmp_data = pickle.load(file)
-    data.loc[(data['model']=='em'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==size),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
+    for size in ['small', 'medium', 'large']:
 
-    with open(f'data/{mcmc_sessions[0]}/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
-        tmp_data = pickle.load(file)
-    data.loc[(data['model']=='mcmc'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==size),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
+        # for size in ['small', 'medium', 'large']:
+        if size == 'small':
+            nQuestions = 80
+        elif size == 'medium':
+            nQuestions = 200
+        else:
+            nQuestions = 400
+        # init correct values in combined dataframe
+        with open(f'sessions/{em_sessions[0]}/output/em_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
+            tmp_data = pickle.load(file)
+        data.loc[(data['model']=='em')&(data['session']=='avg'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==size),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
-    for session in em_sessions:
-        em_filepath = f'data/{session}/em_data_size-{size}{"_".join(modes)}.pickle'
-        with open(em_filepath, 'rb') as file:
-            em_data = pickle.load(file)
-        data.loc[(data['model']=='em'),['pc_m', 'pc_n']] = data.loc[(data['model']=='em'),['pc_m', 'pc_n']] + (np.array(em_data.loc[(em_data['size']==size),['pc_m', 'pc_n']]/em_sessions.__len__()))
-        queue_alpha_uerror_metrics(session, 'em')
+        with open(f'sessions/{mcmc_sessions[0]}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
+            tmp_data = pickle.load(file)
+        data.loc[(data['model']=='mcmc')&(data['session']=='avg'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==size),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
-    # with open(f'exports/data_nq-200.pickle','rb') as file:
-    #     data = pickle.load(file)
+        for em_idx, session in enumerate(em_sessions):
+            em_filepath = f'sessions/{session}/output/em_data_size-{size}{"_".join(modes)}.pickle'
+            with open(em_filepath, 'rb') as file:
+                em_data = pickle.load(file)
+            data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] = data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] + (np.array(em_data.loc[(em_data['size']==size),['pc_m', 'pc_n']]/em_sessions.__len__()))
+            data = pandas.concat((data, makeplaceholderframe("em", em_idx, datalen/2, cols)), ignore_index=True)
+            data.loc[(data['session']==f'{em_idx}')&(data['model']==f'em'), ['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m','pc_n']] = np.array(em_data.loc[(em_data['size']==size),['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m','pc_n']])
+            queue_alpha_uerror_metrics(session, 'em')
 
-    for session in mcmc_sessions:
-        mcmc_filepath = f'data/{session}/mcmc_data_size-{size}{"_".join(modes)}.pickle'
-        with open(mcmc_filepath, 'rb') as file:
-            mcmc_data = pickle.load(file)
-        data.loc[(data['model'] == 'mcmc'), ['pc_m', 'pc_n']] =  data.loc[(data['model'] == 'mcmc'), ['pc_m', 'pc_n']] + np.array(mcmc_data.loc[(mcmc_data['size']==size), ['pc_m', 'pc_n']]/mcmc_sessions.__len__())
-        queue_alpha_uerror_metrics(session, 'mcmc')
+        # with open(f'exports/data_nq-200.pickle','rb') as file:
+        #     data = pickle.load(file)
 
-    with open(f'exports/data_{size}.pickle', 'wb') as file:
-        pickle.dump(data, file)
+        for mc_idx, session in enumerate(mcmc_sessions):
+            mcmc_filepath = f'sessions/{session}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle'
+            with open(mcmc_filepath, 'rb') as file:
+                mcmc_data = pickle.load(file)
+            data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] =  data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] + np.array(mcmc_data.loc[(mcmc_data['size']==size), ['pc_m', 'pc_n']]/mcmc_sessions.__len__())
+            data = pandas.concat((data, makeplaceholderframe("mcmc", mc_idx, datalen / 2, cols)), ignore_index=True)
+            data.loc[(data['session'] == f'{mc_idx}') & (data['model'] == f'mcmc'), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(mcmc_data.loc[(mcmc_data['size']==size), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n']])
+            queue_alpha_uerror_metrics(session, 'mcmc')
 
-    summary = {"Average n annotators after pruning: ":np.mean(data['n_annot_aftr_prun']),
-               "Average n answers after pruning: ": np.mean(data['n_answ_aftr_prun']),
-               "Average alpha after pruning: ":np.mean(data['alpha_aftr_prun'])}
-    print(summary)
+        for mode in modes:
+            for model in ['em', 'mcmc']:
+                for car in car_list:
+                    for mode in modes:
+                        for dup in dups:
+                            for p_fo in p_fos:
+                                for p_kg in p_kgs:
+                                    for p_kg_u in p_kg_us:
+                                        dat = data.loc[(data['session'] != 'avg') &
+                                                       (data['model'] == model) &
+                                                       (data['car'] == car) &
+                                                       (data['mode'] == mode) &
+                                                       (data['dup'] == dup) &
+                                                       (data['p_fo'] == p_fo) &
+                                                       (data['p_kg'] == p_kg)&
+                                                       (data['p_kg_u'] == p_kg_u)]
+                                        data.loc[(data['session'] == 'avg') &
+                                                 (data['model'] == model) &
+                                                 (data['car'] == car) &
+                                                 (data['mode'] == mode) &
+                                                 (data['dup'] == dup) &
+                                                 (data['p_fo'] == p_fo) &
+                                                 (data['p_kg'] == p_kg) &
+                                                 (data['p_kg_u'] == p_kg_u), 'pc_n_SD'] = np.std(dat['pc_n'])
+
+                                        data.loc[(data['session'] == 'avg') &
+                                                 (data['model'] == model) &
+                                                 (data['car'] == car) &
+                                                 (data['mode'] == mode) &
+                                                 (data['dup'] == dup) &
+                                                 (data['p_fo'] == p_fo) &
+                                                 (data['p_kg'] == p_kg) &
+                                                 (data['p_kg_u'] == p_kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
+
+        with open(f'exports/data_{size}.pickle', 'wb') as file:
+            pickle.dump(data, file)
+        #
+        # summary = {"Average n annotators after pruning: ":np.mean(data['n_annot_aftr_prun']),
+        #            "Average n answers after pruning: ": np.mean(data['n_answ_aftr_prun']),
+        #            "Average alpha after pruning: ":np.mean(data['alpha_aftr_prun'])}
+        # print(summary)

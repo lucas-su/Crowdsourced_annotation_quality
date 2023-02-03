@@ -303,6 +303,61 @@ class plots():
 
         plt.show()
 
+    def plot_pc_T(self, car, dup, p_fo, p_kg, size, p_kg_u):
+        self.figpc_T, self.axspc_T = plt.subplots()
+        mcmcpc_m = data.loc[(data['model'] == 'mcmc') &
+                        (data['car'] == car) &
+                        (data['dup'] == dup) &
+                        (data['p_fo'] == p_fo) &
+                        (data['p_kg'] == p_kg) &
+                        (data['size'] == size) &
+                        (data['p_kg_u'] == p_kg_u), 'pc_m']
+        mcmc_sd = data.loc[(data['model'] == 'mcmc') &
+                            (data['car'] == car) &
+                            (data['dup'] == dup) &
+                            (data['p_fo'] == p_fo) &
+                            (data['p_kg'] == p_kg) &
+                            (data['size'] == size) &
+                            (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
+        empc_m = data.loc[(data['model'] == 'em') &
+                            (data['car'] == car) &
+                            (data['dup'] == dup) &
+                            (data['p_fo'] == p_fo) &
+                            (data['p_kg'] == p_kg) &
+                            (data['size'] == size) &
+                            (data['p_kg_u'] == p_kg_u), 'pc_m']
+        em_sd = data.loc[(data['model'] == 'em') &
+                           (data['car'] == car) &
+                           (data['dup'] == dup) &
+                           (data['p_fo'] == p_fo) &
+                           (data['p_kg'] == p_kg) &
+                           (data['size'] == size) &
+                           (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
+        naivepc = data.loc[(data['model'] == 'em') &
+                            (data['car'] == car) &
+                            (data['dup'] == dup) &
+                            (data['p_fo'] == p_fo) &
+                            (data['p_kg'] == p_kg) &
+                            (data['size'] == size) &
+                            (data['p_kg_u'] == p_kg_u), 'pc_n']
+        naive_sd = data.loc[(data['model'] == 'em') &
+                           (data['car'] == car) &
+                           (data['dup'] == dup) &
+                           (data['p_fo'] == p_fo) &
+                           (data['p_kg'] == p_kg) &
+                           (data['size'] == size) &
+                           (data['p_kg_u'] == p_kg_u), 'pc_n_SD']
+        x = np.arange(11)/10
+
+        self.axspc_T.plot(x, mcmcpc_m, label='mcmc')
+        self.axspc_T.fill_between(x, np.array(mcmcpc_m+mcmc_sd, dtype=float), np.array(mcmcpc_m-mcmc_sd, dtype=float), alpha=0.2)
+        self.axspc_T.plot(x, empc_m, label='em')
+        self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
+        self.axspc_T.plot(x, naivepc, label='maj. vote')
+        self.axspc_T.fill_between(x, np.array(naivepc + naive_sd, dtype=float), np.array(naivepc - naive_sd, dtype=float), alpha=0.2 )
+        self.axspc_T.legend()
+        plt.show()
+
 # def gentables(data):
 #     beta2_4tab = [["",sum(np.where(data.loc[(data['model']=='mcmc') & (data['size']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_n'], 1,0))/sum((data['model']=='mcmc'))]]
 
@@ -328,12 +383,12 @@ if __name__ == "__main__":
 
 
 
-    car_list = [3, 5, 7]
-    modes = ['beta2_4', 'beta2_2', 'beta4_2']
-    dups = [2, 5, 9]
-    p_fos = [0.0, 0.1, 0.2]
-    p_kgs = [0.0, 0.1, 0.2]
-    p_kg_us = [0.0, 0.1, 0.2]
+    car_list = [3]
+    modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
+    dups = [3]
+    p_fos = [0.0, 0.1]
+    p_kgs = [0.0, 0.1]
+    p_kg_us = [0.0, 0.1]
 
 
 
@@ -387,22 +442,28 @@ if __name__ == "__main__":
     with open(f'exports/data_{sizes[0]}.pickle', 'rb') as file:
         data = pickle.load(file)
     data['size'] = 'small'
+    data = data.loc[data['session']=='avg']
     for size in sizes[1:]:
         with open(f'exports/data_{size}.pickle', 'rb') as file:
             tmp_data = pickle.load(file)
+            tmp_data = tmp_data.loc[tmp_data['session'] == 'avg']
             data = pandas.concat((data,tmp_data), ignore_index=True)
             data.loc[data["size"].isnull(), 'size'] = size
     data = pandas.concat((data, tmp_data), ignore_index=True)
     data.loc[data["size"].isnull(), 'size'] = 'comb'
-    data.loc[data["size"] == 'comb', ['pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']] = (np.array(data.loc[(data['size']=='small'), ['pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
-                np.array(data.loc[(data['size']=='medium'), ['pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
-                np.array(data.loc[(data['size']=='large'), ['pc_m', 'pc_n', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]))/3
+    data.loc[data["size"] == 'comb', ['pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']] = (np.array(data.loc[(data['size']=='small'), ['pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
+                np.array(data.loc[(data['size']=='medium'), ['pc_m', 'pc_m_SD', 'pc_n','pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
+                np.array(data.loc[(data['size']=='large'), ['pc_m','pc_m_SD', 'pc_n','pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]))/3
     plot = plots()
 
     # inits
     p_kg = p_kgs[0]
+    p_fo = p_fos[0]
     p_kg_u = p_kg_us[0]
     mode = modes[0]
+    car = car_list[0]
+    dup = dups[0]
+
     # iterations = iterations_list[0]
 
     stats = {"mcmc > naive": sum(np.where(data.loc[(data['model']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_n'], 1,0))/sum((data['model']=='mcmc')),
@@ -420,7 +481,7 @@ if __name__ == "__main__":
     #              0)) / sum((data['model'] == 'mcmc') & (
     #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')))
     print(stats)
-    size = 'small'
+    size = 'comb'
     # plot.saveplots()
-    plot.plot_interactive()
-
+    # plot.plot_interactive()
+    plot.plot_pc_T(car, dup, p_fo, p_kg, size, p_kg_u)
