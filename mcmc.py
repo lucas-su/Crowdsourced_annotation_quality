@@ -173,8 +173,8 @@ class mcmc():
 
             # sample tn
 
-            priora = 0
-            priorb = 0
+            priora = 0.5
+            priorb = 0.5
 
             # first do the KG users
             indices = user.loc[(user['type']=='KG'), 'ID']
