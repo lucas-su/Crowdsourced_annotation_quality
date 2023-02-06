@@ -383,7 +383,7 @@ if __name__ == "__main__":
 
 
 
-    car_list = [3]
+    car_list = [7]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
     p_fos = [0.0, 0.1]

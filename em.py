@@ -266,6 +266,7 @@ if __name__ == "__main__":
     p_kg_us = [0.0, 0.1]
 
     session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+
     os.makedirs(f'{os.getcwd()}/sessions/car{car_list[0]}/{session_folder}/output', exist_ok=True)
 
     createData(f'sessions/car{car_list[0]}/{session_folder}', car_list, modes, dups, p_fos, p_kg_us)
