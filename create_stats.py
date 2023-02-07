@@ -139,7 +139,7 @@ if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
 
-    car_list = [7]
+    car_list = [3]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
     p_fos = [0.0, 0.1]
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     p_kg_us = [0.0, 0.1]
 
 
-    session_dir = f'sessions/car{car_list[0]}'
+    session_dir = f'sessions/prior-0.5_0.5-car{car_list[0]}'
     walk = next(os.walk(session_dir))[1]
     em_sessions = []
     mcmc_sessions = []
@@ -192,34 +192,39 @@ if __name__ == "__main__":
         else:
             nQuestions = 400
         # init correct values in combined dataframe
-        with open(f'{session_dir}/{em_sessions[0]}/output/em_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
-            tmp_data = pickle.load(file)
-        data.loc[(data['model']=='em')&(data['session']=='avg'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==size),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
+        if em_sessions.__len__()>0:
 
-        with open(f'{session_dir}/{mcmc_sessions[0]}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
-            tmp_data = pickle.load(file)
-        data.loc[(data['model']=='mcmc')&(data['session']=='avg'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==size),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
+            with open(f'{session_dir}/{em_sessions[0]}/output/em_data_size-{size}{"_".join(modes)}.pickle', 'rb') as file:
+                tmp_data = pickle.load(file)
+            data.loc[(data['model']=='em')&(data['session']=='avg'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==size),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
-        for em_idx, session in enumerate(em_sessions):
-            em_filepath = f'{session_dir}/{session}/output/em_data_size-{size}{"_".join(modes)}.pickle'
-            with open(em_filepath, 'rb') as file:
-                em_data = pickle.load(file)
-            data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] = data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] + (np.array(em_data.loc[(em_data['size']==size),['pc_m', 'pc_n']]/em_sessions.__len__()))
-            data = pandas.concat((data, makeplaceholderframe("em", em_idx, datalen/2, cols)), ignore_index=True)
-            data.loc[(data['session']==f'{em_idx}')&(data['model']==f'em'), ['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m','pc_n']] = np.array(em_data.loc[(em_data['size']==size),['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m','pc_n']])
-            queue_alpha_uerror_metrics(session_dir, session, 'em')
+            for em_idx, session in enumerate(em_sessions):
+                em_filepath = f'{session_dir}/{session}/output/em_data_size-{size}{"_".join(modes)}.pickle'
+                with open(em_filepath, 'rb') as file:
+                    em_data = pickle.load(file)
+                data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] = data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] + (np.array(em_data.loc[(em_data['size']==size),['pc_m', 'pc_n']]/em_sessions.__len__()))
+                data = pandas.concat((data, makeplaceholderframe("em", em_idx, datalen/2, cols)), ignore_index=True)
+                data.loc[(data['session']==f'{em_idx}')&(data['model']==f'em'), ['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m','pc_n']] = np.array(em_data.loc[(em_data['size']==size),['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m','pc_n']])
+                queue_alpha_uerror_metrics(session_dir, session, 'em')
 
         # with open(f'exports/data_nq-200.pickle','rb') as file:
         #     data = pickle.load(file)
+        if mcmc_sessions.__len__()>0:
+            with open(f'{session_dir}/{mcmc_sessions[0]}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle',
+                      'rb') as file:
+                tmp_data = pickle.load(file)
+            data.loc[(data['model'] == 'mcmc') & (data['session'] == 'avg'), ['car', 'mode', 'dup', 'p_fo', 'p_kg',
+                                                                              'p_kg_u']] = np.array(
+                tmp_data.loc[(tmp_data['size'] == size), ['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
-        for mc_idx, session in enumerate(mcmc_sessions):
-            mcmc_filepath = f'{session_dir}/{session}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle'
-            with open(mcmc_filepath, 'rb') as file:
-                mcmc_data = pickle.load(file)
-            data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] =  data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] + np.array(mcmc_data.loc[(mcmc_data['size']==size), ['pc_m', 'pc_n']]/mcmc_sessions.__len__())
-            data = pandas.concat((data, makeplaceholderframe("mcmc", mc_idx, datalen / 2, cols)), ignore_index=True)
-            data.loc[(data['session'] == f'{mc_idx}') & (data['model'] == f'mcmc'), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(mcmc_data.loc[(mcmc_data['size']==size), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n']])
-            queue_alpha_uerror_metrics(session_dir, session, 'mcmc')
+            for mc_idx, session in enumerate(mcmc_sessions):
+                mcmc_filepath = f'{session_dir}/{session}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle'
+                with open(mcmc_filepath, 'rb') as file:
+                    mcmc_data = pickle.load(file)
+                data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] =  data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] + np.array(mcmc_data.loc[(mcmc_data['size']==size), ['pc_m', 'pc_n']]/mcmc_sessions.__len__())
+                data = pandas.concat((data, makeplaceholderframe("mcmc", mc_idx, datalen / 2, cols)), ignore_index=True)
+                data.loc[(data['session'] == f'{mc_idx}') & (data['model'] == f'mcmc'), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(mcmc_data.loc[(mcmc_data['size']==size), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n']])
+                queue_alpha_uerror_metrics(session_dir, session, 'mcmc')
 
         for mode in modes:
             for model in ['em', 'mcmc']:
