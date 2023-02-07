@@ -319,28 +319,28 @@ class plots():
                             (data['p_kg'] == p_kg) &
                             (data['size'] == size) &
                             (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
-        empc_m = data.loc[(data['model'] == 'em') &
-                            (data['car'] == car) &
-                            (data['dup'] == dup) &
-                            (data['p_fo'] == p_fo) &
-                            (data['p_kg'] == p_kg) &
-                            (data['size'] == size) &
-                            (data['p_kg_u'] == p_kg_u), 'pc_m']
-        em_sd = data.loc[(data['model'] == 'em') &
-                           (data['car'] == car) &
-                           (data['dup'] == dup) &
-                           (data['p_fo'] == p_fo) &
-                           (data['p_kg'] == p_kg) &
-                           (data['size'] == size) &
-                           (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
-        naivepc = data.loc[(data['model'] == 'em') &
+        # empc_m = data.loc[(data['model'] == 'em') &
+        #                     (data['car'] == car) &
+        #                     (data['dup'] == dup) &
+        #                     (data['p_fo'] == p_fo) &
+        #                     (data['p_kg'] == p_kg) &
+        #                     (data['size'] == size) &
+        #                     (data['p_kg_u'] == p_kg_u), 'pc_m']
+        # em_sd = data.loc[(data['model'] == 'em') &
+        #                    (data['car'] == car) &
+        #                    (data['dup'] == dup) &
+        #                    (data['p_fo'] == p_fo) &
+        #                    (data['p_kg'] == p_kg) &
+        #                    (data['size'] == size) &
+        #                    (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
+        naivepc = data.loc[(data['model'] == 'mcmc') &
                             (data['car'] == car) &
                             (data['dup'] == dup) &
                             (data['p_fo'] == p_fo) &
                             (data['p_kg'] == p_kg) &
                             (data['size'] == size) &
                             (data['p_kg_u'] == p_kg_u), 'pc_n']
-        naive_sd = data.loc[(data['model'] == 'em') &
+        naive_sd = data.loc[(data['model'] == 'mcmc') &
                            (data['car'] == car) &
                            (data['dup'] == dup) &
                            (data['p_fo'] == p_fo) &
@@ -351,8 +351,8 @@ class plots():
 
         self.axspc_T.plot(x, mcmcpc_m, label='mcmc')
         self.axspc_T.fill_between(x, np.array(mcmcpc_m+mcmc_sd, dtype=float), np.array(mcmcpc_m-mcmc_sd, dtype=float), alpha=0.2)
-        self.axspc_T.plot(x, empc_m, label='em')
-        self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
+        # self.axspc_T.plot(x, empc_m, label='em')
+        # self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
         self.axspc_T.plot(x, naivepc, label='maj. vote')
         self.axspc_T.fill_between(x, np.array(naivepc + naive_sd, dtype=float), np.array(naivepc - naive_sd, dtype=float), alpha=0.2 )
         self.axspc_T.legend()
