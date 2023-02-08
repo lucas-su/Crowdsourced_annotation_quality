@@ -263,7 +263,7 @@ if __name__ == "__main__":
     p_kgs = [0.0, 0.1]
     p_kg_us = [0.0, 0.1]
 
-    priora = 2
+    priora = 3
     priorb = 2
     session_dir = f'sessions/prior-{priora}_{priorb}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
