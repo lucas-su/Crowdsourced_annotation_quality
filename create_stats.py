@@ -147,7 +147,7 @@ if __name__ == "__main__":
     p_kg_us = [0.0, 0.1]
 
 
-    session_dir = f'sessions/prior-1_1-car{car_list[0]}'
+    session_dir = f'sessions/prior-2_2-car{car_list[0]}'
     walk = next(os.walk(session_dir))[1]
     em_sessions = []
     mcmc_sessions = []
