@@ -64,16 +64,14 @@ class mcmc():
 
     def posterior(self, nQuestions, annotations):
 
-        # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
-        posteriorindices = (10 * [False])+[x % 3 == 0 for x in range(30)]
 
         # average modelled trustworthiness over selected samples
         for u in range(user.__len__()):
-            user.loc[u, f'T_model'] = np.mean(user.loc[u, [f'T_model_{i}' for i, x in enumerate(posteriorindices) if x]])
+            user.loc[u, f'T_model'] = np.mean(user.loc[u, [f'T_model_{i}' for i in range(iterations)]])
 
         # count occurences in posterior to produce estimate
         for q in range(nQuestions):
-            cnt = Counter(annotations.loc[q,[f'model_{i}' for i,x in enumerate(posteriorindices) if x]])
+            cnt = Counter(annotations.loc[q,[f'model_{i}' for i in range(iterations)]])
             mc = cnt.most_common(2)
             if mc.__len__() > 1:
                 if mc[0][1] == mc[1][1]:
@@ -133,9 +131,12 @@ class mcmc():
 
 
     def run(self, iterations, car, nQuestions, user, annotations):
+        # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
+        every_x = 20
+        posteriorindices = (warmup * [False])+[x % every_x == 0 for x in range(iterations*every_x)]
 
         # run iterations
-        while self.iter < iterations:
+        while self.iter < (warmup + iterations):
             if self.iter % 10 == 0:
                 print("iteration: ", self.iter)
 
@@ -154,7 +155,8 @@ class mcmc():
                                                           (mcmc_data['p_kg'].values == p_kg) &
                                                           (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_lhat, user, annotations), indices)
                     annotations.loc[(annotations['KG']==True), 'model'] = results
-                    annotations.loc[(annotations['KG']==True), f'model_{self.iter}'] = results
+                    if posteriorindices[self.iter]:
+                        annotations.loc[(annotations['KG']==True), f'model_{self.iter}'] = results
 
             # after the KG's, do the rest of the samples
             indices = annotations.loc[(annotations['KG'] == False), 'ID']
@@ -168,7 +170,8 @@ class mcmc():
                                                       (mcmc_data['p_kg'].values == p_kg) &
                                                       (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_lhat, user, annotations), indices)
                 annotations.loc[(annotations['KG']==False), 'model'] = results
-                annotations.loc[(annotations['KG']==False), f'model_{self.iter}'] = results
+                if posteriorindices[self.iter]:
+                    annotations.loc[(annotations['KG']==False), f'model_{self.iter}'] = results
 
 
             # sample tn
@@ -248,7 +251,8 @@ if __name__ == "__main__":
 
 
 
-    iterations_list = [40]        # iterations of mcmc algorithm -- 10 warmup - keep 30 - sample 10 from these 30
+    iterations_list = [100]        # iterations of mcmc algorithm -- 500 warmup (not included) - keep 100 - sample every 20
+    warmup = 500
     # car_list = list(range(2,8))     # cardinality of the questions
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     # dups = [3,5,7,9]                # duplication factor of the annotators
@@ -256,7 +260,7 @@ if __name__ == "__main__":
     # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
-    car_list = [9]
+    car_list = [3]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
     p_fos = [0.0, 0.1]
