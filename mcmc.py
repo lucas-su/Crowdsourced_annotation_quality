@@ -256,15 +256,15 @@ if __name__ == "__main__":
     # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
-    car_list = [3]
+    car_list = [9]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
     p_fos = [0.0, 0.1]
     p_kgs = [0.0, 0.1]
     p_kg_us = [0.0, 0.1]
 
-    priora = 2
-    priorb = 3
+    priora = 1
+    priorb = 1
     session_dir = f'sessions/prior-{priora}_{priorb}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
 
