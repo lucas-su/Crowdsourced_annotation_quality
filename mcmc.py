@@ -135,8 +135,9 @@ class mcmc():
         every_x = 20
         posteriorindices = (warmup * [False])+[x % every_x == 0 for x in range(iterations*every_x)]
 
+        sample_cnt = 0 # counter to keep track of how many samples are taken
         # run iterations
-        while self.iter < (warmup + iterations):
+        while self.iter < posteriorindices.__len__():
             if self.iter % 10 == 0:
                 print("iteration: ", self.iter)
 
@@ -156,7 +157,7 @@ class mcmc():
                                                           (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_lhat, user, annotations), indices)
                     annotations.loc[(annotations['KG']==True), 'model'] = results
                     if posteriorindices[self.iter]:
-                        annotations.loc[(annotations['KG']==True), f'model_{self.iter}'] = results
+                        annotations.loc[(annotations['KG']==True), f'model_{sample_cnt}'] = results
 
             # after the KG's, do the rest of the samples
             indices = annotations.loc[(annotations['KG'] == False), 'ID']
@@ -171,7 +172,7 @@ class mcmc():
                                                       (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_lhat, user, annotations), indices)
                 annotations.loc[(annotations['KG']==False), 'model'] = results
                 if posteriorindices[self.iter]:
-                    annotations.loc[(annotations['KG']==False), f'model_{self.iter}'] = results
+                    annotations.loc[(annotations['KG']==False), f'model_{sample_cnt}'] = results
 
 
             # sample tn
@@ -192,7 +193,8 @@ class mcmc():
                                                           (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priora, priorb), indices)
 
                     user.loc[(user['type']=='KG'), 'T_model'] = results
-                    user.loc[(user['type']=='KG'), f'T_model_{self.iter}'] = results
+                    if posteriorindices[self.iter]:
+                        user.loc[(user['type']=='KG'), f'T_model_{sample_cnt}'] = results
 
             # After KG users, do the rest
             indices = user.loc[(user['type'] != 'KG'), 'ID']
@@ -207,7 +209,8 @@ class mcmc():
                                                       (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priora, priorb), indices)
 
                 user.loc[(user['type'] != 'KG'), 'T_model'] = results
-                user.loc[(user['type'] != 'KG'), f'T_model_{self.iter}'] = results
+                if posteriorindices[self.iter]:
+                    user.loc[(user['type'] != 'KG'), f'T_model_{sample_cnt}'] = results
 
             print_intermediate_results = False
             if print_intermediate_results:
@@ -215,6 +218,9 @@ class mcmc():
                 print(f"average Tn offset: {np.mean(np.abs(user['T_given']-user['T_model']))}")
                 print(f"closeness: {sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0))}")
             self.iter += 1
+            sample_cnt =+ 1
+
+        assert(sample_cnt == iterations)
 
         self.posterior(nQuestions, annotations)
 
@@ -274,7 +280,7 @@ if __name__ == "__main__":
 
     # os.makedirs(os.path.dirname(f'{os.getcwd()}/data/{session_folder}'), exist_ok=True)
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
-    createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
+    # createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
     # if not resuming, makes new empty dataframe with correct columns
