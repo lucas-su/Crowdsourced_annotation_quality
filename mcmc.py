@@ -224,6 +224,7 @@ class mcmc():
             if posteriorindices[self.iter]:
                 sample_cnt =+ 1
 
+        print(sample_cnt)
         assert(sample_cnt == iterations)
 
         self.posterior(nQuestions, annotations)
