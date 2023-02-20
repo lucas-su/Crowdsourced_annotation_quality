@@ -1,3 +1,4 @@
+import platform
 from collections import Counter
 import numpy as np
 import pandas, pickle
@@ -50,11 +51,13 @@ class mcmc():
         return y
 
     def Gibbs_tn(self, user, annotations, priora, priorb, i):
-        res = self.p_tn(user, annotations, i)
-        user.loc[i,'a'] = float(res[1] + priora + np.spacing(0)) # np.spacing to prevent alpha == 0
-        user.loc[i,'b'] = float(res[2] + priorb + np.spacing(0)) # np.spacing to prevent beta == 0
-        return beta.rvs(user.loc[i,'a'],user.loc[i,'b'],size=1)[0]
-
+        if user.loc[i,'type'] == 'KG':
+            return 1
+        else:
+            res = self.p_tn(user, annotations, i)
+            user.loc[i,'a'] = float(res[1] + priora)
+            user.loc[i,'b'] = float(res[2] + priorb)
+            return beta.rvs(user.loc[i,'a'],user.loc[i,'b'],size=1)[0]
 
     def Gibbs_lhat(self, user, annotations, i):
         if annotations.loc[i, 'KG'] == True:
@@ -65,14 +68,13 @@ class mcmc():
 
     def posterior(self, nQuestions, annotations):
 
-
         # average modelled trustworthiness over selected samples
         for u in range(user.__len__()):
-            user.loc[u, f'T_model'] = np.mean(user.loc[u, [f'T_model_{i}' for i in range(iterations)]])
+            user.loc[u, f'T_model'] = np.mean(user.loc[u, [f'T_model_{i}' for i in range(n_samples)]])
 
         # count occurences in posterior to produce estimate
         for q in range(nQuestions):
-            cnt = Counter(annotations.loc[q,[f'model_{i}' for i in range(iterations)]])
+            cnt = Counter(annotations.loc[q,[f'model_{i}' for i in range(n_samples)]])
             mc = cnt.most_common(2)
             if mc.__len__() > 1:
                 if mc[0][1] == mc[1][1]:
@@ -114,7 +116,7 @@ class mcmc():
 
         # insert into mcmc_data dataframe
         mcmc_data.loc[(mcmc_data['size'].values == size) &
-                      (mcmc_data['iterations'].values == iterations) &
+                      (mcmc_data['iterations'].values == n_samples) &
                       (mcmc_data['car'].values == car) &
                       (mcmc_data['mode'].values == mode) &
                       (mcmc_data['dup'].values == dup) &
@@ -122,7 +124,7 @@ class mcmc():
                       (mcmc_data['p_kg'].values == p_kg) &
                       (mcmc_data['p_kg_u'].values == p_kg_u), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
         mcmc_data.loc[(mcmc_data['size'].values == size) &
-                      (mcmc_data['iterations'].values == iterations) &
+                      (mcmc_data['iterations'].values == n_samples) &
                       (mcmc_data['car'].values == car) &
                       (mcmc_data['mode'].values == mode) &
                       (mcmc_data['dup'].values == dup) &
@@ -132,18 +134,19 @@ class mcmc():
 
 
     def run(self, iterations, car, nQuestions, user, annotations):
-        # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
-        every_x = 20
-        posteriorindices = (warmup * [False])+[x % every_x == 0 for x in range(iterations*every_x)]
 
-        sample_cnt = 0 # counter to keep track of how many samples are taken
+        # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
+        posteriorindices = (warmup * [False])+[x % sample_interval == 0 for x in range(iterations*sample_interval)]
+
+        # counter to keep track of how many samples are taken
+        sample_cnt = 0
+
         # run iterations
         while self.iter < posteriorindices.__len__():
             if self.iter % 10 == 0:
                 print("iteration: ", self.iter)
 
-            # sample l_hat
-
+            ## sample l_hat
             # first only the KG's, as that primes the lhats for the other samples with the right bias
             indices = annotations.loc[(annotations['KG']==True), 'ID']
             if indices.__len__()>0:
@@ -175,27 +178,26 @@ class mcmc():
                 if posteriorindices[self.iter]:
                     annotations.loc[(annotations['KG']==False), f'model_{sample_cnt}'] = results
 
-
-            # sample tn
-
-
-
+            ## sample tn
             # first do the KG users
             indices = user.loc[(user['type']=='KG'), 'ID']
             if indices.__len__()>0:
-                with Pool(32) as p:
-                    results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
-                                                          (mcmc_data['iterations'].values == iterations) &
-                                                          (mcmc_data['car'].values == car) &
-                                                          (mcmc_data['mode'].values == mode) &
-                                                          (mcmc_data['dup'].values == dup) &
-                                                          (mcmc_data['p_fo'].values == p_fo) &
-                                                          (mcmc_data['p_kg'].values == p_kg) &
-                                                          (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priora, priorb), indices)
 
-                    user.loc[(user['type']=='KG'), 'T_model'] = results
+                # no need to sample known good users: they are known good and therefore T = 1
+
+                # with Pool(32) as p:
+                #     results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
+                #                                           (mcmc_data['iterations'].values == iterations) &
+                #                                           (mcmc_data['car'].values == car) &
+                #                                           (mcmc_data['mode'].values == mode) &
+                #                                           (mcmc_data['dup'].values == dup) &
+                #                                           (mcmc_data['p_fo'].values == p_fo) &
+                #                                           (mcmc_data['p_kg'].values == p_kg) &
+                #                                           (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priora, priorb), indices)
+
+                    user.loc[(user['type']=='KG'), 'T_model'] = np.ones(indices.__len__())
                     if posteriorindices[self.iter]:
-                        user.loc[(user['type']=='KG'), f'T_model_{sample_cnt}'] = results
+                        user.loc[(user['type']=='KG'), f'T_model_{sample_cnt}'] = np.ones(indices.__len__())
 
             # After KG users, do the rest
             indices = user.loc[(user['type'] != 'KG'), 'ID']
@@ -256,10 +258,17 @@ class mcmc():
 
 if __name__ == "__main__":
 
+    ## settings
 
+    # n samples to keep
+    n_samples_list = [100]
 
-    iterations_list = [100]        # iterations of mcmc algorithm -- 500 warmup (not included) - keep 100 - sample every 20
+    # keep a sample every sample_interval iterations
+    sample_interval = 20
+
+    # warmup
     warmup = 500
+
     # car_list = list(range(2,8))     # cardinality of the questions
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     # dups = [3,5,7,9]                # duplication factor of the annotators
@@ -270,16 +279,18 @@ if __name__ == "__main__":
     car_list = [3]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
-    p_fos = [0.0, 0.1]
-    p_kgs = [0.0, 0.1]
-    p_kg_us = [0.0, 0.1]
+    p_fos = [0.0]
+    p_kgs = [0.0]
+    p_kg_us = [0.0]
 
     priora = 1
     priorb = 1
+
     session_dir = f'sessions/prior-{priora}_{priorb}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
-    createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
+    if not platform.system() == 'Windows':
+        createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
     # if not resuming, makes new empty dataframe with correct columns
@@ -291,8 +302,8 @@ if __name__ == "__main__":
         mcmc_data = pandas.DataFrame(
             columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
 
-    for size in ['small','medium','large']:
-        for iterations in iterations_list:
+    for size in ['small']: # multiple sizes are available: ['small','medium','large'] for testing, only small is used
+        for n_samples in n_samples_list:
             for car in car_list:
                 for mode in modes:
                     for dup in dups:
@@ -311,8 +322,6 @@ if __name__ == "__main__":
                                     ## add parameters to dataframes
                                     # known goods
                                     annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
-                                    # user[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg_u, p_kg_u]) for _ in
-                                    #                       range(user.__len__())]
 
                                     # user parameters for beta sampling
                                     user['a'] = np.ones(user.__len__())
@@ -320,19 +329,19 @@ if __name__ == "__main__":
 
                                     # trustworthiness over iterations
                                     ucols = []
-                                    for i in range(iterations):
+                                    for i in range(n_samples):
                                         ucols += [f't_weight_{i}']
-                                    weights = pandas.DataFrame(np.ones((user.__len__(),iterations))*0.5, columns= ucols)
+                                    weights = pandas.DataFrame(np.ones((user.__len__(), n_samples)) * 0.5, columns= ucols)
                                     pandas.concat((user, weights) )
 
                                     # global nQuestions
                                     nQuestions = annotations.__len__()
 
                                     # create mcmc_data dataframe
-                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
+                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, n_samples, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
                                     # init mcmc object
                                     mcmc_data.loc[(mcmc_data['size'].values == size) &
-                                                  (mcmc_data['iterations'].values == iterations) &
+                                                  (mcmc_data['iterations'].values == n_samples) &
                                                   (mcmc_data['car'].values == car) &
                                                   (mcmc_data['mode'].values == mode) &
                                                   (mcmc_data['dup'].values == dup) &
@@ -340,18 +349,20 @@ if __name__ == "__main__":
                                                   (mcmc_data['p_kg'].values == p_kg) &
                                                   (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'] = mcmc(car)
 
+                                    # run mcmc sampling
                                     mcmc_data.loc[(mcmc_data['size'].values == size) &
-                                                  (mcmc_data['iterations'].values == iterations) &
+                                                  (mcmc_data['iterations'].values == n_samples) &
                                                   (mcmc_data['car'].values == car) &
                                                   (mcmc_data['mode'].values == mode) &
                                                   (mcmc_data['dup'].values == dup) &
                                                   (mcmc_data['p_fo'].values == p_fo) &
                                                   (mcmc_data['p_kg'].values == p_kg) &
-                                                  (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].item().run(iterations, car, nQuestions, user, annotations)
+                                                  (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].item().run(n_samples, car, nQuestions, user, annotations)
 
-                                    with open(f'{session_dir}/output/mcmc_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    # save data
+                                    with open(f'{session_dir}/output/mcmc_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{n_samples}.pickle', 'wb') as file:
                                         pickle.dump(annotations, file)
-                                    with open(f'{session_dir}/output/mcmc_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{n_samples}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
                                     with open(f'{session_dir}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
                                         pickle.dump(mcmc_data, file)

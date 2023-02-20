@@ -53,12 +53,6 @@ class dist():
             cum += func(*dist[1:])
 
         return cum/self.param.__len__()
-    #
-    # def beta(self, a,b):
-    #     (((self.x)**(a-1))*((1-self.x)**(b-1)))/self.B(a,b)
-    #
-    # def B(self, a,b):
-    #     return
 
     def single(self, prob):
         probs = np.zeros(self.x.shape[0])
@@ -69,14 +63,10 @@ class dist():
         return probs
 
     def gamma(self, alpha, beta):
-        # alpha = 1
-        # beta = 1
         return 1/(beta**(alpha)*math.gamma(alpha))*self.x**(alpha-1)*math.e**(-self.x/beta)
 
     def beta(self, a,b):
         return (((self.x) ** (a - 1)) * ((1 - self.x) ** (b - 1))) / ((math.gamma(a)*math.gamma(b))/math.gamma(a+b))
-
-        # return ((math.gamma(alpha+beta))/(math.gamma(alpha)*math.gamma(beta)))*(y**(alpha-1))*(1-y)**(beta-1)
 
     def gaussian(self, mu, sd):
         return (math.e ** (-((self.x - mu) ** 2) / 2 * (sd) ** (2))) / sd * math.sqrt(2 * math.pi)
