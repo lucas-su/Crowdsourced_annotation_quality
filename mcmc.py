@@ -195,9 +195,9 @@ class mcmc():
                 #                                           (mcmc_data['p_kg'].values == p_kg) &
                 #                                           (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priora, priorb), indices)
 
-                    user.loc[(user['type']=='KG'), 'T_model'] = np.ones(indices.__len__())
-                    if posteriorindices[self.iter]:
-                        user.loc[(user['type']=='KG'), f'T_model_{sample_cnt}'] = np.ones(indices.__len__())
+                user.loc[(user['type']=='KG'), 'T_model'] = np.ones(indices.__len__())
+                if posteriorindices[self.iter]:
+                    user.loc[(user['type']=='KG'), f'T_model_{sample_cnt}'] = np.ones(indices.__len__())
 
             # After KG users, do the rest
             indices = user.loc[(user['type'] != 'KG'), 'ID']
@@ -220,9 +220,9 @@ class mcmc():
                 print(f'GT correct {sum(np.equal(np.array(annotations["model"]), np.array(annotations["GT"])))} out of {annotations.__len__()}')
                 print(f"average Tn offset: {np.mean(np.abs(user['T_given']-user['T_model']))}")
                 print(f"closeness: {sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0))}")
-            self.iter += 1
             if posteriorindices[self.iter]:
                 sample_cnt =+ 1
+            self.iter += 1
 
         print(sample_cnt)
         assert(sample_cnt == iterations)
