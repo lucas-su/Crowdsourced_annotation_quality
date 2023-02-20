@@ -221,7 +221,7 @@ class mcmc():
                 print(f"average Tn offset: {np.mean(np.abs(user['T_given']-user['T_model']))}")
                 print(f"closeness: {sum(user['T_model'])/(sum(user['T_given'])+np.spacing(0))}")
             if posteriorindices[self.iter]:
-                sample_cnt =+ 1
+                sample_cnt += 1
             self.iter += 1
 
         print(sample_cnt)
