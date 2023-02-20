@@ -19,18 +19,19 @@ class mcmc():
 
     def p_tn(self, user, annotations, i):
         """
-        qs is a series of the questions answered by this annotator
+        q_answered is a series of the questions answered by this annotator
         n_eq is the number of times l is equal to lhat
         returns expected value, alpha and beta
         """
-        qs = user.loc[user['ID']==i, user.loc[user['ID']==i, :].notnull().squeeze()].squeeze()
+        q_answered = user.loc[user['ID']==i, user.loc[user['ID']==i, :].notnull().squeeze()].squeeze()
 
-        # define indices to take from qs
+        # define columns to take from q_answered
         startindex = 4
-        endindex = qs.__len__()-2-self.iter
+        endindex = np.where(q_answered.index=='a')[0][0]
+        # endindex = q_answered.__len__()-2-self.iter
 
-        n_eq = sum(np.equal(np.array(qs[startindex:endindex]),np.array(annotations.loc[[int(i[2:]) for i in qs.index[startindex:endindex]],'model'])))
-        return n_eq/qs[startindex:endindex].__len__(), n_eq, qs[startindex:endindex].__len__()-n_eq
+        n_eq = sum(np.equal(np.array(q_answered[startindex:endindex]),np.array(annotations.loc[[int(i[2:]) for i in q_answered.index[startindex:endindex]],'model'])))
+        return n_eq/q_answered[startindex:endindex].__len__(), n_eq, q_answered[startindex:endindex].__len__()-n_eq
 
     def p_lhat_k(self, user, m, k):
 
@@ -278,7 +279,7 @@ if __name__ == "__main__":
     session_dir = f'sessions/prior-{priora}_{priorb}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
-    createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
+    # createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
     # if not resuming, makes new empty dataframe with correct columns
