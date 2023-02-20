@@ -279,7 +279,7 @@ if __name__ == "__main__":
     session_dir = f'sessions/prior-{priora}_{priorb}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
-    # createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
+    createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
     # if not resuming, makes new empty dataframe with correct columns
