@@ -62,6 +62,8 @@ class mcmc():
     def Gibbs_lhat(self, user, annotations, i):
         if annotations.loc[i, 'KG'] == True:
             return annotations.loc[i, 'GT']
+        elif "KG" in user.loc[~np.isnan(user.loc[:,f"q_{i}"]), 'type']:
+            return annotations.loc[i, 'GT']
         else:
             p = [self.p_lhat_k(user, i, k) for k in self.L]
             return np.random.choice(self.K, p=p)
@@ -75,36 +77,62 @@ class mcmc():
         # count occurences in posterior to produce estimate
         for q in range(nQuestions):
             cnt = Counter(annotations.loc[q,[f'model_{i}' for i in range(n_samples)]])
-            mc = cnt.most_common(2)
-            if mc.__len__() > 1:
-                if mc[0][1] == mc[1][1]:
-                    if mc.__len__() > 2:
-                        if mc[1][1] == mc[2][1]:
-                            print(f"values {mc[0][0]}, {mc[1][0]} and {mc[2][0]} are equally frequent")
-                            estimate = np.random.randint(3)
-                        else:
-                            print(f"values {mc[0][0]} and {mc[1][0]} are equally frequent")
-                            estimate = np.random.randint(2)
-                    else:
-                        print(f"values {mc[0][0]} and {mc[1][0]} are equally frequent")
-                        estimate = np.random.randint(2)
-                else:
-                    estimate = 0
-            else:
-                estimate = 0
-            annotations.loc[q, 'model'] = mc[estimate][0] # pick most common, which returns list of lists with value and occurences
+            mc = cnt.most_common()
+
+            # pick a random option when the number of drawn samples is equal an option k
+            max_entries = []
+            for k, n in mc:
+                if n == mc[0][1]:
+                    max_entries.append(k)
+            annotations.loc[q, 'model']  = max_entries[np.random.randint(max_entries.__len__())]
+
+
+            # # if there is more than one value picked in all the samples
+            # if mc.__len__() > 1:
+            #     # if the number of occurances for the most common entry is the same as the number of occurences for the second entry
+            #     if mc[0][1] == mc[1][1]:
+            #         # if we have more than two options
+            #         if mc.__len__() > 2:
+            #             # if the third entry has the same number of occurences as the second, three options are equally likely. This should not happen very often
+            #             if mc[1][1] == mc[2][1]:
+            #                 print(f"values {mc[0][0]}, {mc[1][0]} and {mc[2][0]} are equally frequent")
+            #                 estimate = np.random.randint(3)
+            #             # else (if the third entry does not have the same number of occurences)
+            #             else:
+            #                 print(f"values {mc[0][0]} and {mc[1][0]} are equally frequent")
+            #                 estimate = np.random.randint(2)
+            #         # else (if we do not have more than 2 options)
+            #         else:
+            #             print(f"values {mc[0][0]} and {mc[1][0]} are equally frequent")
+            #             estimate = np.random.randint(2)
+            #     # else (if the second entry has fewer occurences than the first)
+            #     else:
+            #         # pick the first
+            #         estimate = 0
+            # else:
+            #     # only one option: pick the first
+            #     estimate = 0
+            # annotations.loc[q, 'model'] = mc[estimate][0]
 
         # do naive estimation for baseline
+        # insert new empty column
         annotations.insert(annotations.columns.get_loc("model") + 1, "naive", np.zeros(nQuestions))
         for q in range(nQuestions):
+            # weights for all k options list
             k_w = []
             for k in range(car):
+                # counter for number of people who chose option k
                 d_w = 0
                 for d in range(dup):
                     if annotations.loc[q, f'annot_{d}'] == k:
                         d_w += 1
                 k_w.append(d_w)
-            annotations.loc[q, 'naive'] = k_w.index(max(k_w))
+            max_val = max(k_w)
+            max_indices = []
+            for i, k in enumerate(k_w):
+                if k == max_val:
+                    max_indices.append(i)
+            annotations.loc[q, 'naive'] = max_indices[np.random.randint(max_indices.__len__())]
 
         # determine differences
         diff_m = annotations.loc[:, 'GT'] - annotations.loc[:, 'model']

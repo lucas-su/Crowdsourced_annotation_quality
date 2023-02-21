@@ -30,6 +30,7 @@ def sim_answer(users, annotations, u_id, car, q_id, mode):
     elif users.loc[u_id].type == "KG" and mode != "single0":
         ans = annotations.loc[q_id,"GT"]
     else:
+        # correct answer if trustworthiness is higher than a randomly drawn number, if not a random other answer
         ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
             random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
  #random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
