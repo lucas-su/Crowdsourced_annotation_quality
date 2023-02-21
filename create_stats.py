@@ -142,12 +142,12 @@ if __name__ == "__main__":
     car_list = [3]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
-    p_fos = [0.0, 0.1]
-    p_kgs = [0.0, 0.1]
-    p_kg_us = [0.0, 0.1]
+    p_fos = [0.0]
+    p_kgs = [0.0]
+    p_kg_us = [0.0]
 
 
-    session_dir = f'sessions/prior-2_3-car{car_list[0]}'
+    session_dir = f'sessions/prior-1_1-car{car_list[0]}'
     walk = next(os.walk(session_dir))[1]
     em_sessions = []
     mcmc_sessions = []
@@ -164,7 +164,7 @@ if __name__ == "__main__":
                   'mcmc': mcmc_sessions.__len__()}
 
     iterations = {'em':10,
-                  'mcmc': 40}
+                  'mcmc': 100}
     # car_list = list(range(2, 8))
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     # dups = [3,5,7,9]                # duplication factor of the annotators
@@ -172,15 +172,15 @@ if __name__ == "__main__":
     # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
-    for size in ['small', 'medium', 'large']:
+    for size in ['small']: # ['small', 'medium', 'large']:
         datalen = 2*car_list.__len__()*modes.__len__()*dups.__len__()*p_fos.__len__()*p_kgs.__len__()*p_kg_us.__len__()
         # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
         cols = ['session', 'model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
         data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
         data.loc[:datalen/2,'model'] = "em"
-        data.loc[:datalen / 2, 'iterations'] = 10
+        data.loc[:datalen / 2, 'iterations'] = iterations['em']
         data.loc[datalen / 2:, 'model'] = "mcmc"
-        data.loc[datalen / 2:, 'iterations'] = 40
+        data.loc[datalen / 2:, 'iterations'] = iterations['mcmc']
         data.loc[:,'session'] = 'avg'
 
 

@@ -281,9 +281,9 @@ if __name__ == "__main__":
     car_list = [3]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
-    p_fos = [0.0]
-    p_kgs = [0.0]
-    p_kg_us = [0.0]
+    p_fos = [0.0, 0.1]
+    p_kgs = [0.0, 0.1]
+    p_kg_us = [0.0, 0.1]
 
     priora = 1
     priorb = 1
@@ -304,7 +304,7 @@ if __name__ == "__main__":
         mcmc_data = pandas.DataFrame(
             columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
 
-    for size in ['small']: # multiple sizes are available: ['small','medium','large'] for testing, only small is used
+    for size in ['large']: # multiple sizes are available: ['small','medium','large'] for testing, only small is used
         for n_samples in n_samples_list:
             for car in car_list:
                 for mode in modes:

@@ -371,7 +371,7 @@ if __name__ == "__main__":
     #               'mcmc': mcmc_sessions.__len__()}
     #
     iterations = {'em':10,
-                  'mcmc': 40}
+                  'mcmc': 100}
 
 
     # car_list = list(range(2, 8))
@@ -386,9 +386,9 @@ if __name__ == "__main__":
     car_list = [3]
     modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
     dups = [3]
-    p_fos = [0.0, 0.1]
-    p_kgs = [0.0, 0.1]
-    p_kg_us = [0.0, 0.1]
+    p_fos = [0.0]
+    p_kgs = [0.0]
+    p_kg_us = [0.0]
 
 
 
@@ -428,7 +428,11 @@ if __name__ == "__main__":
     #               'medium': 200,
     #               'large': 400}
 
-    sizes = ['small', 'medium', 'large']
+    # sizes = ['small', 'medium', 'large']
+    sizes = ['small']
+
+
+
     # datalen = 2*car_list.__len__()*modes.__len__()*dups.__len__()*p_fos.__len__()*p_kgs.__len__()*p_kg_us.__len__()
     # cols = ['model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n', 'uerror',
     #         'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun',
@@ -443,17 +447,17 @@ if __name__ == "__main__":
         data = pickle.load(file)
     data['size'] = 'small'
     data = data.loc[data['session']=='avg']
-    for size in sizes[1:]:
-        with open(f'exports/data_{size}.pickle', 'rb') as file:
-            tmp_data = pickle.load(file)
-            tmp_data = tmp_data.loc[tmp_data['session'] == 'avg']
-            data = pandas.concat((data,tmp_data), ignore_index=True)
-            data.loc[data["size"].isnull(), 'size'] = size
-    data = pandas.concat((data, tmp_data), ignore_index=True)
-    data.loc[data["size"].isnull(), 'size'] = 'comb'
-    data.loc[data["size"] == 'comb', ['pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']] = (np.array(data.loc[(data['size']=='small'), ['pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
-                np.array(data.loc[(data['size']=='medium'), ['pc_m', 'pc_m_SD', 'pc_n','pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
-                np.array(data.loc[(data['size']=='large'), ['pc_m','pc_m_SD', 'pc_n','pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]))/3
+    # for size in sizes[1:]:
+    #     with open(f'exports/data_{size}.pickle', 'rb') as file:
+    #         tmp_data = pickle.load(file)
+    #         tmp_data = tmp_data.loc[tmp_data['session'] == 'avg']
+    #         data = pandas.concat((data,tmp_data), ignore_index=True)
+    #         data.loc[data["size"].isnull(), 'size'] = size
+    # data = pandas.concat((data, tmp_data), ignore_index=True)
+    # data.loc[data["size"].isnull(), 'size'] = 'comb'
+    # data.loc[data["size"] == 'comb', ['pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']] = (np.array(data.loc[(data['size']=='small'), ['pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
+    #             np.array(data.loc[(data['size']=='medium'), ['pc_m', 'pc_m_SD', 'pc_n','pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]) +
+    #             np.array(data.loc[(data['size']=='large'), ['pc_m','pc_m_SD', 'pc_n','pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun', 'n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total']]))/3
     plot = plots()
 
     # inits
@@ -466,13 +470,13 @@ if __name__ == "__main__":
 
     # iterations = iterations_list[0]
 
-    stats = {"mcmc > naive": sum(np.where(data.loc[(data['model']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_n'], 1,0))/sum((data['model']=='mcmc')),
-             "em > naive": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_m'] >= data.loc[(data['model'] == 'em'), 'pc_n'], 1,0))/sum((data['model']=='em')),
-             "mcmc > em": sum(np.where(np.array(data.loc[(data['model'] == 'mcmc'), 'pc_m']) >= np.array(data.loc[(data['model'] == 'em'), 'pc_m']), 1,0))/sum((data['model']=='mcmc')),
-             "mcmc > krip a":sum(np.where(data.loc[(data['model']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_aftr_prun_total'], 1,0))/sum((data['model']=='mcmc')),
-             "em > krip a": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_m'] >= data.loc[(data['model'] == 'em'), 'pc_aftr_prun_total'], 1, 0))/sum((data['model']=='em')),
-             "krip a > naive": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_aftr_prun_total'] >= data.loc[(data['model'] == 'em'), 'pc_n'], 1, 0))/sum((data['model']=='em')),
-    }
+    # stats = {"mcmc > naive": sum(np.where(data.loc[(data['model']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_n'], 1,0))/sum((data['model']=='mcmc')),
+    #          "em > naive": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_m'] >= data.loc[(data['model'] == 'em'), 'pc_n'], 1,0))/sum((data['model']=='em')),
+    #          "mcmc > em": sum(np.where(np.array(data.loc[(data['model'] == 'mcmc'), 'pc_m']) >= np.array(data.loc[(data['model'] == 'em'), 'pc_m']), 1,0))/sum((data['model']=='mcmc')),
+    #          "mcmc > krip a":sum(np.where(data.loc[(data['model']=='mcmc'),'pc_m']>=data.loc[(data['model']=='mcmc'),'pc_aftr_prun_total'], 1,0))/sum((data['model']=='mcmc')),
+    #          "em > krip a": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_m'] >= data.loc[(data['model'] == 'em'), 'pc_aftr_prun_total'], 1, 0))/sum((data['model']=='em')),
+    #          "krip a > naive": sum(np.where(data.loc[(data['model'] == 'em'), 'pc_aftr_prun_total'] >= data.loc[(data['model'] == 'em'), 'pc_n'], 1, 0))/sum((data['model']=='em')),
+    # }
     ## mcmc better than em on beta dists
     # sum(np.where(np.array(np.array(data.loc[(data['model'] == 'mcmc') & (
     #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (
@@ -480,8 +484,8 @@ if __name__ == "__main__":
     #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')), 'pc_m'])), 1,
     #              0)) / sum((data['model'] == 'mcmc') & (
     #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')))
-    print(stats)
-    size = 'comb'
+    # print(stats)
+    size = 'small'
     # plot.saveplots()
     # plot.plot_interactive()
     plot.plot_pc_T(car, dup, p_fo, p_kg, size, p_kg_u)
