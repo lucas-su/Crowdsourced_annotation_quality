@@ -15,19 +15,19 @@ steps = 1000
 x = np.linspace(0, xmax, steps)
 
 
-def dist_annot(users, annotations, dup, car, mode, q_id):
+def dist_annot(users, annotations, dup, car, T_dist, q_id):
     userlist = np.zeros(dup)
 
     while not (len(set(userlist)) == len(userlist)):
         userlist = [random.randint(0,users.__len__()-1) for _ in range(dup)]
-    answers = [sim_answer(users, annotations, u_id, car, q_id, mode) for u_id in userlist]
+    answers = [sim_answer(users, annotations, u_id, car, q_id, T_dist) for u_id in userlist]
 
     return  userlist, answers
 
-def sim_answer(users, annotations, u_id, car, q_id, mode):
-    if users.loc[u_id].type == "first_only" and mode[:6] !="single":
+def sim_answer(users, annotations, u_id, car, q_id, T_dist):
+    if users.loc[u_id].type == "first_only" and T_dist[:6] != "single":
         ans = 0
-    elif users.loc[u_id].type == "KG" and mode != "single0":
+    elif users.loc[u_id].type == "KG" and T_dist != "single0":
         ans = annotations.loc[q_id,"GT"]
     else:
         # correct answer if trustworthiness is higher than a randomly drawn number, if not a random other answer
@@ -103,7 +103,7 @@ def detType(nAnnot, p_fo, p_KG_u):
     return type
 
 
-def createData(path, car_list, modes, dups, p_fos, p_KG_us):
+def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us):
     nAnnot = 20 # 50
 
     for size in ['small', 'medium', 'large']:
@@ -114,41 +114,41 @@ def createData(path, car_list, modes, dups, p_fos, p_KG_us):
         else:
             nQuestions = 400
         for car in car_list:
-            for mode in modes:
-                if mode == 'uniform':
+            for T_dist in T_dist_list:
+                if T_dist == 'uniform':
                     param = [['uniform']]
                     distribution = dist(param, x)
-                elif mode == 'gaussian':
+                elif T_dist == 'gaussian':
                     param = [["gaussian", 5, 1]]
                     distribution = dist(param, x)
-                elif mode == 'gaussian50_50':
+                elif T_dist == 'gaussian50_50':
                     param = [["gaussian",2,1],["gaussian",8,1]]
                     distribution = dist(param, x)
-                elif mode == "single0":
+                elif T_dist == "single0":
                     param = [['single', 0]]
                     distribution = dist(param, x)
-                elif mode == "single1":
+                elif T_dist == "single1":
                     param = [['single', 1]]
                     distribution = dist(param, x)
-                elif mode[:6] == 'single':
-                    param = [['single', mode[6:]]]
+                elif T_dist[:6] == 'single':
+                    param = [['single', T_dist[6:]]]
                     distribution = dist(param, x)
-                elif mode == "beta3_2":
+                elif T_dist == "beta3_2":
                     param = [['beta', 3,2]]
                     distribution = dist(param, x)
-                elif mode == "beta4_2":
+                elif T_dist == "beta4_2":
                     param = [['beta', 4, 2]]
                     distribution = dist(param, x)
-                elif mode == "beta2_4":
+                elif T_dist == "beta2_4":
                     param = [['beta', 2, 4]]
                     distribution = dist(param, x)
-                elif mode == "beta1_3":
+                elif T_dist == "beta1_3":
                     param = [['beta', 1, 3]]
                     distribution = dist(param, x)
-                elif mode == "beta3_1":
+                elif T_dist == "beta3_1":
                     param = [['beta', 3, 1]]
                     distribution = dist(param, x)
-                elif mode == "beta2_2":
+                elif T_dist == "beta2_2":
                     param = [['beta', 2, 2]]
                     distribution = dist(param, x)
                 else:
@@ -177,7 +177,7 @@ def createData(path, car_list, modes, dups, p_fos, p_KG_us):
 
 
                             with Pool(32) as p:
-                                results = p.map(partial(dist_annot, user, annotation, dup, car, mode), range(nQuestions))
+                                results = p.map(partial(dist_annot, user, annotation, dup, car, T_dist), range(nQuestions))
 
 
                             res = np.array([np.concatenate(np.column_stack(i)) for i in results])
@@ -192,16 +192,16 @@ def createData(path, car_list, modes, dups, p_fos, p_KG_us):
 
                             if user.__len__() != ulen:
                                 print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
-                            print(f"saving {size}, {car}, {mode}, {dup}, {p_fo}, {p_KG_u}")
+                            print(f"saving {size}, {car}, {T_dist}, {dup}, {p_fo}, {p_KG_u}")
 
-                            os.makedirs(f'{path}/simulation data/{mode}/', exist_ok=True)
-                            os.makedirs(f'{path}/simulation data/{mode}/csv', exist_ok=True)
-                            os.makedirs(f'{path}/simulation data/{mode}/pickle', exist_ok=True)
+                            os.makedirs(f'{path}/simulation data/{T_dist}/', exist_ok=True)
+                            os.makedirs(f'{path}/simulation data/{T_dist}/csv', exist_ok=True)
+                            os.makedirs(f'{path}/simulation data/{T_dist}/pickle', exist_ok=True)
 
                             # save data
-                            with open(f'{path}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
+                            with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
                                 pickle.dump(user, file)
-                            with open(f'{path}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
+                            with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
                                 pickle.dump(annotation, file)
 if __name__ == "__main__":
 
@@ -210,13 +210,13 @@ if __name__ == "__main__":
 
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
     # modes = ['beta2_4', 'beta2_2', 'beta4_2']
-    modes = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+    T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
     # dups = [3, 5, 7, 9]
     # dups = [2,5,9]
-    dups = [3]
+    dup_list = [3]
 
-    p_fos = [0.0, 0.1]
+    p_fo_list = [0.0, 0.1]
     # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_KG_us = [0.0, 0.1]
+    p_KG_u_list = [0.0, 0.1]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
-    createData(os.getcwd(), car_list, modes, dups, p_fos, p_KG_us)
+    createData(os.getcwd(), car_list, T_dist_list, dup_list, p_fo_list, p_KG_u_list)

@@ -101,7 +101,7 @@ def run_em(iterations, car, nQuestions):
     em_data.loc[(em_data['size'].values == size) &
                 (em_data['iterations'].values == iterations) &
                 (em_data['car'].values == car) &
-                (em_data['mode'].values == mode) &
+                (em_data['mode'].values == T_dist) &
                 (em_data['dup'].values == dup) &
                 (em_data['p_fo'].values == p_fo) &
                 (em_data['p_kg'].values == p_kg) &
@@ -113,7 +113,7 @@ def run_em(iterations, car, nQuestions):
         g = em_data.loc[(em_data['size'].values == size) &
                         (em_data['iterations'].values == iterations) &
                         (em_data['car'].values == car) &
-                        (em_data['mode'].values == mode) &
+                        (em_data['mode'].values == T_dist) &
                         (em_data['dup'].values == dup) &
                         (em_data['p_fo'].values == p_fo) &
                         (em_data['p_kg'].values == p_kg) &
@@ -141,7 +141,7 @@ def run_em(iterations, car, nQuestions):
             results = p.map(partial(em_data.loc[(em_data['size'].values == size) &
                                                 (em_data['iterations'].values == iterations) &
                                                 (em_data['car'].values == car) &
-                                                (em_data['mode'].values == mode) &
+                                                (em_data['mode'].values == T_dist) &
                                                 (em_data['dup'].values == dup) &
                                                 (em_data['p_fo'].values == p_fo) &
                                                 (em_data['p_kg'].values == p_kg) &
@@ -182,7 +182,7 @@ def run_em(iterations, car, nQuestions):
     em_data.loc[(em_data['size'].values == size) &
                 (em_data['iterations'].values == iterations) &
                 (em_data['car'].values == car) &
-                (em_data['mode'].values == mode) &
+                (em_data['mode'].values == T_dist) &
                 (em_data['dup'].values == dup) &
                 (em_data['p_fo'].values == p_fo) &
                 (em_data['p_kg'].values == p_kg) &
@@ -190,12 +190,12 @@ def run_em(iterations, car, nQuestions):
     em_data.loc[(em_data['size'].values == size) &
                 (em_data['iterations'].values == iterations) &
                 (em_data['car'].values == car) &
-                (em_data['mode'].values == mode) &
+                (em_data['mode'].values == T_dist) &
                 (em_data['dup'].values == dup) &
                 (em_data['p_fo'].values == p_fo) &
                 (em_data['p_kg'].values == p_kg) &
                 (em_data['p_kg_u'].values == p_kg_u), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
-    summary = {"Mode": mode,
+    summary = {"Mode": T_dist,
                "Cardinality": car,
                "Iterations": iterations,
                "Duplication factor": dup,
@@ -219,34 +219,34 @@ if __name__ == "__main__":
 
     car_list = [7]
 
-    modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
-    dups = [3]
-    p_fos = [0.0, 0.1]
-    p_kgs = [0.0, 0.1]
-    p_kg_us = [0.0, 0.1]
+    T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+    dup_list = [3]
+    p_fo_list = [0.0, 0.1]
+    p_kg_list = [0.0, 0.1]
+    p_kg_u_list = [0.0, 0.1]
 
     session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     os.makedirs(f'{os.getcwd()}/sessions/car{car_list[0]}/{session_folder}/output', exist_ok=True)
 
     if not platform.system() == 'Windows':
-        createData(f'sessions/car{car_list[0]}/{session_folder}', car_list, modes, dups, p_fos, p_kg_us)
+        createData(f'sessions/car{car_list[0]}/{session_folder}', car_list, T_dist_list, dup_list, p_fo_list, p_kg_u_list)
 
     em_data = pandas.DataFrame(columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n'])
     for size in ['small', 'medium', 'large']:
         for iterations in iterations_list:
             for car in car_list:
-                for mode in modes:
-                    for dup in dups:
-                        for p_fo in p_fos:
-                            for p_kg in p_kgs:
-                                for p_kg_u in p_kg_us:
+                for T_dist in T_dist_list:
+                    for dup in dup_list:
+                        for p_fo in p_fo_list:
+                            for p_kg in p_kg_list:
+                                for p_kg_u in p_kg_u_list:
                                     # open dataset for selected parameters
-                                    with open(f'sessions/car{car_list[0]}/{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                    with open(f'sessions/car{car_list[0]}/{session_folder}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
                                               'rb') as file:
                                         user = pickle.load(file)
                                     with open(
-                                            f'sessions/car{car_list[0]}/{session_folder}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                            f'sessions/car{car_list[0]}/{session_folder}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
                                             'rb') as file:
                                         annotations = pickle.load(file)
                                     # init user weights at 1
@@ -256,11 +256,11 @@ if __name__ == "__main__":
                                     annotations[f'KG'] = [np.random.choice([0, 1], p=[1 - p_kg, p_kg]) for _ in range(annotations.__len__())]
                                     user['included'] = np.ones(user.__len__())
                                     nQuestions = annotations.__len__()
-                                    em_data.loc[em_data.__len__(), :] = [size, iterations, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
+                                    em_data.loc[em_data.__len__(), :] = [size, iterations, car, T_dist, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
                                     run_em(iterations, car, nQuestions)
-                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_user_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
-                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
+                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_annotations_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations}.pickle', 'wb') as file:
                                         pickle.dump(annotations, file)
-                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
+                                    with open(f'sessions/car{car_list[0]}/{session_folder}/output/em_data_size-{size}{"_".join(T_dist_list)}.pickle', 'wb') as file:
                                         pickle.dump(em_data, file)

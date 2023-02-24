@@ -13,8 +13,8 @@ from mpl_toolkits.mplot3d.axes3d import get_test_data
 
 class plots():
     def __init__(self):
-        self.figcar, self.axscar = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
-        self.figuerror, self.axsuerror = plt.subplots(dups.__len__(), p_fos.__len__(), sharex=True, sharey=True)
+        self.figcar, self.axscar = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
+        self.figuerror, self.axsuerror = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
         self.figsave, self.axssave = plt.subplots()
         self.figsave.set_size_inches(8,4)
         self.figsave.subplots_adjust(top=0.98, bottom=0.12,right=0.83,left=0.08)
@@ -97,15 +97,15 @@ class plots():
 
     def plot(self):
         # todo make non-global
-        for i, dup in enumerate(dups):
-            for j, p_fo in enumerate(p_fos):
+        for i, dup in enumerate(dup_list):
+            for j, p_fo in enumerate(p_fo_list):
                 # plot naive
                 self.axscar[i,j].plot(car_list,data.loc[
                     (data['size'] == size) &
                     (data['model'] == 'mcmc') &
                     (data['iterations'] == iterations['mcmc']) &
                     pandas.Series([item in car_list for item in data['car']]) &
-                    (data['mode'] == mode) &
+                    (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
                     (data['p_kg_u'] == p_kg_u) &
@@ -119,7 +119,7 @@ class plots():
                     (data['model'] == 'em') &
                     (data['iterations'] == iterations['em']) &
                     pandas.Series([item in car_list for item in data['car']]) &
-                    (data['mode'] == mode)&
+                    (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
                     (data['p_kg_u'] == p_kg_u) &
@@ -133,7 +133,7 @@ class plots():
                     (data['model'] == 'em') &
                     (data['iterations'] == iterations['em']) &
                     pandas.Series([item in car_list for item in data['car']]) &
-                    (data['mode'] == mode) &
+                    (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
                     (data['p_kg_u'] == p_kg_u) &
@@ -148,7 +148,7 @@ class plots():
                     (data['model'] == 'mcmc') &
                     (data['iterations'] == iterations['mcmc']) &
                     pandas.Series([item in car_list for item in data['car']]) &
-                    (data['mode'] == mode) &
+                    (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
                     (data['p_kg_u'] == p_kg_u) &
@@ -162,7 +162,7 @@ class plots():
                     (data['model'] == 'mcmc') &
                     (data['iterations'] == iterations['mcmc']) &
                     pandas.Series([item in car_list for item in data['car']]) &
-                    (data['mode'] == mode) &
+                    (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
                     (data['p_kg_u'] == p_kg_u) &
@@ -176,7 +176,7 @@ class plots():
                     (data['model'] == 'mcmc') &
                     (data['iterations'] == iterations['mcmc']) &
                     pandas.Series([item in car_list for item in data['car']]) &
-                    (data['mode'] == mode) &
+                    (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
                     (data['p_kg'] == p_kg) &
                     (data['p_kg_u'] == p_kg_u) &
@@ -189,10 +189,10 @@ class plots():
                     self.axscar[i,j].set_title(f'proportion \n first only = {p_fo}')
                     self.axsuerror[i, j].set_title(f'proportion \n first only = {p_fo}')
 
-                if i == dups.__len__()-1:
+                if i == dup_list.__len__()-1:
                     self.axscar[i,j].set_xlabel('Cardinality')
                     self.axsuerror[i,j].set_xlabel('Cardinality')
-                    if j == p_fos.__len__()-1:
+                    if j == p_fo_list.__len__()-1:
                         self.axscar[i,j].legend(loc='lower left', bbox_to_anchor=(1, -0.04, 1, 1))
                         self.axsuerror[i, j].legend(loc='lower left', bbox_to_anchor=(1, -0.04, 1, 1))
                 if j == 0:
@@ -212,13 +212,13 @@ class plots():
                 ax=axpkg,
                 label="proportion\nknown good\nitems",
                 valmin=0,
-                valmax= p_kgs[-1],
+                valmax= p_kg_list[-1],
                 valinit= val,
-                valstep= p_kgs,
+                valstep= p_kg_list,
                 orientation="vertical"
             )
             return pkg_slider
-        pkg_slider = getKGSlider(p_kgs[0])
+        pkg_slider = getKGSlider(p_kg_list[0])
 
         def updatepkg(val):
             global p_kg
@@ -242,13 +242,13 @@ class plots():
                 ax=axpkgu,
                 label="proportion\nknown good\nusers",
                 valmin=0,
-                valmax= p_kg_us[-1],
+                valmax= p_kg_u_list[-1],
                 valinit= val,
-                valstep= p_kg_us,
+                valstep= p_kg_u_list,
                 orientation="vertical"
             )
             return pkgu_slider
-        pkgu_slider = getKGUSlider(p_kg_us[0])
+        pkgu_slider = getKGUSlider(p_kg_u_list[0])
 
         def updatepkgu(val):
             global p_kg_u
@@ -269,11 +269,11 @@ class plots():
 
         ## dataset mode ##
         axmode = self.figcar.add_axes([0.05, 0.25, 0.0225, 0.63])
-        modeindex = range(modes.__len__())
+        modeindex = range(T_dist_list.__len__())
         def getModeSlider(val):
             mode_slider = Slider(
                 ax=axmode,
-                label=f"Simulation\ndistribution:\n{modes[val]}",
+                label=f"Simulation\ndistribution:\n{T_dist_list[val]}",
                 valmin=0,
                 valmax= modeindex[-1],
                 valinit= val,
@@ -284,9 +284,9 @@ class plots():
         mode_slider = getModeSlider(modeindex[0])
 
         def updatemode(val):
-            global mode
+            global T_dist
             global mode_slider
-            mode = modes[val]
+            T_dist = T_dist_list[val]
             for row in self.axscar:
                 for col in row:
                     col.clear()
@@ -384,11 +384,11 @@ if __name__ == "__main__":
 
 
     car_list = [3]
-    modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
-    dups = [3]
-    p_fos = [0.0]
-    p_kgs = [0.0]
-    p_kg_us = [0.0]
+    T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+    dup_list = [3]
+    p_fo_list = [0.0]
+    p_kg_list = [0.0, 0.1]
+    p_kg_u_list = [0.0, 0.1]
 
 
 
@@ -429,7 +429,7 @@ if __name__ == "__main__":
     #               'large': 400}
 
     # sizes = ['small', 'medium', 'large']
-    sizes = ['small']
+    sizes = ['large']
 
 
 
@@ -445,7 +445,7 @@ if __name__ == "__main__":
 
     with open(f'exports/data_{sizes[0]}.pickle', 'rb') as file:
         data = pickle.load(file)
-    data['size'] = 'small'
+    data['size'] = 'large'
     data = data.loc[data['session']=='avg']
     # for size in sizes[1:]:
     #     with open(f'exports/data_{size}.pickle', 'rb') as file:
@@ -461,12 +461,12 @@ if __name__ == "__main__":
     plot = plots()
 
     # inits
-    p_kg = p_kgs[0]
-    p_fo = p_fos[0]
-    p_kg_u = p_kg_us[0]
-    mode = modes[0]
+    p_kg = p_kg_list[0]
+    p_fo = p_fo_list[0]
+    p_kg_u = p_kg_u_list[0]
+    T_dist = T_dist_list[0]
     car = car_list[0]
-    dup = dups[0]
+    dup = dup_list[0]
 
     # iterations = iterations_list[0]
 
@@ -485,7 +485,7 @@ if __name__ == "__main__":
     #              0)) / sum((data['model'] == 'mcmc') & (
     #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')))
     # print(stats)
-    size = 'small'
+    size = 'large'
     # plot.saveplots()
     # plot.plot_interactive()
     plot.plot_pc_T(car, dup, p_fo, p_kg, size, p_kg_u)

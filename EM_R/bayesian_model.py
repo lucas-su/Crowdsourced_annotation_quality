@@ -13,7 +13,7 @@ import pprint
 def run_model(iterations, car, nQuestions):
     model_df.loc[(model_df['iterations'].values == iterations) &
                  (model_df['car'].values == car) &
-                 (model_df['mode'].values == mode) &
+                 (model_df['mode'].values == T_dist) &
                  (model_df['dup'].values == dup) &
                  (model_df['p_fo'].values == p_fo), 'model'] = pybrms.fit(formula="count ~ zAge + zBase * Trt + (1 | patient)",
         data=epilepsy,
@@ -55,15 +55,15 @@ def run_model(iterations, car, nQuestions):
     diff_n_cnt = (diff_n != 0).sum()
     model_df.loc[(model_df['iterations'].values == iterations) &
                  (model_df['car'].values == car) &
-                 (model_df['mode'].values == mode) &
+                 (model_df['mode'].values == T_dist) &
                  (model_df['dup'].values == dup) &
                  (model_df['p_fo'].values == p_fo), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
     model_df.loc[(model_df['iterations'].values == iterations) &
                  (model_df['car'].values == car) &
-                 (model_df['mode'].values == mode) &
+                 (model_df['mode'].values == T_dist) &
                  (model_df['dup'].values == dup) &
                  (model_df['p_fo'].values == p_fo), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
-    summary = {"Mode": mode,
+    summary = {"Mode": T_dist,
                "Cardinality": car,
                "Iterations": iterations,
                "Duplication factor": dup,
@@ -94,15 +94,15 @@ if __name__ == "__main__":
     model_df = pandas.DataFrame(columns=['iterations', 'car', 'mode', 'dup', 'p_fo', 'model', 'pc_m', 'pc_n'])
     for iterations in iterations_list:
         for car in car_list:
-            for mode in modes:
+            for T_dist in modes:
                 for dup in dups:
                     for p_fo in p_fos:
                         # open dataset for selected parameters
-                        with open(f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle',
+                        with open(f'simulation data/{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_user.pickle',
                                   'rb') as file:
                             user = pickle.load(file)
                         with open(
-                                f'simulation data/{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
+                                f'simulation data/{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_annotations_empty.pickle',
                                 'rb') as file:
                             annotations = pickle.load(file)
                         # car = annotations.loc[:,np.concatenate([[f'annot_{i}'] for i in range(dup)])].values.max()+1
@@ -114,9 +114,9 @@ if __name__ == "__main__":
 
                         # nAnnot = user.__len__()
                         nQuestions = annotations.__len__()
-                        model_df.loc[model_df.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
+                        model_df.loc[model_df.__len__(), :] = [iterations, car, T_dist, dup, p_fo, None, 0, 0]
                         run_model(iterations, car, nQuestions)
-                        with open(f'data/user_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'wb') as file:
+                        with open(f'data/user_data_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}.pickle', 'wb') as file:
                             pickle.dump(user, file)
     with open(f'data/em_data_{"_".join(modes)}.pickle', 'wb') as file:
         pickle.dump(model_df, file)

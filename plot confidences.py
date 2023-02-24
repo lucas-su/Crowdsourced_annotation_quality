@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # p_kg = p_kgs[0]
     p_kg = 0.1
     # mode = modes[0]
-    mode = 'beta4_2'
+    T_dist = 'beta4_2'
     # iterations = iterations_list[0]
     iterations = 40
     # dup = dups[0]
@@ -52,10 +52,10 @@ if __name__ == "__main__":
     # p_fo = p_fos[0]
     p_fo = 0.1
 
-    filepath = f'data/{session_folder}/mcmc_annotations_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_iters-{iterations}.pickle',
+    filepath = f'data/{session_folder}/mcmc_annotations_p_kg-{p_kg}_data_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_iters-{iterations}.pickle',
     # filepath = 'data/mcmc_data_uniform_gaussian_gaussian50_50_single0_single1_beta1_3_beta3_1.pickle'
 
-    with open(f'data/{session_folder}/mcmc_annotations_p_kg-{p_kg}_data_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_iters-{iterations}.pickle', 'rb') as file:
+    with open(f'data/{session_folder}/mcmc_annotations_p_kg-{p_kg}_data_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_iters-{iterations}.pickle', 'rb') as file:
         annotations = pickle.load(file)
 
     plot()

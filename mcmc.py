@@ -61,8 +61,11 @@ class mcmc():
 
     def Gibbs_lhat(self, user, annotations, i):
         if annotations.loc[i, 'KG'] == True:
+            # if we know this annotation to be correct, we don't need to sample
             return annotations.loc[i, 'GT']
         elif "KG" in user.loc[~np.isnan(user.loc[:,f"q_{i}"]), 'type']:
+            # is we know at least one of the annotators is good, we don't need to sample
+            # this should really be: if we have a KG, take the answer from the person, but this is the same as taking GT
             return annotations.loc[i, 'GT']
         else:
             p = [self.p_lhat_k(user, i, k) for k in self.L]
@@ -146,7 +149,7 @@ class mcmc():
         mcmc_data.loc[(mcmc_data['size'].values == size) &
                       (mcmc_data['iterations'].values == n_samples) &
                       (mcmc_data['car'].values == car) &
-                      (mcmc_data['mode'].values == mode) &
+                      (mcmc_data['mode'].values == T_dist) &
                       (mcmc_data['dup'].values == dup) &
                       (mcmc_data['p_fo'].values == p_fo) &
                       (mcmc_data['p_kg'].values == p_kg) &
@@ -154,7 +157,7 @@ class mcmc():
         mcmc_data.loc[(mcmc_data['size'].values == size) &
                       (mcmc_data['iterations'].values == n_samples) &
                       (mcmc_data['car'].values == car) &
-                      (mcmc_data['mode'].values == mode) &
+                      (mcmc_data['mode'].values == T_dist) &
                       (mcmc_data['dup'].values == dup) &
                       (mcmc_data['p_fo'].values == p_fo) &
                       (mcmc_data['p_kg'].values == p_kg) &
@@ -182,7 +185,7 @@ class mcmc():
                     results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                           (mcmc_data['iterations'].values == iterations) &
                                                           (mcmc_data['car'].values == car) &
-                                                          (mcmc_data['mode'].values == mode) &
+                                                          (mcmc_data['mode'].values == T_dist) &
                                                           (mcmc_data['dup'].values == dup) &
                                                           (mcmc_data['p_fo'].values == p_fo) &
                                                           (mcmc_data['p_kg'].values == p_kg) &
@@ -197,7 +200,7 @@ class mcmc():
                 results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                       (mcmc_data['iterations'].values == iterations) &
                                                       (mcmc_data['car'].values == car) &
-                                                      (mcmc_data['mode'].values == mode) &
+                                                      (mcmc_data['mode'].values == T_dist) &
                                                       (mcmc_data['dup'].values == dup) &
                                                       (mcmc_data['p_fo'].values == p_fo) &
                                                       (mcmc_data['p_kg'].values == p_kg) &
@@ -233,7 +236,7 @@ class mcmc():
                 results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                       (mcmc_data['iterations'].values == iterations) &
                                                       (mcmc_data['car'].values == car) &
-                                                      (mcmc_data['mode'].values == mode) &
+                                                      (mcmc_data['mode'].values == T_dist) &
                                                       (mcmc_data['dup'].values == dup) &
                                                       (mcmc_data['p_fo'].values == p_fo) &
                                                       (mcmc_data['p_kg'].values == p_kg) &
@@ -257,7 +260,7 @@ class mcmc():
 
         self.posterior(nQuestions, annotations)
 
-        summary = {"Mode": mode,
+        summary = {"Mode": T_dist,
                    "Cardinality": car,
                    "Iterations": iterations,
                    "Duplication factor": dup,
@@ -266,7 +269,7 @@ class mcmc():
                    "Percentage correct modelled": mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                                 (mcmc_data['iterations'].values == iterations) &
                                                                 (mcmc_data['car'].values == car) &
-                                                                (mcmc_data['mode'].values == mode) &
+                                                                (mcmc_data['mode'].values == T_dist) &
                                                                 (mcmc_data['dup'].values == dup) &
                                                                 (mcmc_data['p_fo'].values == p_fo) &
                                                                 (mcmc_data['p_kg'].values == p_kg) &
@@ -274,7 +277,7 @@ class mcmc():
                    "Percentage correct naive": mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                              (mcmc_data['iterations'].values == iterations) &
                                                              (mcmc_data['car'].values == car) &
-                                                             (mcmc_data['mode'].values == mode) &
+                                                             (mcmc_data['mode'].values == T_dist) &
                                                              (mcmc_data['dup'].values == dup) &
                                                              (mcmc_data['p_fo'].values == p_fo) &
                                                              (mcmc_data['p_kg'].values == p_kg) &
@@ -307,11 +310,11 @@ if __name__ == "__main__":
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
     car_list = [3]
-    modes = [f'single{round(flt,2)}' for flt in np.arange(0,1.1,0.1)]
-    dups = [3]
-    p_fos = [0.0]
-    p_kgs = [0.0, 0.1]
-    p_kg_us = [0.0, 0.1]
+    T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+    dup_list = [3]
+    p_fo_list = [0.0]
+    p_kg_list = [0.0, 0.1]
+    p_kg_u_list = [0.0, 0.1]
 
     priora = 1
     priorb = 1
@@ -320,32 +323,32 @@ if __name__ == "__main__":
 
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
     if not platform.system() == 'Windows':
-        createData(f'{session_dir}', car_list, modes, dups, p_fos, p_kg_us)
+        createData(f'{session_dir}', car_list, T_dist_list, dup_list, p_fo_list, p_kg_u_list)
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
     # if not resuming, makes new empty dataframe with correct columns
     resume_mode = False
     if resume_mode:
-        with open(f'sessions/mcmc_data_{"_".join(modes)}.pickle', 'rb') as file:
+        with open(f'sessions/mcmc_data_{"_".join(T_dist_list)}.pickle', 'rb') as file:
             mcmc_data = pickle.load(file)
     else:
         mcmc_data = pandas.DataFrame(
             columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
 
-    for size in ['large']: # multiple sizes are available: ['small','medium','large'] for testing, only small is used
+    for size in ['large']: # multiple sizes are available: ['small','medium','large']
         for n_samples in n_samples_list:
             for car in car_list:
-                for mode in modes:
-                    for dup in dups:
-                        for p_fo in p_fos:
-                            for p_kg in p_kgs:
-                                for p_kg_u in p_kg_us:
+                for T_dist in T_dist_list:
+                    for dup in dup_list:
+                        for p_fo in p_fo_list:
+                            for p_kg in p_kg_list:
+                                for p_kg_u in p_kg_u_list:
                                     # open dataset for selected parameters
-                                    with open(f'{session_dir}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                    with open(f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
                                               'rb') as file:
                                         user = pickle.load(file)
                                     with open(
-                                            f'{session_dir}/simulation data/{mode}/pickle/{size}_{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                            f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
                                             'rb') as file:
                                         annotations = pickle.load(file)
 
@@ -368,12 +371,12 @@ if __name__ == "__main__":
                                     nQuestions = annotations.__len__()
 
                                     # create mcmc_data dataframe
-                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, n_samples, car, mode, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
+                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
                                     # init mcmc object
                                     mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                   (mcmc_data['iterations'].values == n_samples) &
                                                   (mcmc_data['car'].values == car) &
-                                                  (mcmc_data['mode'].values == mode) &
+                                                  (mcmc_data['mode'].values == T_dist) &
                                                   (mcmc_data['dup'].values == dup) &
                                                   (mcmc_data['p_fo'].values == p_fo) &
                                                   (mcmc_data['p_kg'].values == p_kg) &
@@ -383,16 +386,16 @@ if __name__ == "__main__":
                                     mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                   (mcmc_data['iterations'].values == n_samples) &
                                                   (mcmc_data['car'].values == car) &
-                                                  (mcmc_data['mode'].values == mode) &
+                                                  (mcmc_data['mode'].values == T_dist) &
                                                   (mcmc_data['dup'].values == dup) &
                                                   (mcmc_data['p_fo'].values == p_fo) &
                                                   (mcmc_data['p_kg'].values == p_kg) &
                                                   (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].item().run(n_samples, car, nQuestions, user, annotations)
 
                                     # save data
-                                    with open(f'{session_dir}/output/mcmc_annotations_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{n_samples}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_annotations_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{n_samples}.pickle', 'wb') as file:
                                         pickle.dump(annotations, file)
-                                    with open(f'{session_dir}/output/mcmc_user_data_size-{size}_mode-{mode}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{n_samples}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_user_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{n_samples}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
-                                    with open(f'{session_dir}/output/mcmc_data_size-{size}{"_".join(modes)}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_data_size-{size}{"_".join(T_dist_list)}.pickle', 'wb') as file:
                                         pickle.dump(mcmc_data, file)

@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # gts = range(car)
     inspection_data = pandas.DataFrame(columns=['dup', 'p_fo', 'car', 'mode', 'per_fo_1', 'per_fo_2', 'fo_correct', 'obj'])
 
-    mode = 'uniform'
+    T_dist = 'uniform'
     cars = list(range(3, 8))
     dups = [3, 5, 7, 9]
     p_fos = [0.0, 0.1, 0.2, 0.3]
@@ -91,7 +91,7 @@ if __name__ == "__main__":
             for car in cars:
                 gts = range(car)
                 cnts = range(1,4)
-                inspection_data.loc[inspection_data.__len__(), :] = [dup, p_fo, car, mode, *inspect(mode, dup, car, p_fo).__call__(gts=gts, cnts=cnts)]
+                inspection_data.loc[inspection_data.__len__(), :] = [dup, p_fo, car, T_dist, *inspect(T_dist, dup, car, p_fo).__call__(gts=gts, cnts=cnts)]
     pass
 
 # inspection_data.loc[inspection_data['p_fo']==0.3]

@@ -91,23 +91,23 @@ class EM():
 def run_em(iterations, car, nQuestions):
     ems.loc[(ems['iterations'].values == iterations) &
             (ems['car'].values == car) &
-            (ems['mode'].values == mode) &
+            (ems['mode'].values == T_dist) &
             (ems['dup'].values == dup) &
             (ems['p_fo'].values == p_fo), 'EM'] = EM(car)
     i = 0
     while i < iterations:
         print("iteration: ", i)
         g = ems.loc[(ems['iterations'].values == iterations) &
-            (ems['car'].values == car) &
-            (ems['mode'].values == mode) &
-            (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'EM'].values[0].e_step()
+                    (ems['car'].values == car) &
+                    (ems['mode'].values == T_dist) &
+                    (ems['dup'].values == dup) &
+                    (ems['p_fo'].values == p_fo), 'EM'].values[0].e_step()
         with Pool(16) as p:
             results = p.map(partial(ems.loc[(ems['iterations'].values == iterations) &
-            (ems['car'].values == car) &
-            (ems['mode'].values == mode) &
-            (ems['dup'].values == dup) &
-            (ems['p_fo'].values == p_fo), 'EM'].values[0].m_step, g, nQuestions, car), user.iterrows())
+                                            (ems['car'].values == car) &
+                                            (ems['mode'].values == T_dist) &
+                                            (ems['dup'].values == dup) &
+                                            (ems['p_fo'].values == p_fo), 'EM'].values[0].m_step, g, nQuestions, car), user.iterrows())
 
         user.loc[:, "T_model"] = results
         user.loc[:, f"t_weight_{i}"] = results
@@ -184,7 +184,7 @@ def run_em(iterations, car, nQuestions):
     for i, (n, m) in enumerate(zip(naive.loc[naive.notnull()],model.loc[model.notnull()])):
         if not np.array_equal(n,m):
             diff.append(i)
-    summary = {"Mode": mode,
+    summary = {"Mode": T_dist,
                "Cardinality": car,
                "Iterations": iterations,
                'diff': diff,
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     level = 'high_low'
     dup = 3
     p_fo = 0
-    mode = 'real'
+    T_dist = 'real'
     all_affs = ["con_move", "uncon_move", "dir_affs", "indir_affs", "observe_affs", "social_affs", "no_affs",
                    "no_clue", "roll", "push", "drag", "tether", "pick_up_carry", "pour", "fragile", "open", "grasp",
                    "pull", "tip", "stack", "cut_scoop", "support", "transfer", "requires_other", "info", "deco",
@@ -283,10 +283,10 @@ if __name__ == "__main__":
         user.insert(2, 'T_model', 0.5*np.ones(user.__len__())) # users start at modelled T of 0.5
         # nAnnot = user.__len__()
         nQuestions = annotations.__len__()
-        ems.loc[ems.__len__(), :] = [iterations, car, mode, dup, p_fo, None, 0, 0]
+        ems.loc[ems.__len__(), :] = [iterations, car, T_dist, dup, p_fo, None, 0, 0]
         run_em(iterations, car, nQuestions)
 
-        with open(f'data/user_data_{mode}_{level}.pickle', 'wb') as file:
+        with open(f'data/user_data_{T_dist}_{level}.pickle', 'wb') as file:
             pickle.dump(user, file)
-    with open(f'data/em_data_{mode}_{level}.pickle', 'wb') as file:
+    with open(f'data/em_data_{T_dist}_{level}.pickle', 'wb') as file:
         pickle.dump(ems, file)
