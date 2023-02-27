@@ -104,11 +104,11 @@ def detType(nAnnot, p_fo, p_KG_u):
 
 
 def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us):
-    nAnnot = 20 # 50
+    nAnnot = 10 # 20
 
-    for size in ['small', 'medium', 'large']:
+    for size in ['small']: # ['small', 'medium', 'large']:
         if size == 'small':
-            nQuestions = 80
+            nQuestions = 50
         elif size == 'medium':
             nQuestions = 200
         else:
@@ -168,7 +168,9 @@ def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us):
 
                             annotdict = {"ID":range(nQuestions),
                                          "GT": random.choices(range(car), k=nQuestions),
-                                         "model": np.zeros(nQuestions)}
+                                         "model": np.zeros(nQuestions),
+                                         "alpha": [[] for _ in range(nQuestions)],
+                                         "car": np.ones(nQuestions)*car}
                             for i in range(dup):
                                 annotdict[f'id_{i}'] = np.zeros(nQuestions)
                                 annotdict[f'annot_{i}'] = np.zeros(nQuestions)
