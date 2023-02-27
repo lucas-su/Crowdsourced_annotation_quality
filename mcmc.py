@@ -121,7 +121,7 @@ class mcmc():
         for q in range(nQuestions):
             alphas = annotations.loc[q, [f'alpha_{i}' for i in range(keep_n_samples)]]
             p = rng.dirichlet(np.mean(alphas.T))
-            annotations.loc[q, 'model'] = np.where(rng.multinomial(1, p) ==1)
+            annotations.loc[q, 'model'] = np.where(rng.multinomial(1, p) ==1)[0][0]
 
         # count occurences in posterior to produce estimate
         # for q in range(nQuestions):
