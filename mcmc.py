@@ -301,14 +301,14 @@ if __name__ == "__main__":
     ## settings
 
     # n samples to keep
-    keep_samples_list = [2]
+    keep_samples_list = [100]
 
     # keep a sample every sample_interval iterations
-    sample_interval = 1
+    sample_interval = 20
 
     # warmup
-    warmup = 1 #50
-    nSamples = 3
+    warmup = 50
+    nSamples = 10
 
     # car_list = list(range(2,8))     # cardinality of the questions
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
