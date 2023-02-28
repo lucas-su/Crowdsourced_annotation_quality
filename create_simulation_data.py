@@ -3,6 +3,7 @@ import os
 import pickle
 from multiprocessing import Pool
 from functools import partial
+import platform
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,8 +33,9 @@ def sim_answer(users, annotations, u_id, car, q_id, T_dist):
     else:
         # correct answer if trustworthiness is higher than a randomly drawn number, if not a random other answer
         ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
-            random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
- #random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
+            random.randint(0,car) # use randint if 0 trustworthiness means chance level
+            # random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
+            
     return ans
 
 class dist():
@@ -103,7 +105,7 @@ def detType(nAnnot, p_fo, p_KG_u):
     return type
 
 
-def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us):
+def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us, ncpu):
     nAnnot = 5 # 20
 
     for size in ['small']: # ['small', 'medium', 'large']:
@@ -178,7 +180,7 @@ def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us):
                             annotation = pandas.DataFrame(data=annotdict)
 
 
-                            with Pool(32) as p:
+                            with Pool(ncpu) as p:
                                 results = p.map(partial(dist_annot, user, annotation, dup, car, T_dist), range(nQuestions))
 
 
@@ -206,7 +208,10 @@ def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us):
                             with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
                                 pickle.dump(annotation, file)
 if __name__ == "__main__":
-
+    if platform.system() == 'Windows':
+        ncpu = 8
+    else:
+        ncpu = 32
     # car_list = list(range(2,8))
     car_list = [3]
 
@@ -221,4 +226,4 @@ if __name__ == "__main__":
     # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
     p_KG_u_list = [0.0, 0.1]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
-    createData(os.getcwd(), car_list, T_dist_list, dup_list, p_fo_list, p_KG_u_list)
+    createData(os.getcwd(), car_list, T_dist_list, dup_list, p_fo_list, p_KG_u_list, ncpu)

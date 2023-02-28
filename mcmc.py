@@ -121,8 +121,9 @@ class mcmc():
 
         for q in range(nQuestions):
             alphas = annotations.loc[q, [f'alpha_{i}' for i in range(keep_n_samples)]]
-            p = rng.dirichlet(np.mean(alphas.T)) # mean or sum? should have very similar results but sum more around the mean
-            # mean here
+            # mean or sum? should have very similar results but sum more around the mean
+            p = np.mean([rng.dirichlet(alphas[i]) for i in range(keep_n_samples)], axis=0)
+
             annotations.loc[q, 'model'] = np.where(rng.multinomial(1, p) ==1)[0][0]
 
         # count occurences in posterior to produce estimate
@@ -201,7 +202,7 @@ class mcmc():
             # first only the KG's, as that primes the lhats for the other samples with the right bias
             KG_ids = annotations.loc[(annotations['KG']==True), 'ID']
             if KG_ids.__len__()>0:
-                with Pool(16) as p:
+                with Pool(ncpu) as p:
                     results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                           (mcmc_data['iterations'].values == iterations) &
                                                           (mcmc_data['car'].values == car) &
@@ -216,7 +217,7 @@ class mcmc():
 
             # after the KG's, do the rest of the samples
             indices = annotations.loc[(annotations['KG'] == False), 'ID']
-            with Pool(16) as p:
+            with Pool(ncpu) as p:
                 results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                       (mcmc_data['iterations'].values == iterations) &
                                                       (mcmc_data['car'].values == car) &
@@ -241,7 +242,7 @@ class mcmc():
 
             # After KG users, do the rest
             indices = user.loc[(user['type'] != 'KG'), 'ID']
-            with Pool(16) as p:
+            with Pool(ncpu) as p:
                 results = p.map(partial(mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                       (mcmc_data['iterations'].values == iterations) &
                                                       (mcmc_data['car'].values == car) &
@@ -299,18 +300,25 @@ class mcmc():
 
 
 if __name__ == "__main__":
-
+    
+    if platform.system() == 'Windows':
+        ncpu = 8
+    else:
+        ncpu = 32
     ## settings
 
-    # n samples to keep
-    keep_samples_list = [5]
-
-    # keep a sample every sample_interval iterations
-    sample_interval = 1
-
-    # warmup
-    warmup = 0
-    nSamples = 1
+    if platform.system() == 'Windows': # for quick debug
+        warmup = 0
+        nSamples = 1
+        sample_interval = 1
+        keep_samples_list = [5]
+    else:
+        warmup = 100
+        nSamples = 10
+        # keep a sample every sample_interval iterations
+        sample_interval = 10
+        # n samples to keep
+        keep_samples_list = [50]
 
     # car_list = list(range(2,8))     # cardinality of the questions
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
@@ -322,9 +330,9 @@ if __name__ == "__main__":
     car_list = [3]
     T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
     dup_list = [3]
-    p_fo_list = [0.0]
-    p_kg_list = [0.0]
-    p_kg_u_list = [0.0]
+    p_fo_list = [0.0, 0.1]
+    p_kg_list = [0.0, 0.1]
+    p_kg_u_list = [0.0, 0.1]
 
     priors = {'qAlpha':1,
               'aAlpha':1,
@@ -334,7 +342,7 @@ if __name__ == "__main__":
 
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
     # if not platform.system() == 'Windows':
-    createData(f'{session_dir}', car_list, T_dist_list, dup_list, p_fo_list, p_kg_u_list)
+    createData(f'{session_dir}', car_list, T_dist_list, dup_list, p_fo_list, p_kg_u_list, ncpu)
 
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
