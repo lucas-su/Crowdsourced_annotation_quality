@@ -33,7 +33,7 @@ def sim_answer(users, annotations, u_id, car, q_id, T_dist):
     else:
         # correct answer if trustworthiness is higher than a randomly drawn number, if not a random other answer
         ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
-            random.randint(0,car) # use randint if 0 trustworthiness means chance level
+            random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
             # random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
             
     return ans
