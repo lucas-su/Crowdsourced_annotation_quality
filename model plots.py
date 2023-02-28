@@ -429,7 +429,7 @@ if __name__ == "__main__":
     #               'large': 400}
 
     # sizes = ['small', 'medium', 'large']
-    sizes = ['large']
+    sizes = ['small']
 
 
 
@@ -445,7 +445,7 @@ if __name__ == "__main__":
 
     with open(f'exports/data_{sizes[0]}.pickle', 'rb') as file:
         data = pickle.load(file)
-    data['size'] = 'large'
+    data['size'] = 'small'
     data = data.loc[data['session']=='avg']
     # for size in sizes[1:]:
     #     with open(f'exports/data_{size}.pickle', 'rb') as file:
@@ -485,7 +485,7 @@ if __name__ == "__main__":
     #              0)) / sum((data['model'] == 'mcmc') & (
     #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')))
     # print(stats)
-    size = 'large'
+    size = 'small'
     # plot.saveplots()
     # plot.plot_interactive()
     plot.plot_pc_T(car, dup, p_fo, p_kg, size, p_kg_u)

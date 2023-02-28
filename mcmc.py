@@ -120,7 +120,8 @@ class mcmc():
 
         for q in range(nQuestions):
             alphas = annotations.loc[q, [f'alpha_{i}' for i in range(keep_n_samples)]]
-            p = rng.dirichlet(np.mean(alphas.T))
+            p = rng.dirichlet(np.mean(alphas.T)) # mean or sum? should have very similar results but sum more around the mean
+            # mean here
             annotations.loc[q, 'model'] = np.where(rng.multinomial(1, p) ==1)[0][0]
 
         # count occurences in posterior to produce estimate
@@ -301,14 +302,14 @@ if __name__ == "__main__":
     ## settings
 
     # n samples to keep
-    keep_samples_list = [100]
+    keep_samples_list = [5]
 
     # keep a sample every sample_interval iterations
-    sample_interval = 20
+    sample_interval = 1
 
     # warmup
-    warmup = 50
-    nSamples = 10
+    warmup = 0
+    nSamples = 1
 
     # car_list = list(range(2,8))     # cardinality of the questions
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
@@ -325,14 +326,14 @@ if __name__ == "__main__":
     p_kg_u_list = [0.0]
 
     priors = {'qAlpha':1e-5,
-              'aAlpha':1e-1,
-              'aBeta':1e-5}
+              'aAlpha':1,
+              'aBeta':1}
 
     session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
-    if not platform.system() == 'Windows':
-        createData(f'{session_dir}', car_list, T_dist_list, dup_list, p_fo_list, p_kg_u_list)
+    # if not platform.system() == 'Windows':
+    createData(f'{session_dir}', car_list, T_dist_list, dup_list, p_fo_list, p_kg_u_list)
 
 
     # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped

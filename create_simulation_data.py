@@ -104,11 +104,11 @@ def detType(nAnnot, p_fo, p_KG_u):
 
 
 def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us):
-    nAnnot = 10 # 20
+    nAnnot = 3 # 20
 
     for size in ['small']: # ['small', 'medium', 'large']:
         if size == 'small':
-            nQuestions = 50
+            nQuestions = 5
         elif size == 'medium':
             nQuestions = 200
         else:

@@ -43,14 +43,14 @@ def queue_alpha_uerror_metrics(session_dir, session_folder, model):
                             data.loc[(data['session'].values == 'avg') &
                                      (data['model'].values == model) &
                                      (data['car'].values == car) &
-                                     (data['T_dist'].values == T_dist) &
+                                     (data['mode'].values == T_dist) &
                                      (data['dup'].values == dup) &
                                      (data['p_fo'].values == p_fo) &
                                      (data['p_kg'].values == p_kg), 'uerror'] += result.get()
                             if min(data.loc[(data['session'].values == 'avg') &
                                             (data['model'].values == model) &
                                              (data['car'].values == car) &
-                                             (data['T_dist'].values == T_dist) &
+                                             (data['mode'].values == T_dist) &
                                              (data['dup'].values == dup) &
                                              (data['p_fo'].values == p_fo) &
                                              (data['p_kg'].values == p_kg), 'n_annot_aftr_prun']) == 0:
@@ -58,7 +58,7 @@ def queue_alpha_uerror_metrics(session_dir, session_folder, model):
                                 data.loc[(data['session'].values == 'avg') &
                                          (data['model'].values == model) &
                                          (data['car'].values == car) &
-                                         (data['T_dist'].values == T_dist) &
+                                         (data['mode'].values == T_dist) &
                                          (data['dup'].values == dup) &
                                          (data['p_fo'].values == p_fo) &
                                          (data['p_kg'].values == p_kg), ['alpha_bfr_prun',
@@ -145,15 +145,18 @@ if __name__ == "__main__":
     # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
 
-
     car_list = [3]
     T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
     dup_list = [3]
     p_fo_list = [0.0]
-    p_kg_list = [0.0, 0.1]
-    p_kg_u_list = [0.0, 0.1]
+    p_kg_list = [0.0]
+    p_kg_u_list = [0.0]
 
-    session_dir = f'sessions/prior-1_1-car{car_list[0]}/large'
+    priors = {'qAlpha': 1e-5,
+              'aAlpha': 1e-1,
+              'aBeta': 1e-5}
+
+    session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}'
     walk = next(os.walk(session_dir))[1]
     em_sessions = []
     mcmc_sessions = []
@@ -173,11 +176,13 @@ if __name__ == "__main__":
                   'mcmc': 100}
 
     # initialize dataset
-    for size in ['large']: # ['small', 'medium', 'large']:
+    for size in ['small']: # ['small', 'medium', 'large']:
         datalen = 2 * car_list.__len__() * T_dist_list.__len__() * dup_list.__len__() * p_fo_list.__len__() * p_kg_list.__len__() * p_kg_u_list.__len__()
 
         # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
-        cols = ['session', 'model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun', 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
+        cols = ['session', 'model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m',
+                'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
+                'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
         data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
         data.loc[:datalen/2,'model'] = "em"
         data.loc[:datalen / 2, 'iterations'] = iterations['em']
@@ -207,7 +212,7 @@ if __name__ == "__main__":
                 data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] = data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] + (np.array(em_data.loc[(em_data['size']==size),['pc_m', 'pc_n']]/em_sessions.__len__()))
                 data = pandas.concat((data, makeplaceholderframe("em", em_idx, datalen/2, cols)), ignore_index=True)
                 data.loc[(data['session']==f'{em_idx}')&(data['model']==f'em'), ['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m','pc_n']] = np.array(em_data.loc[(em_data['size']==size),['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m','pc_n']])
-                queue_alpha_uerror_metrics(session_dir, session, 'em')
+                # queue_alpha_uerror_metrics(session_dir, session, 'em')
 
         if mcmc_sessions.__len__()>0:
 
@@ -227,7 +232,7 @@ if __name__ == "__main__":
                 data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] =  data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] + np.array(mcmc_data.loc[(mcmc_data['size']==size), ['pc_m', 'pc_n']]/mcmc_sessions.__len__())
                 data = pandas.concat((data, makeplaceholderframe("mcmc", mc_idx, datalen / 2, cols)), ignore_index=True)
                 data.loc[(data['session'] == f'{mc_idx}') & (data['model'] == f'mcmc'), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(mcmc_data.loc[(mcmc_data['size']==size), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n']])
-                queue_alpha_uerror_metrics(session_dir, session, 'mcmc')
+                # queue_alpha_uerror_metrics(session_dir, session, 'mcmc')
 
         for T_dist in T_dist_list:
             for model in ['em', 'mcmc']:
