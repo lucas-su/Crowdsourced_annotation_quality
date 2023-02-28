@@ -1,3 +1,4 @@
+
 import platform
 from collections import Counter
 import numpy as np
@@ -325,7 +326,7 @@ if __name__ == "__main__":
     p_kg_list = [0.0]
     p_kg_u_list = [0.0]
 
-    priors = {'qAlpha':1e-5,
+    priors = {'qAlpha':1,
               'aAlpha':1,
               'aBeta':1}
 
@@ -392,7 +393,7 @@ if __name__ == "__main__":
                                                   (mcmc_data['p_fo'].values == p_fo) &
                                                   (mcmc_data['p_kg'].values == p_kg) &
                                                   (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'] = mcmc(car)
-
+ 
                                     # run mcmc sampling
                                     mcmc_data.loc[(mcmc_data['size'].values == size) &
                                                   (mcmc_data['iterations'].values == keep_n_samples) &
