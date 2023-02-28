@@ -79,9 +79,13 @@ class mcmc():
                     qAlpha = annotations.loc[idx, 'alpha']
                     v = rng.dirichlet(qAlpha)
                     t = rng.beta(user.loc[i, 'a'], user.loc[i, 'b'])
-                    pos = t*v[val]  # * np.prod(1.-np.concatenate((v[:a.value],v[(a.value+1):])))
-                    neg = (1.-t) / annotations.loc[idx, 'car']  # * (1.-a.question.cardinality)**(a.question.cardinality-1)
-                    #                debug(v,v[a.value],pos,neg)
+                    if (t<1e-10):
+                        t = 1e-10
+                    if t > 1.-1e-10:
+                        t = 1-1e-10
+                    chance = 1.-v[val]
+                    pos = np.max([v[val]-chance,0.])
+                    neg = chance
                     post = pos / (pos + neg)
                     alpha += post/nSamples
                     beta += (1. - post)/nSamples
@@ -103,11 +107,19 @@ class mcmc():
             return np.eye(self.K)[annotations.loc[i, 'GT']] + np.spacing(0) # include small value to prevent alpha being 0
         else:
             alpha = tuple((priors['aAlpha'] for _ in range(self.K))) # implement some l.c cardinaty per annotation
-            for n in user.loc[~np.isnan(user.loc[:, f"q_{i}"])].iterrows():
-                for _ in range(nSamples):
+            for _ in range(nSamples):
+                a = np.ones(alpha.__len__())
+                for n in user.loc[~np.isnan(user.loc[:, f"q_{i}"])].iterrows():
                     t = rng.beta(n[1]['a'], n[1]['b'])
+                    if (t<1e-10):
+                        t = 1e-10
+                    if (1-t) < 1e-10:
+                        t = 1.-1e-10
                     oneOfK = np.eye(self.K)[int(n[1][f"q_{i}"])] + np.spacing(0)
                     alpha += (t * oneOfK )/nSamples
+                    s = t * oneOfK + (1-t)/(self.cm) * (1.-oneOfK)
+                    a *= s
+                alpha += (a/a.sum())/nSamples
             return alpha
 
             # self.posterior = alpha
