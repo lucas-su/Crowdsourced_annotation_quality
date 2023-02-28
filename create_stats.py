@@ -153,9 +153,9 @@ if __name__ == "__main__":
     p_kg_list = [0.0]
     p_kg_u_list = [0.0]
 
-    priors = {'qAlpha': 1,
-              'aAlpha': 1,
-              'aBeta': 1}
+    priors = {'qAlpha': 0.1,
+              'aAlpha': 0.1,
+              'aBeta': 0.1}
 
     session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}'
     walk = next(os.walk(session_dir))[1]

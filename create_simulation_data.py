@@ -16,6 +16,8 @@ steps = 1000
 x = np.linspace(0, xmax, steps)
 
 
+# change t=0 def, larger dataset
+
 def dist_annot(users, annotations, dup, car, T_dist, q_id):
     userlist = np.zeros(dup)
 
@@ -33,9 +35,8 @@ def sim_answer(users, annotations, u_id, car, q_id, T_dist):
     else:
         # correct answer if trustworthiness is higher than a randomly drawn number, if not a random other answer
         ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
-            random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
-            # random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
-            
+            random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
+            # random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
     return ans
 
 class dist():
@@ -106,11 +107,11 @@ def detType(nAnnot, p_fo, p_KG_u):
 
 
 def createData(path, car_list, T_dist_list, dups, p_fos, p_KG_us, ncpu):
-    nAnnot = 5 # 20
+    nAnnot = 8 # 20
 
-    for size in ['small']: # ['small', 'medium', 'large']:
+    for size in ['small', 'medium', 'large']:
         if size == 'small':
-            nQuestions = 10
+            nQuestions = 50
         elif size == 'medium':
             nQuestions = 200
         else:

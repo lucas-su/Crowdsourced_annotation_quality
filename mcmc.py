@@ -208,8 +208,8 @@ class mcmc():
 
         # run iterations
         while self.iter < posteriorindices.__len__():
-            # if self.iter % 10 == 0:
-            print("iteration: ", self.iter)
+            if self.iter % 10 == 0:
+                print("iteration: ", self.iter)
 
             ## sample l_hat
             # first only the KG's, as that primes the lhats for the other samples with the right bias
@@ -368,7 +368,7 @@ if __name__ == "__main__":
         mcmc_data = pandas.DataFrame(
             columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
 
-    for size in ['small']: # multiple sizes are available: ['small','medium','large']
+    for size in ['medium']: # multiple sizes are available: ['small','medium','large']
         for keep_n_samples in keep_samples_list:
             for car in car_list:
                 for T_dist in T_dist_list:

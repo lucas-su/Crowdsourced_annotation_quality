@@ -377,3 +377,6 @@ for n,q in questions.items():
 plt.show()
 
 # %%
+
+for _,a in annotators.items():
+    print(a.posterior)
