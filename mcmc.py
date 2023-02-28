@@ -96,11 +96,11 @@ class mcmc():
     def Gibbs_lhat(self, user, annotations, priors, nSamples, i):
         if annotations.loc[i, 'KG'] == True:
             # if we know this annotation to be correct, we don't need to sample
-            return annotations.loc[i, 'GT']
+            return np.eye(self.K)[annotations.loc[i, 'GT']] 
         elif "KG" in user.loc[~np.isnan(user.loc[:,f"q_{i}"]), 'type']:
             # is we know at least one of the annotators is good, we don't need to sample
             # this should really be: if we have a KG, take the answer from the person, but this is the same as taking GT
-            return annotations.loc[i, 'GT']
+            return np.eye(self.K)[annotations.loc[i, 'GT']] 
         else:
             alpha = tuple((priors['aAlpha'] for _ in range(self.K))) # implement some l.c cardinaty per annotation
             for n in user.loc[~np.isnan(user.loc[:, f"q_{i}"])].iterrows():
