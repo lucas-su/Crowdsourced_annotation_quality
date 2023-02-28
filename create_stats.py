@@ -148,13 +148,13 @@ if __name__ == "__main__":
     car_list = [3]
     T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
     dup_list = [3]
-    p_fo_list = [0.0]
-    p_kg_list = [0.0]
-    p_kg_u_list = [0.0]
+    p_fo_list = [0.0, 0.1]
+    p_kg_list = [0.0, 0.1]
+    p_kg_u_list = [0.0, 0.1]
 
-    priors = {'qAlpha': 1e-5,
-              'aAlpha': 1e-1,
-              'aBeta': 1e-5}
+    priors = {'qAlpha': 1,
+              'aAlpha': 1,
+              'aBeta': 1}
 
     session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}'
     walk = next(os.walk(session_dir))[1]
@@ -191,7 +191,7 @@ if __name__ == "__main__":
         data.loc[:,'session'] = 'avg'
 
         if size == 'small':
-            nQuestions = 80
+            nQuestions = 10
         elif size == 'medium':
             nQuestions = 200
         else:
@@ -220,8 +220,7 @@ if __name__ == "__main__":
             with open(f'{session_dir}/{mcmc_sessions[0]}/output/mcmc_data_size-{size}{"_".join(T_dist_list)}.pickle',
                       'rb') as file:
                 tmp_data = pickle.load(file)
-            data.loc[(data['model'] == 'mcmc') & (data['session'] == 'avg'), ['car', 'mode', 'dup', 'p_fo', 'p_kg',
-                                                                              'p_kg_u']] = np.array(
+            data.loc[(data['model'] == 'mcmc') & (data['session'] == 'avg'), ['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(
                 tmp_data.loc[(tmp_data['size'] == size), ['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
             # fill frame with MCMC values

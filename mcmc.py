@@ -63,7 +63,7 @@ class mcmc():
 
     def Gibbs_tn(self, user, annotations, priors, nSamples, i):
         if user.loc[i,'type'] == 'KG':
-            return 1
+            return 1, np.spacing(1)
         else:
             alpha, beta = priors['aAlpha'], priors['aBeta']
             q_answered = user.loc[user['ID'] == i, user.loc[user['ID'] == i, :].notnull().squeeze()].squeeze() # this can be defined nicer using the annotations dataframe
