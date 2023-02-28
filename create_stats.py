@@ -148,9 +148,10 @@ if __name__ == "__main__":
     car_list = [3]
     T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
     dup_list = [3]
-    p_fo_list = [0.0, 0.1]
-    p_kg_list = [0.0, 0.1]
-    p_kg_u_list = [0.0, 0.1]
+    dup_list = [3]
+    p_fo_list = [0.0]
+    p_kg_list = [0.0]
+    p_kg_u_list = [0.0]
 
     priors = {'qAlpha': 1,
               'aAlpha': 1,

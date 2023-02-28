@@ -327,9 +327,9 @@ if __name__ == "__main__":
         keep_samples_list = [5]
     else:
         warmup = 100
-        nSamples = 10
+        nSamples = 5
         # keep a sample every sample_interval iterations
-        sample_interval = 10
+        sample_interval = 3
         # n samples to keep
         keep_samples_list = [50]
 
