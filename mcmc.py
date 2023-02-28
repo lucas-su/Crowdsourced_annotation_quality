@@ -326,12 +326,12 @@ if __name__ == "__main__":
         sample_interval = 3
         keep_samples_list = [5]
     else:
-        warmup = 100
+        warmup = 10
         nSamples = 5
         # keep a sample every sample_interval iterations
         sample_interval = 3
         # n samples to keep
-        keep_samples_list = [50]
+        keep_samples_list = [5]
 
     # car_list = list(range(2,8))     # cardinality of the questions
     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
@@ -347,9 +347,9 @@ if __name__ == "__main__":
     p_kg_list = [0.0]
     p_kg_u_list = [0.0]
 
-    priors = {'qAlpha':1,
-              'aAlpha':1,
-              'aBeta':1}
+    priors = {'qAlpha':0.1,
+              'aAlpha':0.1,
+              'aBeta':0.1}
 
     session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
