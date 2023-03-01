@@ -9,6 +9,7 @@ from scipy.stats import beta
 from datetime import datetime
 import os
 from create_simulation_data import createData
+from settings import *
 
 from numpy.random import default_rng
 rng = default_rng()
@@ -61,24 +62,17 @@ class mcmc():
         y = num/denom
         return y
 
-    def Gibbs_tn(self, user, annotations, priors, nSamples, i):
+    def Gibbs_tn(self, user, annotations, priors, nSamples, dup, i):
         if user.loc[i,'type'] == 'KG':
             return 1, np.spacing(1)
         else:
             alpha, beta = priors['aAlpha'], priors['aBeta']
-            q_answered = user.loc[user['ID'] == i, user.loc[user['ID'] == i, :].notnull().squeeze()].squeeze() # this can be defined nicer using the annotations dataframe
 
-            # define columns to take from q_answered
-            startindex = 4
-            endindex = np.where(q_answered.index == 'a')[0][0]
-
-            for val, idx in zip(q_answered[startindex: endindex], q_answered.index[startindex:endindex]):
-                val = int(val)
-                idx = int(idx[2:])
+            for val, idx in np.concatenate([annotations.loc[annotations[f'id_{d}']==i, [f'annot_{d}', 'ID']] for d in range(dup)]):
                 for _ in range(nSamples):
                     qAlpha = annotations.loc[idx, 'alpha']
                     v = rng.dirichlet(qAlpha)
-                    t = rng.beta(user.loc[i, 'a'], user.loc[i, 'b'])
+                    t = rng.beta(*user.loc[i, ['a', 'b']])
                     if (t<1e-10):
                         t = 1e-10
                     if t > 1.-1e-10:
@@ -263,7 +257,7 @@ class mcmc():
                                                       (mcmc_data['dup'].values == dup) &
                                                       (mcmc_data['p_fo'].values == p_fo) &
                                                       (mcmc_data['p_kg'].values == p_kg) &
-                                                      (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priors, nSamples), indices)
+                                                      (mcmc_data['p_kg_u'].values == p_kg_u), 'mcmc'].values[0].Gibbs_tn, user, annotations, priors, nSamples, dup), indices)
 
                 user.loc[(user['type'] != 'KG'), ['a','b']] = results
                 if posteriorindices[self.iter]:
@@ -311,7 +305,6 @@ class mcmc():
         if print_final_results:
             [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
 
-
 if __name__ == "__main__":
     
     if platform.system() == 'Windows':
@@ -321,9 +314,9 @@ if __name__ == "__main__":
     ## settings
 
     if platform.system() == 'Windows': # for quick debug
-        warmup = 10
-        nSamples = 3
-        sample_interval = 3
+        warmup = 3
+        nSamples = 1
+        sample_interval = 1
         keep_samples_list = [5]
     else:
         warmup = 10
@@ -331,35 +324,12 @@ if __name__ == "__main__":
         # keep a sample every sample_interval iterations
         sample_interval = 3
         # n samples to keep
-        keep_samples_list = [5]
-
-    # car_list = list(range(2,8))     # cardinality of the questions
-    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    # dups = [3,5,7,9]                # duplication factor of the annotators
-    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
-    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
-    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
-
-    car_list = [3]
-    T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
-    dup_list = [3]
-    p_fo_list = [0.0]
-    p_kg_list = [0.0]
-    p_kg_u_list = [0.0]
-
-    priors = {'qAlpha':0.1,
-              'aAlpha':0.1,
-              'aBeta':0.1}
+        keep_samples_list = [20]
 
     session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
-    # if not platform.system() == 'Windows':
-    createData(f'{session_dir}', car_list, T_dist_list, dup_list, p_fo_list, p_kg_u_list, ncpu)
 
-
-    # resume mode allows the loading of an mcmc_data dataframe to continue training after it has been stopped
-    # if not resuming, makes new empty dataframe with correct columns
     resume_mode = False
     if resume_mode:
         with open(f'sessions/mcmc_data_{"_".join(T_dist_list)}.pickle', 'rb') as file:
@@ -368,10 +338,11 @@ if __name__ == "__main__":
         mcmc_data = pandas.DataFrame(
             columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
 
-    for size in ['medium']: # multiple sizes are available: ['small','medium','large']
-        for keep_n_samples in keep_samples_list:
-            for car in car_list:
-                for T_dist in T_dist_list:
+    for size in datasetsize_list: 
+        for car in car_list:
+            for T_dist in T_dist_list:
+                createData(f'{session_dir}', car, T_dist, dup_list, p_fo_list, p_kg_u_list, ncpu, size)
+                for keep_n_samples in keep_samples_list:
                     for dup in dup_list:
                         for p_fo in p_fo_list:
                             for p_kg in p_kg_list:

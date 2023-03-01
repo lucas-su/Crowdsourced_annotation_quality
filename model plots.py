@@ -1,5 +1,5 @@
 import pickle
-
+from settings import *
 import matplotlib.pyplot as plt
 
 import pandas
@@ -374,24 +374,6 @@ if __name__ == "__main__":
                   'mcmc': 100}
 
 
-    # car_list = list(range(2, 8))
-    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    # dups = [3,5,7,9]                # duplication factor of the annotators
-    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]       # proportion 'first only' annotators who only ever select the first option
-    # p_kgs = [0.0, 0.05, 0.1, 0.15, 0.2]
-    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
-
-
-
-    car_list = [3]
-    T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
-    dup_list = [3]
-    p_fo_list = [0.0]
-    p_kg_list = [0.0]
-    p_kg_u_list = [0.0]
-
-
-
 
     # datalen = 2*car_list.__len__()*modes.__len__()*dups.__len__()*p_fos.__len__()*p_kgs.__len__()*p_kg_us.__len__()
     # cols = ['model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m', 'pc_n', 'uerror']
@@ -429,7 +411,7 @@ if __name__ == "__main__":
     #               'large': 400}
 
     # sizes = ['small', 'medium', 'large']
-    sizes = ['small']
+    sizes = ['medium']
 
 
 
@@ -445,7 +427,7 @@ if __name__ == "__main__":
 
     with open(f'exports/data_{sizes[0]}.pickle', 'rb') as file:
         data = pickle.load(file)
-    data['size'] = 'small'
+    data['size'] = datasetsize
     data = data.loc[data['session']=='avg']
     # for size in sizes[1:]:
     #     with open(f'exports/data_{size}.pickle', 'rb') as file:
@@ -485,7 +467,7 @@ if __name__ == "__main__":
     #              0)) / sum((data['model'] == 'mcmc') & (
     #             (data['mode'] == 'beta3_2') | (data['mode'] == 'beta2_2') | (data['mode'] == 'beta4_2')))
     # print(stats)
-    size = 'small'
     # plot.saveplots()
     # plot.plot_interactive()
-    plot.plot_pc_T(car, dup, p_fo, p_kg, size, p_kg_u)
+    
+    plot.plot_pc_T(car, dup, p_fo, p_kg, datasetsize, p_kg_u)

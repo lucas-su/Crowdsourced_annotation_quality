@@ -71,8 +71,8 @@ def error(*args):
 # In[6]:
 
 
-def debug(*args):
-    print("DEBUG",*args)
+# def debug(*args):
+#     print("DEBUG",*args)
 
 
 # In[19]:
@@ -87,7 +87,7 @@ plt.rcParams["figure.figsize"] = (10,15)
 
 rng = default_rng()
 
-nSamples = 10
+nSamples = 3
 
 class Question:
     """
@@ -99,12 +99,12 @@ class Question:
     give a different answer?)
     """
     def __init__(self, name, alpha, gt=None, difficulty=None):
-        self.name = name
+        self.name = name        
         self.prior = np.array(alpha)
         self.posterior = self.prior.copy()
+        self.basePrior = self.prior.copy()
         self.cardinality = len(alpha)
         self.gt = True if gt else False
-        info("Question constructor",name,alpha,gt,self.gt)
 #        self.value = np.zeros(self.prior.shape)
 #        if self.gt:
 #            self.value[self.gt] = nSamples
@@ -140,7 +140,7 @@ class Question:
             alpha += (a/a.sum())/nSamples
                 # alpha += t/nSamples * l.value1ofk + (1-t)/(nSamples*self.cardinality**2) * (1.-l.value1ofk)
         self.posterior = alpha
-        info("Sampling question posterior",self.name, self.posterior)
+        debug("Sampling question posterior",self.name, self.posterior)
         
         
     def sample(self):
@@ -150,7 +150,16 @@ class Question:
         p = rng.dirichlet(self.posterior)
         return p
 #        return rng.multinomial(1,p)
-        
+
+    def best(self):
+        return self.posterior.argmax()
+
+    def logProb(self):
+        return np.log(self.posterior.max()/self.posterior.sum())
+
+    def anneal(self,n):
+        self.prior = self.prior / (2. ** n)
+    
     def __repr__(self):
         if self.gt:
             return "Q+'%s',%s" % (self.name,self.posterior)
@@ -174,6 +183,7 @@ class Annotator:
     def __init__(self, name, a=1, b=1):
         self.name = name
         self.annotations = []
+        self.basePrior = (a,b)
         self.prior = (a,b)
         self.posterior = (a,b)
     
@@ -200,7 +210,7 @@ class Annotator:
 
                 # debug("trustworthiness ",self.name,a.question.name,"a=",a.value,"q=",v, "t=",t,"post=",post,alpha,beta)
                     
-        info("Annotator posterior ",self.name,"a=",alpha,"b=",beta, "num of annot=",len(self.annotations))
+        debug("Annotator posterior ",self.name,"a=",alpha,"b=",beta, "num of annot=",len(self.annotations))
         self.posterior = (alpha,beta)
         
     def sample(self):
@@ -208,6 +218,10 @@ class Annotator:
         
         a,b = self.posterior
         return rng.beta(a,b)
+
+    def anneal(self,n):
+        a,b = self.basePrior
+        self.prior = (a/(2**n),b/(2**n))
     
     def __repr__(self):
         s = "Annotator(%s)" % self.name
@@ -244,12 +258,75 @@ class Annotation:
     def sampleValue(self):
         """For data generation, generate annotations"""
         pass
+
+    def logProb(self):
+        x = self.question.posterior / self.question.posterior.sum()
+        return np.log(x[self.value])
     
     def __repr__(self):
         return "Annot by %s:%s of [%s]" % (self.annotator.name, self.value, self.question)
         
 
 
+class Model:
+    def __init__(self,data, qAlpha):
+        names = set()
+        qnames = set()
+        for d in data:
+            names.add(d[1])
+            qnames.add(d[0])
+
+        self.annotators = {name: Annotator(name,1e2,1.e1) for name in names }
+        self.questions = {name: Question(name,qAlpha) for name in qnames }
+        # debug(questions)
+
+        self.annotations = []
+
+        for d in data:
+            self.annotations.append(Annotation(self.annotators[d[1]], self.questions[d[0]], d[2]))
+
+    def sampleIteration(self):
+        for n,q in self.questions.items():
+            q.computePosterior()
+        for n,a in self.annotators.items():
+            a.computePosterior()
+
+    def anneal(self,n):
+        for _,q in self.questions.items():
+            q.anneal(n)
+        for _,a in self.annotators.items():
+            a.anneal(n)
+            
+    def modelEvidence(self):
+        logEvidence = 0
+        for _,q in self.questions.items():
+            logEvidence += q.logProb()
+        return logEvidence
+
+
+class ModelSel:
+    def __init__(self,data,qAlpha,N=10,numIter=5):
+        models = []
+        bestEvidence = -np.inf
+        bestModel = None
+        for n in range(N):
+            models.append(Model(data,qAlpha))
+            m = models[-1]
+            for i in range(numIter):
+                m.sampleIteration()
+                m.anneal(i)
+            
+            le = m.modelEvidence()
+            debug("Model",n,"logEvidence:",le)
+            if le>bestEvidence:
+                bestEvidence = le
+                bestModel = m
+        self.model = bestModel
+
+    def best(self):
+        return self.model
+        
+    
 # In[3]:
 
 
@@ -265,38 +342,47 @@ B:  1
 C: Always first
 """
 
-cardinality = 2
-qAlpha = tuple((1e-5 for _ in range(cardinality)))
+# cardinality = 2
+# qAlpha = tuple((1e-5 for _ in range(cardinality)))
 
-data = [
-    [ "Q1", "A", 0 ],
-    [ "Q1", "B", 0 ],
-#    [ "Q1", "C", 0 ],
-#    [ "Q1", "D", 1 ],
-    [ "Q2", "A", 1 ],
-#    [ "Q2", "B", 1 ],
-#    [ "Q2", "C", 1 ],
-    [ "Q2", "D", 0 ],
-    [ "Q3", "A", 0 ],
-    [ "Q3", "B", 0 ],
-    [ "Q3", "C", 0 ],
-#    [ "Q3", "D", 1 ],
-#    [ "Q4", "A", 1 ],
-    [ "Q4", "B", 1 ],
-#    [ "Q4", "C", 1 ],
-    [ "Q4", "D", 0 ],
-]
+# data = [
+#     [ "Q1", "A", 0 ],
+#     [ "Q1", "B", 0 ],
+# #    [ "Q1", "C", 0 ],
+# #    [ "Q1", "D", 1 ],
+#     [ "Q2", "A", 1 ],
+# #    [ "Q2", "B", 1 ],
+# #    [ "Q2", "C", 1 ],
+#     [ "Q2", "D", 0 ],
+#     [ "Q3", "A", 0 ],
+#     [ "Q3", "B", 0 ],
+#     [ "Q3", "C", 0 ],
+# #    [ "Q3", "D", 1 ],
+# #    [ "Q4", "A", 1 ],
+#     [ "Q4", "B", 1 ],
+# #    [ "Q4", "C", 1 ],
+#     [ "Q4", "D", 0 ],
+# ]
 
 
-# In[17]:
+# # In[17]:
 
+
+t = .4
+card = 5
+apc = 6
 
 trust = {
-    "A":.7,
-    "B":.7,
-    "C":.7,
-    "D":.7,
-    "E":.7,
+    "A":t,
+    "B":t,
+    "C":t,
+    "D":t,
+    "E":t,
+    "F":t,
+    "G":t,
+    "H":t,
+    "I":t,
+    "J":t,
 }
 
 
@@ -324,59 +410,114 @@ def genData(numQuestions,card,trust,apc):
                     data[-1][2] = rng.integers(card)
                 
             
-    return data,gt, tuple((1.e-1 for _ in range(card)))
+    return data,gt, tuple((1.e-5 for _ in range(card)))
 
-data,gt,qAlpha = genData(100,2,trust,5)
-print(gt)
-for d in data:
-    print(d,gt[d[0]])
+data,gt,qAlpha = genData(200,card,trust,apc)
+# print(gt)
+# for d in data:
+#     print(d,gt[d[0]])
+
+def majority(data):
+    cnt = {}    
+    for x in data:
+        name = x[0]
+        v = x[2]
+
+        if name not in cnt:
+            cnt[name] = {}
+            
+        if v in cnt[name]:
+            cnt[name][v] += 1
+        else:
+            cnt[name][v] = 1
+
+    res = {}
+    for n,vals in cnt.items():
+        max = 0
+        maxv = 0
+        for v,c in vals.items():
+            if c>max:
+                max = c
+                maxv = v
+        res[n]=maxv
+    return res
+
+
+def eval(pred, gt):
+    good = 0
+    bad = 0
+    for n,v in pred.items():
+        if v == gt[n]:
+            good+=1
+        else:
+            bad +=1
+    return good,bad,good/(good+bad)
+
 
 
 # In[20]:
 np.set_printoptions(precision=2)
 
-names = set()
-qnames = set()
-for d in data:
-    names.add(d[1])
-    qnames.add(d[0])
 
-annotators = {name: Annotator(name,1.e-1,1.e-1) for name in names }
-questions = {name: Question(name,qAlpha) for name in qnames }
-debug(questions)
+print("Majority vote:",eval(majority(data),gt))
+sel = ModelSel(data,qAlpha,20,10)
+m = sel.best()
 
-annotations = []
+res = {}
+for n,q in m.questions.items():
+    res[n] = q.best()
+print("   -> Model:",eval(res,gt))
+    
 
-for d in data:
-    annotations.append(Annotation(annotators[d[1]], questions[d[0]], d[2]))
+    
 
-for n,a in annotators.items():
-    print(a)
+# names = set()
+# qnames = set()
+# for d in data:
+#     names.add(d[1])
+#     qnames.add(d[0])
 
-fig,axs = plt.subplots(4,4)
-for it in range(10):
-    info("Iteration",it)
-    for n,q in questions.items():
-        q.computePosterior()
-    for n,a in annotators.items():
-        a.computePosterior()
+# annotators = {name: Annotator(name,1e-0,1.e-1) for name in names }
+# questions = {name: Question(name,qAlpha) for name in qnames }
+# debug(questions)
+
+# annotations = []
+
+# for d in data:
+#     annotations.append(Annotation(annotators[d[1]], questions[d[0]], d[2]))
+
+# for n,a in annotators.items():
+#     print(a)
+
+# fig,axs = plt.subplots(4,4)
+# for it in range(20):
+#     # info("Iteration",it)
+#     for n,q in questions.items():
+#         q.computePosterior()
+#     for n,a in annotators.items():
+#         a.computePosterior()
 
 
-i=0
-for n,a in annotators.items():
-    a.plot(axs.flat[i])
-    i+=1
+# i=0
+# for n,a in annotators.items():
+#     a.plot(axs.flat[i])
+#     i+=1
 
-for n,q in questions.items():
-   if i==16:
-        break
-   q.plot(axs.flat[i])
-   i+=1        
+# for n,q in questions.items():
+#    if i==16:
+#         break
+#    q.plot(axs.flat[i])
+#    i+=1        
+# plt.show()
         
 
-plt.show()
+# print("Majority vote:",eval(majority(data),gt))
+# res = {}
+# for n,q in questions.items():
+#     res[n] = q.best()
+# print("Model:",eval(res,gt))
+   
+
+
 
 # %%
-
-for _,a in annotators.items():
-    print(a.posterior)
