@@ -265,7 +265,7 @@ class mcmc():
             p = np.mean([rng.dirichlet(alphas[i]) for i in range(keep_n_samples)], axis=0)
             q.model = p.argmax()
         
-    
+    @timeit
     def run(self, keep_n_samples, car, nQuestions, user, annotations, priors, nSamples):
 
         # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
@@ -273,8 +273,13 @@ class mcmc():
 
         # counter to keep track of how many samples are taken
         sample_cnt = 0
-
+        ts = time()
+        onceperrun = 1
         with Pool(ncpu) as p:
+            if onceperrun:
+                onceperrun = 0
+                te = time()
+                print(f'setting up pool took {te-ts} seconds')
             while self.iter < posteriorindices.__len__():
                 if self.iter % 10 == 0:
                     print("iteration: ", self.iter)
