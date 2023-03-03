@@ -17,14 +17,14 @@ priors = {'qAlpha':1.,
 nAnnot = 30
 nModels = 10
 
+ncpu = multiprocessing.cpu_count()
+
 if platform.system() == 'Windows': # for quick debug
-    ncpu = 16
     warmup = 3
     nSamples = 1
     sample_interval = 1
     keep_samples_list = [5]
 else:
-    ncpu = multiprocessing.cpu_count()
     warmup = 10
     nSamples = 5
     # keep a sample every sample_interval iterations
