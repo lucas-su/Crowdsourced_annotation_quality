@@ -1,7 +1,7 @@
 import pickle
 from settings import *
 import matplotlib.pyplot as plt
-
+import create_stats
 import pandas
 from matplotlib import cm
 import numpy as np
@@ -372,6 +372,7 @@ if __name__ == "__main__":
     #
     iterations = {'em':10,
                   'mcmc': 100}
+    create_stats.main()
 
 
 

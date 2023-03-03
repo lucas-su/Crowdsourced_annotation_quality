@@ -4,8 +4,8 @@ import platform
 car_list = [5]
 T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 dup_list = [5]
-p_fo_list = [0.0, 0.1]
-p_kg_list = [0.0, 0.1]
+p_fo_list = [0.0]
+p_kg_list = [0.0]
 p_kg_u_list = [0.0, 0.1]
 datasetsize_list = ['large'] #['small','medium','large']
 datasetsize = datasetsize_list[0]
@@ -26,10 +26,10 @@ if platform.system() == 'Windows': # for quick debug
     keep_samples_list = [5]
 else:
     warmup = 10
-    nSamples = 5
+    nSamples = 3
     # keep a sample every sample_interval iterations
     sample_interval = 2
     # n samples to keep
-    keep_samples_list = [10]
+    keep_samples_list = [5]
 
 

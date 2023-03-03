@@ -30,7 +30,7 @@ def process_alpha(data):
     alphas += [krippendorff.alpha(reliability_data=data.loc[np.eye(data.__len__())[x] != 1]) for x in range(data.__len__())]
     return alphas
 
-def queue_alpha_uerror_metrics(session_dir, session_folder, model):
+def queue_alpha_uerror_metrics(session_dir, session_folder, model, iterations, sessionlen, nQuestions):
     with Pool(32) as p:
         for car in car_list:
             for T_dist in T_dist_list:
@@ -135,7 +135,7 @@ def makeplaceholderframe(model, idx, datalen, cols):
     datalen = int(datalen)
     return pandas.DataFrame(np.concatenate((np.full((1,datalen), idx).T,np.full((1,datalen), model).T, np.zeros((datalen, cols.__len__()-2))), axis=1), columns=cols)
 
-if __name__ == "__main__":
+def main():
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
 
     session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}'
@@ -154,8 +154,6 @@ if __name__ == "__main__":
     sessionlen = {'em': em_sessions.__len__(),
                   'mcmc': mcmc_sessions.__len__()}
 
-    iterations = {'em':10,
-                  'mcmc': 100}
 
     # initialize dataset
     datalen = 2 * car_list.__len__() * T_dist_list.__len__() * dup_list.__len__() * p_fo_list.__len__() * p_kg_list.__len__() * p_kg_u_list.__len__()
@@ -166,9 +164,7 @@ if __name__ == "__main__":
             'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
     data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
     data.loc[:datalen/2,'model'] = "em"
-    data.loc[:datalen / 2, 'iterations'] = iterations['em']
     data.loc[datalen / 2:, 'model'] = "mcmc"
-    data.loc[datalen / 2:, 'iterations'] = iterations['mcmc']
     data.loc[:,'session'] = 'avg'
 
     if datasetsize == 'small':
@@ -193,7 +189,7 @@ if __name__ == "__main__":
             data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] = data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] + (np.array(em_data.loc[(em_data['size']==datasetsize),['pc_m', 'pc_n']]/em_sessions.__len__()))
             data = pandas.concat((data, makeplaceholderframe("em", em_idx, datalen/2, cols)), ignore_index=True)
             data.loc[(data['session']==f'{em_idx}')&(data['model']==f'em'), ['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m','pc_n']] = np.array(em_data.loc[(em_data['size']==datasetsize),['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m','pc_n']])
-            # queue_alpha_uerror_metrics(session_dir, session, 'em')
+            # queue_alpha_uerror_metrics(session_dir, session, 'em', iterations, sessionlen)
 
     if mcmc_sessions.__len__()>0:
 
@@ -212,7 +208,7 @@ if __name__ == "__main__":
             data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] =  data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] + np.array(mcmc_data.loc[(mcmc_data['size']==datasetsize), ['pc_m', 'pc_n']]/mcmc_sessions.__len__())
             data = pandas.concat((data, makeplaceholderframe("mcmc", mc_idx, datalen / 2, cols)), ignore_index=True)
             data.loc[(data['session'] == f'{mc_idx}') & (data['model'] == f'mcmc'), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(mcmc_data.loc[(mcmc_data['size']==datasetsize), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n']])
-            # queue_alpha_uerror_metrics(session_dir, session, 'mcmc')
+            # queue_alpha_uerror_metrics(session_dir, session, 'mcmc',iterations, sessionlen)
 
     for T_dist in T_dist_list:
         for model in ['em', 'mcmc']:
@@ -252,3 +248,6 @@ if __name__ == "__main__":
 
     with open(f'exports/data_{datasetsize}.pickle', 'wb') as file:
         pickle.dump(data, file)
+
+if __name__ == "__main__":
+    main()

@@ -248,7 +248,6 @@ class mcmc():
             logEvidenceA = a.logProb()
         return logEvidenceQ, logEvidenceA        
     
-    @timeit
     def process_pc_posterior(self):
 
         # average modelled trustworthiness over selected samples
@@ -357,10 +356,13 @@ class ModelSel:
             leQ, leA = m.modelEvidence()
             le = leQ + leA
             if le>bestEvidence:
+                print(f'new best evidence {le} is better than old evidence {bestEvidence}')
                 bestEvidence = le
                 bestModel = m
                 self.bestQ = leQ
                 self.bestA = leA
+            else:
+                print(f'old evidence {bestEvidence} is better than new evidence {le}')
         self.model = bestModel
 
     def best(self):
@@ -380,7 +382,7 @@ if __name__ == "__main__":
             mcmc_data = pickle.load(file)
     else:
         mcmc_data = pandas.DataFrame(
-            columns=['size', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n'])
+            columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n','CertaintyQ', 'CertaintyA'])
 
     for size in datasetsize_list: 
         for car in car_list:
@@ -410,22 +412,12 @@ if __name__ == "__main__":
                                     sel_model = ModelSel(keep_n_samples, car, nQuestions, user, annotations, priors, nModels,nSamples)
 
                                     # create mcmc_data dataframe
-                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, None, 0, 0]
-                                    # init mcmc object
-                                    mcmc_data.loc[(mcmc_data['size'].values == size) &
-                                                  (mcmc_data['iterations'].values == keep_n_samples) &
-                                                  (mcmc_data['car'].values == car) &
-                                                  (mcmc_data['mode'].values == T_dist) &
-                                                  (mcmc_data['dup'].values == dup) &
-                                                  (mcmc_data['p_fo'].values == p_fo) &
-                                                  (mcmc_data['p_kg'].values == p_kg) &
-                                                  (mcmc_data['p_kg_u'].values == p_kg_u), ['mcmc', 'pc_m', 'pc_n']] = [sel_model, sel_model.model.pc_m, sel_model.model.pc_n] 
+                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, sel_model, sel_model.model.pc_m, sel_model.model.pc_n, sel_model.bestQ, sel_model.bestA]
  
-
                                     # save data
-                                    with open(f'{session_dir}/output/mcmc_annotations_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{keep_n_samples}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_annotations_data_size-{size}_T_dist-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{keep_n_samples}.pickle', 'wb') as file:
                                         pickle.dump(annotations, file)
-                                    with open(f'{session_dir}/output/mcmc_user_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{keep_n_samples}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_user_data_size-{size}_T_dist-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{keep_n_samples}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
                                     with open(f'{session_dir}/output/mcmc_data_size-{size}{"_".join(T_dist_list)}.pickle', 'wb') as file:
                                         pickle.dump(mcmc_data, file)
