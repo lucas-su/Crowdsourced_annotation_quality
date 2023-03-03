@@ -8,8 +8,10 @@ p_kg_list = [0.0, 0.1]
 p_kg_u_list = [0.0, 0.1]
 datasetsize_list = ['large'] #['small','medium','large']
 datasetsize = datasetsize_list[0]
-priors = {'qAlpha':1,
-            'aAlpha':1,
+
+# priors should always be a float
+priors = {'qAlpha':1.,
+            'aAlpha':1.,
             'aBeta':0.5}
 nAnnot = 30
 nModels = 10

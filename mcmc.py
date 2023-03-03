@@ -76,7 +76,10 @@ class Question:
                     a *= s
                 #     debug(l, "t=",t,"s=",s,"a=",a)
                 # debug(" ==> a=",a/a.sum())
-                alpha += (a/a.sum())/nSamples
+                try:
+                    alpha += (a/a.sum())/nSamples 
+                except:
+                    print(f'type alpha: {type(alpha)} type addendum: {(a/a.sum())/nSamples }')
                     # alpha += t/nSamples * l.value1ofk + (1-t)/(nSamples*self.cardinality**2) * (1.-l.value1ofk)
             return alpha
          
@@ -243,12 +246,11 @@ class mcmc():
             a.anneal(n)
             
     def modelEvidence(self):
-        logEvidence = 0
         for _,q in self.questions.items():
-            logEvidence += q.logProb()
+            logEvidenceQ = q.logProb()
         for _,a in self.annotators.items():
-            logEvidence += a.logProb()
-        return logEvidence        
+            logEvidenceA = a.logProb()
+        return logEvidenceQ, logEvidenceA        
     
     @timeit
     def process_pc_posterior(self):
@@ -355,10 +357,13 @@ class ModelSel:
             m = models[-1]
             m.run(keep_n_samples, car, nQuestions, user, annotations, priors, nSamples)
             
-            le = m.modelEvidence()
+            leQ, leA = m.modelEvidence()
+            le = leQ + leA
             if le>bestEvidence:
                 bestEvidence = le
                 bestModel = m
+                self.bestQ = leQ
+                self.bestA = leA
         self.model = bestModel
 
     def best(self):
@@ -417,7 +422,7 @@ if __name__ == "__main__":
                                                   (mcmc_data['dup'].values == dup) &
                                                   (mcmc_data['p_fo'].values == p_fo) &
                                                   (mcmc_data['p_kg'].values == p_kg) &
-                                                  (mcmc_data['p_kg_u'].values == p_kg_u), ['mcmc', 'pc_m', 'pc_n']] = [sel_model, sel_model.model.pc_m, sel_model.model.pc_n]
+                                                  (mcmc_data['p_kg_u'].values == p_kg_u), ['mcmc', 'pc_m', 'pc_n']] = [sel_model, sel_model.model.pc_m, sel_model.model.pc_n] 
  
 
                                     # save data
