@@ -270,15 +270,15 @@ class mcmc():
         ts = time()
         # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
         posteriorindices = (warmup * [False])+[x % sample_interval == 0 for x in range(keep_n_samples*sample_interval)]
+        sample_cnt = 0
         te = time()
         print(f'start of run func took {te-ts} seconds')
         # counter to keep track of how many samples are taken
-        sample_cnt = 0
         ts = time()
-
         with Pool(ncpu) as p:
             te = time()
             print(f'setting up pool took {te-ts} seconds')
+            ts = time()
             while self.iter < posteriorindices.__len__():
                 if self.iter % 10 == 0:
                     print("iteration: ", self.iter)
@@ -330,7 +330,9 @@ class mcmc():
         
         self.pc_m = np.sum([q.model==q.GT for _,q in self.questions.items()])/nQuestions
         self.pc_n = np.sum([q.GT==maj_ans for (_,q), maj_ans in zip(self.questions.items(), majority(annotations, nQuestions, car))])/nQuestions
-        
+        te = time()
+        print(f'whole loop took {te-ts} seconds')
+
 def majority(annotations, nQuestions, car):
     maj_ans =[]
     for q in range(nQuestions):

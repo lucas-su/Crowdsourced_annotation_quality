@@ -1,3 +1,4 @@
+import multiprocessing
 import numpy as np
 import platform 
 car_list = [5]
@@ -23,7 +24,7 @@ if platform.system() == 'Windows': # for quick debug
     sample_interval = 1
     keep_samples_list = [5]
 else:
-    ncpu = 32
+    ncpu = multiprocessing.cpu_count()
     warmup = 10
     nSamples = 5
     # keep a sample every sample_interval iterations
@@ -31,6 +32,4 @@ else:
     # n samples to keep
     keep_samples_list = [20]
 
-import multiprocessing
 
-print(multiprocessing.cpu_count())
