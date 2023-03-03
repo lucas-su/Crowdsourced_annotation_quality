@@ -30,3 +30,7 @@ else:
     sample_interval = 2
     # n samples to keep
     keep_samples_list = [20]
+
+import multiprocessing
+
+print(multiprocessing.cpu_count())

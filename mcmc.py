@@ -267,19 +267,18 @@ class mcmc():
         
     @timeit
     def run(self, keep_n_samples, car, nQuestions, user, annotations, priors, nSamples):
-
+        ts = time()
         # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
         posteriorindices = (warmup * [False])+[x % sample_interval == 0 for x in range(keep_n_samples*sample_interval)]
-
+        te = time()
+        print(f'start of run func took {te-ts} seconds')
         # counter to keep track of how many samples are taken
         sample_cnt = 0
         ts = time()
-        onceperrun = 1
+
         with Pool(ncpu) as p:
-            if onceperrun:
-                onceperrun = 0
-                te = time()
-                print(f'setting up pool took {te-ts} seconds')
+            te = time()
+            print(f'setting up pool took {te-ts} seconds')
             while self.iter < posteriorindices.__len__():
                 if self.iter % 10 == 0:
                     print("iteration: ", self.iter)
