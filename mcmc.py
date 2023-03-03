@@ -366,24 +366,7 @@ class ModelSel:
     
 if __name__ == "__main__":
     
-    if platform.system() == 'Windows':
-        ncpu = 16
-    else:
-        ncpu = 32
-    ## settings
 
-    if platform.system() == 'Windows': # for quick debug
-        warmup = 3
-        nSamples = 1
-        sample_interval = 1
-        keep_samples_list = [5]
-    else:
-        warmup = 10
-        nSamples = 5
-        # keep a sample every sample_interval iterations
-        sample_interval = 3
-        # n samples to keep
-        keep_samples_list = [20]
 
     session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 

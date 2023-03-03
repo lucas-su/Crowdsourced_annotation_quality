@@ -1,4 +1,5 @@
 import numpy as np
+import platform 
 car_list = [5]
 T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 dup_list = [5]
@@ -12,3 +13,18 @@ priors = {'qAlpha':1,
             'aBeta':0.5}
 nAnnot = 30
 nModels = 10
+
+if platform.system() == 'Windows': # for quick debug
+    ncpu = 16
+    warmup = 3
+    nSamples = 1
+    sample_interval = 1
+    keep_samples_list = [5]
+else:
+    ncpu = 32
+    warmup = 10
+    nSamples = 5
+    # keep a sample every sample_interval iterations
+    sample_interval = 2
+    # n samples to keep
+    keep_samples_list = [20]
