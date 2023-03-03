@@ -126,9 +126,9 @@ class Annotator:
         self.id = id
         self.KG = True if type == 'KG' else False
         self.annotations = []
-        self.basePrior = (priors['aAlpha'],priors['aAlpha'])
-        self.prior = (priors['aAlpha'],priors['aAlpha'])
-        self.posterior = (priors['aAlpha'],priors['aAlpha'])
+        self.basePrior = np.array((priors['aAlpha'],priors['aAlpha']))
+        self.prior = np.array((priors['aAlpha'],priors['aAlpha']))
+        self.posterior = np.array((priors['aAlpha'],priors['aAlpha']))
         self.postsamples = []
     
     def addAnnotation(self, annot):
@@ -158,7 +158,7 @@ class Annotator:
                     # debug("trustworthiness ",self.name,a.question.name,"a=",a.value,"q=",v, "t=",t,"post=",post,alpha,beta)
                         
             # debug("Annotator posterior ",self.name,"a=",alpha,"b=",beta, "num of annot=",len(self.annotations))
-            return (alpha,beta)
+            return alpha,beta
         
     def sample(self):
         """Sample the annotator's trustworthiness"""
@@ -294,7 +294,7 @@ class mcmc():
                 if indices.__len__()>0:
                     results = p.map(partial(self.sampleAIteration, nSamples), indices)
                     for i, res in zip(indices, results):
-                        self.annotators[i].posterior = res
+                        self.annotators[i].posterior = np.array(res)
                     # no need to sample known good users: they are known good and therefore T = 1
                                 
                 # after the KG tn's, do the rest of the lhats
@@ -308,7 +308,7 @@ class mcmc():
                 indices = user.loc[(user['type'] != 'KG'), 'ID']
                 results = p.map(partial(self.sampleAIteration, nSamples), indices)
                 for i, res in zip(indices, results):
-                    self.annotators[i].posterior = res
+                    self.annotators[i].posterior = np.array(res)
                 
                 if posteriorindices[self.iter]:
                     for _, annotator in self.annotators.items():
