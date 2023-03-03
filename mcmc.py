@@ -282,7 +282,7 @@ class mcmc():
             while self.iter < posteriorindices.__len__():
                 if self.iter % 10 == 0:
                     print("iteration: ", self.iter)
-                print(f'T1: {te-ts}')
+                print(f'T1: {time()-ts}')
                 ## sample l_hat
                 # first only the KG's, as that primes the lhats for the other samples with the right bias
                 indices = annotations.loc[(annotations['KG']==True), 'ID']
@@ -300,7 +300,7 @@ class mcmc():
                     for i, res in zip(indices, results):
                         self.annotators[i].posterior = np.array(res)
                     # no need to sample known good users: they are known good and therefore T = 1
-                print(f'T2: {te-ts}')                                
+                print(f'T2: {time()-ts}')                                
                 # after the KG tn's, do the rest of the lhats
                 indices = annotations.loc[(annotations['KG'] == False), 'ID']
                 
@@ -313,7 +313,7 @@ class mcmc():
                 results = p.map(partial(self.sampleAIteration, nSamples), indices)
                 for i, res in zip(indices, results):
                     self.annotators[i].posterior = np.array(res)
-                print(f'T3: {te-ts}')
+                print(f'T: {time()-ts}')
                 if posteriorindices[self.iter]:
                     for _, annotator in self.annotators.items():
                         annotator.postsamples.append(annotator.posterior)
