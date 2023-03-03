@@ -15,7 +15,7 @@ priors = {'qAlpha':1.,
             'aAlpha':1.,
             'aBeta':0.5}
 nAnnot = 30
-nModels = 10
+nModels = 3
 
 ncpu = multiprocessing.cpu_count()
 
@@ -30,6 +30,6 @@ else:
     # keep a sample every sample_interval iterations
     sample_interval = 2
     # n samples to keep
-    keep_samples_list = [20]
+    keep_samples_list = [10]
 
 

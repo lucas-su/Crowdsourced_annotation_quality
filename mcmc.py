@@ -76,11 +76,7 @@ class Question:
                     a *= s
                 #     debug(l, "t=",t,"s=",s,"a=",a)
                 # debug(" ==> a=",a/a.sum())
-                try:
-                    alpha += (a/a.sum())/nSamples 
-                except:
-                    print(f'type alpha: {type(alpha)} type addendum: {(a/a.sum())/nSamples }')
-                    # alpha += t/nSamples * l.value1ofk + (1-t)/(nSamples*self.cardinality**2) * (1.-l.value1ofk)
+                alpha += (a/a.sum())/nSamples 
             return alpha
          
             
@@ -267,22 +263,17 @@ class mcmc():
         
     @timeit
     def run(self, keep_n_samples, car, nQuestions, user, annotations, priors, nSamples):
-        ts = time()
+        
         # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
         posteriorindices = (warmup * [False])+[x % sample_interval == 0 for x in range(keep_n_samples*sample_interval)]
         sample_cnt = 0
-        te = time()
-        print(f'start of run func took {te-ts} seconds')
+        
         # counter to keep track of how many samples are taken
-        ts = time()
+        
         with Pool(ncpu) as p:
-            te = time()
-            print(f'setting up pool took {te-ts} seconds')
-            ts = time()
+        
             while self.iter < posteriorindices.__len__():
-                if self.iter % 10 == 0:
-                    print("iteration: ", self.iter)
-                print(f'T1: {time()-ts}')
+        
                 ## sample l_hat
                 # first only the KG's, as that primes the lhats for the other samples with the right bias
                 indices = annotations.loc[(annotations['KG']==True), 'ID']
@@ -300,7 +291,7 @@ class mcmc():
                     for i, res in zip(indices, results):
                         self.annotators[i].posterior = np.array(res)
                     # no need to sample known good users: they are known good and therefore T = 1
-                print(f'T2: {time()-ts}')                                
+                
                 # after the KG tn's, do the rest of the lhats
                 indices = annotations.loc[(annotations['KG'] == False), 'ID']
                 
@@ -313,7 +304,7 @@ class mcmc():
                 results = p.map(partial(self.sampleAIteration, nSamples), indices)
                 for i, res in zip(indices, results):
                     self.annotators[i].posterior = np.array(res)
-                print(f'T: {time()-ts}')
+                
                 if posteriorindices[self.iter]:
                     for _, annotator in self.annotators.items():
                         annotator.postsamples.append(annotator.posterior)
@@ -331,7 +322,7 @@ class mcmc():
         self.pc_m = np.sum([q.model==q.GT for _,q in self.questions.items()])/nQuestions
         self.pc_n = np.sum([q.GT==maj_ans for (_,q), maj_ans in zip(self.questions.items(), majority(annotations, nQuestions, car))])/nQuestions
         te = time()
-        print(f'whole loop took {te-ts} seconds')
+        
 
 def majority(annotations, nQuestions, car):
     maj_ans =[]
