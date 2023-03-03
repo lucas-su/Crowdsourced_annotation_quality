@@ -410,8 +410,8 @@ if __name__ == "__main__":
     #               'medium': 200,
     #               'large': 400}
 
-    # sizes = ['small', 'medium', 'large']
-    sizes = ['medium']
+    
+    
 
 
 
@@ -425,7 +425,7 @@ if __name__ == "__main__":
     # data.loc[datalen / 2:, 'model'] = "mcmc"
     # data.loc[datalen / 2:, 'iterations'] = 40
 
-    with open(f'exports/data_{sizes[0]}.pickle', 'rb') as file:
+    with open(f'exports/data_{datasetsize_list[0]}.pickle', 'rb') as file:
         data = pickle.load(file)
     data['size'] = datasetsize
     data = data.loc[data['session']=='avg']

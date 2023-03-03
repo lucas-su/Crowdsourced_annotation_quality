@@ -167,9 +167,6 @@ class Annotator:
         a,b = self.basePrior
         self.prior = (a/(2**n),b/(2**n))
     
-    def logProb(self):
-        return np.log(self.posterior.max()/self.posterior.sum())
-    
     def __repr__(self):
         s = "Annotator(%s)" % self.name
         for a in self.annotations:
@@ -246,8 +243,6 @@ class mcmc():
         logEvidence = 0
         for _,q in self.questions.items():
             logEvidence += q.logProb()
-        for _,a in self.annotators.items():
-            logEvidence += a.logProb()
         return logEvidence        
     
     @timeit
@@ -364,6 +359,7 @@ class ModelSel:
     def best(self):
         return self.model
     
+
 if __name__ == "__main__":
     
     if platform.system() == 'Windows':

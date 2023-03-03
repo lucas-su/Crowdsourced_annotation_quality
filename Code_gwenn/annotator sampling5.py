@@ -375,7 +375,7 @@ apc = 6
 trust = {
     "A":t,
     "B":t,
-    "C":t,
+    "C":,
     "D":t,
     "E":t,
     "F":t,
@@ -519,5 +519,8 @@ print("   -> Model:",eval(res,gt))
    
 
 
+
+# %%
+print(data)
 
 # %%
