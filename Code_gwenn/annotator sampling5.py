@@ -368,14 +368,14 @@ C: Always first
 # # In[17]:
 
 
-t = .4
+t = .8
 card = 5
 apc = 6
 
 trust = {
     "A":t,
     "B":t,
-    "C":,
+    "C":t,
     "D":t,
     "E":t,
     "F":t,

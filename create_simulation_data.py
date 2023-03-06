@@ -52,7 +52,7 @@ class dist():
         cum = np.zeros(self.x.__len__())
         for dist in self.param:
             func = eval(f'self.{dist[0]}') # eval to determine which distribution to take. Options: gamma beta gaussian uniform
-            if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform', 'single']:
+            if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform', 'single', 'T_else']:
                 raise NotImplementedError
             cum += func(*dist[1:])
 
@@ -77,6 +77,16 @@ class dist():
 
     def uniform(self):
         return self.x * (max(self.x) / self.x.__len__())
+    
+    def T_else(self, prop):
+        probs = np.zeros(self.x.shape[0])
+        prop = float(prop)
+        if float(prop) == 1.:
+            probs[-1] = 1
+        else:
+            probs[int(float(0.0) * self.x.shape[0])] = 1-prop
+            probs[-1] = prop
+        return probs
 
     def plot(self):
         fig, ax = plt.subplots(2,1)
@@ -109,7 +119,10 @@ def detType(nAnnot, p_fo, p_KG_u):
 def createData(path, car, T_dist, dups, p_fos, p_KG_us, ncpu, size):
     nAnnot = settings.nAnnot
 
-    if size == 'small':
+    if size == 'debug':
+        nQuestions = nAnnot
+
+    elif size == 'small':
         nQuestions = nAnnot*3
     elif size == 'medium':
         nQuestions = nAnnot*6
@@ -125,32 +138,14 @@ def createData(path, car, T_dist, dups, p_fos, p_KG_us, ncpu, size):
     elif T_dist == 'gaussian50_50':
         param = [["gaussian",2,1],["gaussian",8,1]]
         distribution = dist(param, x)
-    elif T_dist == "single0":
-        param = [['single', 0]]
-        distribution = dist(param, x)
-    elif T_dist == "single1":
-        param = [['single', 1]]
-        distribution = dist(param, x)
     elif T_dist[:6] == 'single':
         param = [['single', T_dist[6:]]]
         distribution = dist(param, x)
-    elif T_dist == "beta3_2":
-        param = [['beta', 3,2]]
+    elif T_dist[:4] == "beta":
+        param = [['beta', float(T_dist[4:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:])]]
         distribution = dist(param, x)
-    elif T_dist == "beta4_2":
-        param = [['beta', 4, 2]]
-        distribution = dist(param, x)
-    elif T_dist == "beta2_4":
-        param = [['beta', 2, 4]]
-        distribution = dist(param, x)
-    elif T_dist == "beta1_3":
-        param = [['beta', 1, 3]]
-        distribution = dist(param, x)
-    elif T_dist == "beta3_1":
-        param = [['beta', 3, 1]]
-        distribution = dist(param, x)
-    elif T_dist == "beta2_2":
-        param = [['beta', 2, 2]]
+    elif T_dist[:6] == 'T_else':
+        param = [['T_else', T_dist[6:]]]
         distribution = dist(param, x)
     else:
         raise ValueError

@@ -28,6 +28,11 @@ def timeit(f):
         return result
     return wrap
 
+def debug_print(*args):
+    if debug:
+        print(f'Debug:', *args)
+
+
 class Question:
     """
     We take into account:
@@ -39,10 +44,10 @@ class Question:
     """
     def __init__(self, id, KG, GT, car, difficulty=None):
         self.id = id        
-        self.prior = np.array([priors['aAlpha'] for _ in range(car)])
+        self.prior = np.array([priors['qAlpha'] for _ in range(car)])
          
-        self.posterior = np.array([priors['aAlpha'] for _ in range(car)])
-        self.basePrior = np.array([priors['aAlpha'] for _ in range(car)])
+        self.posterior = np.array([priors['qAlpha'] for _ in range(car)])
+        self.basePrior = np.array([priors['qAlpha'] for _ in range(car)])
         self.cardinality = len(self.prior)
         self.KG = KG
         self.GT = GT
@@ -64,6 +69,7 @@ class Question:
             return np.eye(self.cardinality)[self.GT]
         else:
             alpha = np.array(self.prior)
+            debug_print(f'sample question self.post: {self.posterior}')
             for i in range(nSamples):
                 a = np.ones(alpha.shape)
                 for l in self.annotations:
@@ -78,16 +84,11 @@ class Question:
                 # debug(" ==> a=",a/a.sum())
                 alpha += (a/a.sum())/nSamples 
             return alpha
-         
-            
             
     def sample(self):
         """Sample the ground-truth value of this question"""
-                    
-#        self.value = np.array(self.prior)
         p = rng.dirichlet(self.posterior)
         return p
-#        return rng.multinomial(1,p)
 
     def best(self):
         return self.posterior.argmax()
@@ -118,13 +119,14 @@ class Annotator:
     """
     How trustworthy is an annotator
     """
-    def __init__(self, id, type):
+    def __init__(self, id, type, T_given):
         self.id = id
+        self.T = T_given
         self.KG = True if type == 'KG' else False
         self.annotations = []
-        self.basePrior = np.array((priors['aAlpha'],priors['aAlpha']))
-        self.prior = np.array((priors['aAlpha'],priors['aAlpha']))
-        self.posterior = np.array((priors['aAlpha'],priors['aAlpha']))
+        self.basePrior = np.array((priors['aAlpha'],priors['aBeta']))
+        self.prior = np.array((priors['aAlpha'],priors['aBeta']))
+        self.posterior = np.array((priors['aAlpha'],priors['aBeta']))
         self.postsamples = []
     
     def addAnnotation(self, annot):
@@ -136,9 +138,11 @@ class Annotator:
         else:
             alpha,beta = self.prior
             for a in self.annotations:
+                debug_print(f'sample annot self.post: {self.posterior}')
                 for _ in range(nSamples):
                     v = a.question.sample()
                     t = self.sample() # of current posterior
+                    
                     if (t<1e-10):
                         t = 1e-10
                     if t > 1.-1e-10:
@@ -219,7 +223,7 @@ class mcmc():
         self.cm = car-1                       # -1 because there's one good answer and the rest is wrong
         self.iter = 0
 
-        self.annotators = {id: Annotator(id, type) for id, type in zip(user.ID, user.type)}
+        self.annotators = {id: Annotator(id, type, T_given) for id, type, T_given in zip(user.ID, user.type, user.T_given)}
         self.questions = {qid: Question(qid, KG, GT, car) for qid, KG, GT in zip(annotations.ID, annotations.KG, annotations.GT)}
 
         self.annotations = []
@@ -252,6 +256,7 @@ class mcmc():
 
         # average modelled trustworthiness over selected samples
         for _, u in self.annotators.items():
+            # u.T = np.mean(u.postsamples, axis=0).max()
             u.T = rng.beta(*np.mean(u.postsamples, axis=0),1)
 
         for _,q in self.questions.items():
@@ -260,7 +265,7 @@ class mcmc():
             p = np.mean([rng.dirichlet(alphas[i]) for i in range(keep_n_samples)], axis=0)
             q.model = p.argmax()
         
-    @timeit
+    # @timeit
     def run(self, keep_n_samples, car, nQuestions, user, annotations, priors, nSamples):
         
         # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
@@ -280,7 +285,9 @@ class mcmc():
                     
                     results = p.map(partial(self.sampleQIteration, nSamples), indices)
                     for i, res in zip(indices, results):
-                        self.annotations[i].posterior = res
+                        debug_print(f'Question posterior KG after sampling:{res}')
+                        self.questions[i].posterior = res
+                        
 
                 ## sample tn
                 # first do the KG users
@@ -288,6 +295,7 @@ class mcmc():
                 if indices.__len__()>0:
                     results = p.map(partial(self.sampleAIteration, nSamples), indices)
                     for i, res in zip(indices, results):
+                        debug_print(f'Annot posterior KG: {res}')
                         self.annotators[i].posterior = np.array(res)
                     # no need to sample known good users: they are known good and therefore T = 1
                 
@@ -296,12 +304,15 @@ class mcmc():
                 
                 results = p.map(partial(self.sampleQIteration, nSamples), indices)
                 for i, res in zip(indices, results):
-                    self.annotations[i].posterior = res
+                    debug_print(f'Question posterior normal:{res}')
+                    self.questions[i].posterior = res
+                    
                 
                 # finally the rest of tn's 
                 indices = user.loc[(user['type'] != 'KG'), 'ID']
                 results = p.map(partial(self.sampleAIteration, nSamples), indices)
                 for i, res in zip(indices, results):
+                    debug_print(f'Annot posterior normal: {res}')
                     self.annotators[i].posterior = np.array(res)
                 
                 if posteriorindices[self.iter]:
@@ -320,7 +331,9 @@ class mcmc():
         
         self.pc_m = np.sum([q.model==q.GT for _,q in self.questions.items()])/nQuestions
         self.pc_n = np.sum([q.GT==maj_ans for (_,q), maj_ans in zip(self.questions.items(), majority(annotations, nQuestions, car))])/nQuestions
-        te = time()
+        
+        
+        
         
 
 def majority(annotations, nQuestions, car):
@@ -348,7 +361,8 @@ class ModelSel:
         models = []
         bestEvidence = -np.inf
         bestModel = None
-        for n in range(nModels):
+        n =0
+        while n < nModels:
             models.append(mcmc(car, annotations, user))
             m = models[-1]
             m.run(keep_n_samples, car, nQuestions, user, annotations, priors, nSamples)
@@ -356,13 +370,20 @@ class ModelSel:
             leQ, leA = m.modelEvidence()
             le = leQ + leA
             if le>bestEvidence:
-                print(f'new best evidence {le} is better than old evidence {bestEvidence}')
+                print(f'new best evidence {np.exp(le)} is better than old evidence {np.exp(bestEvidence)}')
                 bestEvidence = le
                 bestModel = m
                 self.bestQ = leQ
                 self.bestA = leA
             else:
-                print(f'old evidence {bestEvidence} is better than new evidence {le}')
+                pass
+                # print(f'old evidence {bestEvidence} is better than new evidence {le}')
+            if np.exp(self.bestQ)<1/car:
+                print(f'Evidence low: lhat -> {np.exp(self.bestQ)}\\ tn -> {np.exp(self.bestA)}')
+                continue
+            else:
+                n+=1
+
         self.model = bestModel
 
     def best(self):
@@ -370,12 +391,10 @@ class ModelSel:
     
 if __name__ == "__main__":
     
-
-
     session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
-
+ 
     resume_mode = False
     if resume_mode:
         with open(f'sessions/mcmc_data_{"_".join(T_dist_list)}.pickle', 'rb') as file:
@@ -410,6 +429,10 @@ if __name__ == "__main__":
                                     nQuestions = annotations.__len__()
 
                                     sel_model = ModelSel(keep_n_samples, car, nQuestions, user, annotations, priors, nModels,nSamples)
+                                    t_diff = np.mean([abs(rng.beta(*a.posterior)-a.T) for _,a in sel_model.model.annotators.items()])
+                                    print(f'pc_m: {sel_model.model.pc_m}, pc_n: {sel_model.model.pc_n}, t_diff: {t_diff}')
+                                    
+                                        
 
                                     # create mcmc_data dataframe
                                     mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, sel_model, sel_model.model.pc_m, sel_model.model.pc_n, sel_model.bestQ, sel_model.bestA]

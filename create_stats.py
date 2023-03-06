@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from em import EM
-from mcmc import mcmc
+from mcmc import *
 def timeit(func):
     """
     Decorator for measuring function's running time.
@@ -43,14 +43,14 @@ def queue_alpha_uerror_metrics(session_dir, session_folder, model, iterations, s
                             data.loc[(data['session'].values == 'avg') &
                                      (data['model'].values == model) &
                                      (data['car'].values == car) &
-                                     (data['mode'].values == T_dist) &
+                                     (data['T_dist'].values == T_dist) &
                                      (data['dup'].values == dup) &
                                      (data['p_fo'].values == p_fo) &
                                      (data['p_kg'].values == p_kg), 'uerror'] += result.get()
                             if min(data.loc[(data['session'].values == 'avg') &
                                             (data['model'].values == model) &
                                              (data['car'].values == car) &
-                                             (data['mode'].values == T_dist) &
+                                             (data['T_dist'].values == T_dist) &
                                              (data['dup'].values == dup) &
                                              (data['p_fo'].values == p_fo) &
                                              (data['p_kg'].values == p_kg), 'n_annot_aftr_prun']) == 0:
@@ -58,7 +58,7 @@ def queue_alpha_uerror_metrics(session_dir, session_folder, model, iterations, s
                                 data.loc[(data['session'].values == 'avg') &
                                          (data['model'].values == model) &
                                          (data['car'].values == car) &
-                                         (data['mode'].values == T_dist) &
+                                         (data['T_dist'].values == T_dist) &
                                          (data['dup'].values == dup) &
                                          (data['p_fo'].values == p_fo) &
                                          (data['p_kg'].values == p_kg), ['alpha_bfr_prun',
@@ -69,7 +69,7 @@ def queue_alpha_uerror_metrics(session_dir, session_folder, model, iterations, s
                                                                          'pc_aftr_prun_total']] = result
 
 def alpha_uerror_metrics(session_dir, session_folder, model, car, T_dist, dup, p_fo, p_kg, iterations, sessionlen, size, p_kg_u):
-    with open(f'{session_dir}/{session_folder}/output/{model}_user_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+    with open(f'{session_dir}/{session_folder}/output/{model}_user_data_size-{size}_T_dist-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_user = pickle.load(file)
     # error for normal users: modelled T - GT
     u_norm_error = sum(abs(tmp_user.loc[(tmp_user['type']=='normal'), 'T_model']-tmp_user.loc[(tmp_user['type']=='normal'), 'T_given']))
@@ -159,8 +159,8 @@ def main():
     datalen = 2 * car_list.__len__() * T_dist_list.__len__() * dup_list.__len__() * p_fo_list.__len__() * p_kg_list.__len__() * p_kg_u_list.__len__()
 
     # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
-    cols = ['session', 'model', 'iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m',
-            'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
+    cols = ['session', 'model', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 
+            'CertaintyQ', 'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
             'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
     data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
     data.loc[:datalen/2,'model'] = "em"
@@ -168,18 +168,19 @@ def main():
     data.loc[:,'session'] = 'avg'
 
     if datasetsize == 'small':
-        nQuestions = 10
+        nQuestions = nAnnot*3
     elif datasetsize == 'medium':
-        nQuestions = 200
+        nQuestions = nAnnot*6
     else:
-        nQuestions = 400
+        nQuestions = nAnnot*15
+
 
     if em_sessions.__len__()>0:
 
         # init correct variable values in combined dataframe
         with open(f'{session_dir}/{em_sessions[0]}/output/em_data_size-{datasetsize}{"_".join(T_dist_list)}.pickle', 'rb') as file:
             tmp_data = pickle.load(file)
-        data.loc[(data['model']=='em')&(data['session']=='avg'),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==datasetsize),['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
+        data.loc[(data['model']=='em')&(data['session']=='avg'),['car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size']==datasetsize),['car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
         # fill frame with EM values
         for em_idx, session in enumerate(em_sessions):
@@ -188,7 +189,7 @@ def main():
                 em_data = pickle.load(file)
             data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] = data.loc[(data['model']=='em')&(data['session']=='avg'),['pc_m', 'pc_n']] + (np.array(em_data.loc[(em_data['size']==datasetsize),['pc_m', 'pc_n']]/em_sessions.__len__()))
             data = pandas.concat((data, makeplaceholderframe("em", em_idx, datalen/2, cols)), ignore_index=True)
-            data.loc[(data['session']==f'{em_idx}')&(data['model']==f'em'), ['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m','pc_n']] = np.array(em_data.loc[(em_data['size']==datasetsize),['iterations','car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m','pc_n']])
+            data.loc[(data['session']==f'{em_idx}')&(data['model']==f'em'), ['iterations','car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m','pc_n']] = np.array(em_data.loc[(em_data['size']==datasetsize),['iterations','car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'EM', 'pc_m','pc_n']])
             # queue_alpha_uerror_metrics(session_dir, session, 'em', iterations, sessionlen)
 
     if mcmc_sessions.__len__()>0:
@@ -197,17 +198,17 @@ def main():
         with open(f'{session_dir}/{mcmc_sessions[0]}/output/mcmc_data_size-{datasetsize}{"_".join(T_dist_list)}.pickle',
                 'rb') as file:
             tmp_data = pickle.load(file)
-        data.loc[(data['model'] == 'mcmc') & (data['session'] == 'avg'), ['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(
-            tmp_data.loc[(tmp_data['size'] == datasetsize), ['car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
+        data.loc[(data['model'] == 'mcmc') & (data['session'] == 'avg'), ['car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u']] = np.array(
+            tmp_data.loc[(tmp_data['size'] == datasetsize), ['car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u']])
 
         # fill frame with MCMC values
         for mc_idx, session in enumerate(mcmc_sessions):
             mcmc_filepath = f'{session_dir}/{session}/output/mcmc_data_size-{datasetsize}{"_".join(T_dist_list)}.pickle'
             with open(mcmc_filepath, 'rb') as file:
                 mcmc_data = pickle.load(file)
-            data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] =  data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n']] + np.array(mcmc_data.loc[(mcmc_data['size']==datasetsize), ['pc_m', 'pc_n']]/mcmc_sessions.__len__())
+            data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n','CertaintyQ', 'CertaintyA']] =  data.loc[(data['model'] == 'mcmc')&(data['session']=='avg'), ['pc_m', 'pc_n','CertaintyQ', 'CertaintyA']] + np.array(mcmc_data.loc[(mcmc_data['size']==datasetsize), ['pc_m', 'pc_n','CertaintyQ', 'CertaintyA']]/mcmc_sessions.__len__())
             data = pandas.concat((data, makeplaceholderframe("mcmc", mc_idx, datalen / 2, cols)), ignore_index=True)
-            data.loc[(data['session'] == f'{mc_idx}') & (data['model'] == f'mcmc'), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(mcmc_data.loc[(mcmc_data['size']==datasetsize), ['iterations', 'car', 'mode', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n']])
+            data.loc[(data['session'] == f'{mc_idx}') & (data['model'] == f'mcmc'), ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(mcmc_data.loc[(mcmc_data['size']==datasetsize), ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n']])
             # queue_alpha_uerror_metrics(session_dir, session, 'mcmc',iterations, sessionlen)
 
     for T_dist in T_dist_list:
@@ -222,7 +223,7 @@ def main():
                                     dat = data.loc[(data['session'] != 'avg') &
                                                 (data['model'] == model) &
                                                 (data['car'] == car) &
-                                                (data['mode'] == T_dist) &
+                                                (data['T_dist'] == T_dist) &
                                                 (data['dup'] == dup) &
                                                 (data['p_fo'] == p_fo) &
                                                 (data['p_kg'] == p_kg) &
@@ -231,7 +232,7 @@ def main():
                                     data.loc[(data['session'] == 'avg') &
                                             (data['model'] == model) &
                                             (data['car'] == car) &
-                                            (data['mode'] == T_dist) &
+                                            (data['T_dist'] == T_dist) &
                                             (data['dup'] == dup) &
                                             (data['p_fo'] == p_fo) &
                                             (data['p_kg'] == p_kg) &
@@ -240,7 +241,7 @@ def main():
                                     data.loc[(data['session'] == 'avg') &
                                             (data['model'] == model) &
                                             (data['car'] == car) &
-                                            (data['mode'] == T_dist) &
+                                            (data['T_dist'] == T_dist) &
                                             (data['dup'] == dup) &
                                             (data['p_fo'] == p_fo) &
                                             (data['p_kg'] == p_kg) &
