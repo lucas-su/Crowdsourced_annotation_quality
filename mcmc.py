@@ -64,11 +64,11 @@ class Question:
     def computePosterior(self, nSamples):
         if self.KG:
             # This is a special question, the ground-truth answer is known. Don't sample
-            return np.eye(self.cardinality)[self.GT]
+            return np.eye(self.cardinality)[self.GT]+np.spacing(0)
         elif np.any([annotation.annotator.KG for annotation in self.annotations]):
             # is we know at least one of the annotators is good, we don't need to sample
             # this should really be: if we have a KG, take the answer from the person, but this is the same as taking GT
-            return np.eye(self.cardinality)[self.GT]
+            return np.eye(self.cardinality)[self.GT]+np.spacing(0)
         else:
             alpha = np.array(self.prior)
             debug_print(f'sample question self.post: {self.posterior}')
@@ -148,7 +148,7 @@ class Annotator:
 
     def computePosterior(self, nSamples):
         if self.KG:
-            return (1,np.spacing(0))
+            return (10,np.spacing(0))
         else:
             alpha,beta = self.prior
             for a in self.annotations:
@@ -190,7 +190,7 @@ class Annotator:
         return np.log(self.posterior.max()/self.posterior.sum())
     
     def __repr__(self):
-        s = "Annotator(%s)" % self.name
+        s = "Annotator(%s)" % self.id
         for a in self.annotations:
             s += "\n    -> %s" % a.__repr__()
         return s
@@ -201,7 +201,7 @@ class Annotator:
         a,b = self.posterior
         y = beta.pdf(x,a,b)
         ax.plot(x,y)
-        ax.set_title("Trust %s" % (self.name))
+        ax.set_title("Trust %s" % (self.id))
         
 
 class Annotation:
@@ -391,7 +391,7 @@ class ModelSel:
                 self.bestQ = leQ
                 self.bestA = leA
 
-            if np.exp(self.bestQ)<0.6:
+            if np.exp(self.bestQ)<0.5:
                 
                 print(f'Evidence low: lhat -> {np.exp(self.bestQ)} tn -> {np.exp(self.bestA)}')
                 print(f'previous pc_m was: {m.pc_m}')
@@ -451,8 +451,8 @@ if __name__ == "__main__":
                                     # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
                                     confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])
                                     confindices = np.where(confs<0.5)
-                                    if confindices.__len__()>0:
-                                        print(f'Questions {confindices} need extra attention: confidences are: {[confs[i] for i in confindices]}')
+                                    if confindices[0].__len__()>0:
+                                        print(f'Questions {confindices[0]} need extra attention: confidences are: {[confs[i] for i in confindices[0]]}')
                                     else:
                                         print('No further answering needed')
 

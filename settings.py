@@ -12,7 +12,7 @@ debug = False
 dup_list = [5]
 p_fo_list = [0.0]
 p_kg_list = [0.0]
-p_kg_u_list = [0.0]
+p_kg_u_list = [0.1]
 if debug:
     datasetsize_list = ['debug'] 
 else:
@@ -23,8 +23,8 @@ datasetsize = datasetsize_list[0]
 
     # priors should always be a float
 priors = {'qAlpha':.1,
-            'aAlpha':5.,
-            'aBeta':0.05}
+            'aAlpha':15.,
+            'aBeta':0.15}
 
 # average number of annotations per annotator can? determine anneal starting prior. temperature decay (or n iterations) should be set accordingly 
 # if size == 'small':
