@@ -12,28 +12,32 @@ debug = False
 dup_list = [5]
 p_fo_list = [0.0]
 p_kg_list = [0.0]
-p_kg_u_list = [0.1]
+p_kg_u_list = [0.0]
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['large'] #['small','medium','large']
+    datasetsize_list = ['medium'] #['small','medium','large']
 datasetsize = datasetsize_list[0]
 
 # sampling parameters
 
     # priors should always be a float
-priors = {'qAlpha':.1,
-            'aAlpha':15.,
-            'aBeta':0.15}
+priors = {'qAlpha':.1}
+            # 'aAlpha':15.,
+            # 'aBeta':0.15}
 
-# average number of annotations per annotator can? determine anneal starting prior. temperature decay (or n iterations) should be set accordingly 
-# if size == 'small':
-#     priors['anneal'] = 3.
-# elif size == 'medium':
-#     priors['anneal'] = 6.
-# else:
-#     priors['anneal'] = 15.
-
+# average number of annotations per annotator can(?) determine alpha and beta prior. (nQuestions-1, (nQuestions-1)/100) seems to work well
+if datasetsize == 'small':
+    priors['aAlpha'] = 3.
+    priors['aBeta'] = .002
+elif datasetsize == 'medium':
+    priors['aAlpha'] = 5.
+    priors['aBeta'] = .05
+elif datasetsize == 'large':
+    priors['aAlpha'] = 5.
+    priors['aBeta'] = .1
+else:
+    raise ValueError
 
 for pr in priors.values():
     assert type(pr) == float
