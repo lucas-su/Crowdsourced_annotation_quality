@@ -51,7 +51,9 @@ class Question:
         self.cardinality = len(self.prior)
         self.KG = KG
         self.GT = GT
-            
+        self.C = 1 # 'temperature' of annealing 
+        # self.annealdist = np.array([priors['anneal'] for _ in range(car)])
+        self.car = car
         self.diff = difficulty
         self.annotations = []        # Keep track of the labels that were made for this question
         self.postsamples = []
@@ -71,33 +73,42 @@ class Question:
             alpha = np.array(self.prior)
             debug_print(f'sample question self.post: {self.posterior}')
             for i in range(nSamples):
-                a = np.ones(alpha.shape)
+                # a = np.ones(alpha.shape)
+                a = np.zeros(alpha.shape)
                 for l in self.annotations:
                     t = l.annotator.sample()# sample trust
                     if (t<1e-10):
                         t = 1e-10
                     if (1-t) < 1e-10:
                         t = 1.-1e-10
-                    s = t * l.value1ofk + (1-t)/(self.cardinality-1) * (1.-l.value1ofk)
-                    a *= s
+                    s = t * l.value1ofk + ((1 - t) / (self.cardinality - 1)) * (1. - l.value1ofk)
+                    a += np.log(s)
+                    # a *= s
                 #     debug(l, "t=",t,"s=",s,"a=",a)
                 # debug(" ==> a=",a/a.sum())
-                alpha += (a/a.sum())/nSamples 
+                alpha += ((np.exp(a)/np.exp(a).sum())/nSamples)
+                # alpha += ((a / a.sum()) / nSamples)
             return alpha
             
     def sample(self):
         """Sample the ground-truth value of this question"""
-        p = rng.dirichlet(self.posterior)
-        return p
+        if rng.uniform()<self.C:
+            p = rng.uniform(size=self.car)
+            return p/p.sum()
+        else:
+            return rng.dirichlet(self.posterior)
 
     def best(self):
         return self.posterior.argmax()
 
     def logProb(self):
+        debug_print("logprob q: ", self.posterior)
         return np.log(self.posterior.max()/self.posterior.sum())
 
     def anneal(self,n):
-        self.prior = self.prior / (2. ** n)
+        # self.prior = ((0.9*self.prior) / (2. ** n))+0.1*self.prior\
+        self.C /= 2**n
+        # print(self.annealdist*self.C)
     
     def __repr__(self):
         if self.gt:
@@ -119,7 +130,7 @@ class Annotator:
     """
     How trustworthy is an annotator
     """
-    def __init__(self, id, type, T_given):
+    def __init__(self, id, type, T_given, car):
         self.id = id
         self.T = T_given
         self.KG = True if type == 'KG' else False
@@ -128,6 +139,9 @@ class Annotator:
         self.prior = np.array((priors['aAlpha'],priors['aBeta']))
         self.posterior = np.array((priors['aAlpha'],priors['aBeta']))
         self.postsamples = []
+        self.C = 1
+        self.car = car
+        # self.annealdist = np.array(priors['anneal'])
     
     def addAnnotation(self, annot):
         self.annotations.append(annot)
@@ -152,8 +166,8 @@ class Annotator:
                     neg = chance
                     post = pos/(pos+neg)
                     # debug(a,v,"pos=%0.2g,neg=%0.2g" % (pos,neg))
-                    alpha += (post)/nSamples                    
-                    beta += (1.-post)/nSamples
+                    alpha += (post)/nSamples
+                    beta += ((1.-post))/nSamples
 
                     # debug("trustworthiness ",self.name,a.question.name,"a=",a.value,"q=",v, "t=",t,"post=",post,alpha,beta)
                         
@@ -162,13 +176,15 @@ class Annotator:
         
     def sample(self):
         """Sample the annotator's trustworthiness"""
-        
-        a,b = self.posterior
-        return rng.beta(a,b)
+        if rng.uniform()< self.C:
+            return rng.uniform()
+        else:
+            a,b = self.posterior
+            return rng.beta(a,b)
 
     def anneal(self,n):
-        a,b = self.basePrior
-        self.prior = (a/(2**n),b/(2**n))
+        self.C /= 1.5**n
+
     
     def logProb(self):
         return np.log(self.posterior.max()/self.posterior.sum())
@@ -223,18 +239,18 @@ class mcmc():
         self.cm = car-1                       # -1 because there's one good answer and the rest is wrong
         self.iter = 0
 
-        self.annotators = {id: Annotator(id, type, T_given) for id, type, T_given in zip(user.ID, user.type, user.T_given)}
+        self.annotators = {id: Annotator(id, type, T_given, car) for id, type, T_given in zip(user.ID, user.type, user.T_given)}
         self.questions = {qid: Question(qid, KG, GT, car) for qid, KG, GT in zip(annotations.ID, annotations.KG, annotations.GT)}
 
         self.annotations = []
 
         for row in annotations.iterrows():
-            for i in range(car):
+            for i in range(dup):
                 self.annotations.append(Annotation(self.annotators[row[1][f'id_{i}']], self.questions[row[0]], row[1][f'annot_{i}']))
     
     def sampleQIteration(self,nSamples, i):
-        return self.questions[i].computePosterior(nSamples)
-        
+        posts = self.questions[i].computePosterior(nSamples)
+        return posts
     
     def sampleAIteration(self,nSamples, i):
         return self.annotators[i].computePosterior(nSamples)
@@ -286,7 +302,7 @@ class mcmc():
                     results = p.map(partial(self.sampleQIteration, nSamples), indices)
                     for i, res in zip(indices, results):
                         debug_print(f'Question posterior KG after sampling:{res}')
-                        self.questions[i].posterior = res
+                        self.questions[i].posterior = np.array(res)
                         
 
                 ## sample tn
@@ -305,7 +321,7 @@ class mcmc():
                 results = p.map(partial(self.sampleQIteration, nSamples), indices)
                 for i, res in zip(indices, results):
                     debug_print(f'Question posterior normal:{res}')
-                    self.questions[i].posterior = res
+                    self.questions[i].posterior = np.array(res)
                     
                 
                 # finally the rest of tn's 
@@ -323,8 +339,9 @@ class mcmc():
 
                     sample_cnt += 1
                 self.iter += 1
-                self.anneal(0.5*self.iter)
-            
+                self.anneal(self.iter)
+
+             
         assert(sample_cnt == keep_n_samples)
 
         self.process_pc_posterior()
@@ -332,9 +349,7 @@ class mcmc():
         self.pc_m = np.sum([q.model==q.GT for _,q in self.questions.items()])/nQuestions
         self.pc_n = np.sum([q.GT==maj_ans for (_,q), maj_ans in zip(self.questions.items(), majority(annotations, nQuestions, car))])/nQuestions
         
-        
-        
-        
+
 
 def majority(annotations, nQuestions, car):
     maj_ans =[]
@@ -375,14 +390,18 @@ class ModelSel:
                 bestModel = m
                 self.bestQ = leQ
                 self.bestA = leA
-            else:
-                pass
-                # print(f'old evidence {bestEvidence} is better than new evidence {le}')
-            if np.exp(self.bestQ)<1/car:
-                print(f'Evidence low: lhat -> {np.exp(self.bestQ)}\\ tn -> {np.exp(self.bestA)}')
-                continue
-            else:
-                n+=1
+
+            if np.exp(self.bestQ)<0.6:
+                
+                print(f'Evidence low: lhat -> {np.exp(self.bestQ)} tn -> {np.exp(self.bestA)}')
+                print(f'previous pc_m was: {m.pc_m}')
+                nModels +=1
+                if n>=6:
+                    # give up finding better model
+                    break
+                else:
+                    continue
+            n+=1
 
         self.model = bestModel
 
@@ -429,6 +448,16 @@ if __name__ == "__main__":
                                     nQuestions = annotations.__len__()
 
                                     sel_model = ModelSel(keep_n_samples, car, nQuestions, user, annotations, priors, nModels,nSamples)
+                                    # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
+                                    confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])
+                                    confindices = np.where(confs<0.5)
+                                    if confindices.__len__()>0:
+                                        print(f'Questions {confindices} need extra attention: confidences are: {[confs[i] for i in confindices]}')
+                                    else:
+                                        print('No further answering needed')
+
+                                        # [(i, conf), axis=1) for i, conf in enumerate(np.exp(prob)) for prob in sel_model.model.questions.values()
+                                        
                                     t_diff = np.mean([abs(rng.beta(*a.posterior)-a.T) for _,a in sel_model.model.annotators.items()])
                                     print(f'pc_m: {sel_model.model.pc_m}, pc_n: {sel_model.model.pc_n}, t_diff: {t_diff}')
                                     

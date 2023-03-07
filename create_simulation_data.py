@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 import  random
+from settings import c_data_mal_T
 
 # set globals
 xmax = 1
@@ -34,9 +35,13 @@ def sim_answer(users, annotations, u_id, car, q_id, T_dist):
         ans = annotations.loc[q_id,"GT"]
     else:
         # correct answer if trustworthiness is higher than a randomly drawn number, if not a random other answer
-        ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
+        if c_data_mal_T:
+            ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
             random.choice(list(set(np.arange(0,car)) - {annotations.loc[q_id, "GT"]}))
-            # random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
+        else:
+            ans = annotations.loc[q_id,"GT"] if users.loc[users.ID==u_id].T_given.values.item() > (random.random()) else \
+            random.randint(0,car-1) # use randint if 0 trustworthiness means chance level
+
     return ans
 
 class dist():
@@ -81,11 +86,8 @@ class dist():
     def T_else(self, prop):
         probs = np.zeros(self.x.shape[0])
         prop = float(prop)
-        if float(prop) == 1.:
-            probs[-1] = 1
-        else:
-            probs[int(float(0.0) * self.x.shape[0])] = 1-prop
-            probs[-1] = prop
+        probs[0] = 1-prop
+        probs[-1] = prop
         return probs
 
     def plot(self):

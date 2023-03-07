@@ -359,6 +359,7 @@ class plots():
         self.axspc_T.plot(x, naivepc, label='maj. vote')
         self.axspc_T.fill_between(x, np.array(naivepc + naive_sd, dtype=float), np.array(naivepc - naive_sd, dtype=float), alpha=0.2 )
         self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='green')
+        self.axspc_T.set_xlabel('Prop. T=1 vs. T=0')
         self.axspc_T.legend()
         plt.show()
 
