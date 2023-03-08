@@ -16,7 +16,7 @@ p_kg_u_list = [0.0]
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['small'] #['small','medium','large']
+    datasetsize_list = ['small', 'medium', 'large'] #['small','medium','large']
 # datasetsize = datasetsize_list[0]
 
 # sampling parameters
