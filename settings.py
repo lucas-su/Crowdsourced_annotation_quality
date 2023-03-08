@@ -5,7 +5,7 @@ car_list = [2,3,5,7]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]    
 # T_dist_list = [f'beta{round(flt*18+1, 2)}_{round(20-(flt*18+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.2)]
+T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
@@ -37,12 +37,12 @@ def set_priors(datasetsize, priors, car):
     else:
         raise(ValueError,'Datasetsize should be "small", "medium", or "large"')
 
-    a = 5**car-1 # dup instead of 5
+    a = 3*car
     b = 1 # 0.1->pc_m0.3@0.3
 
 
-    priors['aAlpha'] = (nAnnotation*(a/(a+b)))/10
-    priors['aBeta'] =  (nAnnotation*(b/(a+b)))/10
+    priors['aAlpha'] = (nAnnotation*(a/(a+b)))/2
+    priors['aBeta'] =  (nAnnotation*(b/(a+b)))/2
 
     for pr in priors.values():
         assert type(pr) == float, 'Priors need to be floats'
