@@ -111,15 +111,20 @@ class dist():
         plt.show()
 
 def detType(nAnnot, p_fo, p_KG_u):
+
     rans = [random.random() for _ in range(nAnnot)]
     type = ["normal" if ran > p_fo + p_KG_u
             else "KG" if ran > p_fo
             else "first_only" for ran in rans]
+    if (p_KG_u>0) and not ('KG' in type):
+        type = detType(nAnnot, p_fo, p_KG_u)
+    if (p_fo>0) and not ('first_only' in type):
+        type = detType(nAnnot, p_fo, p_KG_u)
     return type
 
 
 def createData(path, car, T_dist, dups, p_fos, p_KG_us, ncpu, size):
-    nAnnot = settings.nAnnot
+    nAnnot = settings.nAnnotator
 
     if size == 'debug':
         nQuestions = nAnnot

@@ -52,7 +52,6 @@ class Question:
         self.KG = KG
         self.GT = GT
         self.C = 1 # 'temperature' of annealing 
-        # self.annealdist = np.array([priors['anneal'] for _ in range(car)])
         self.car = car
         self.diff = difficulty
         self.annotations = []        # Keep track of the labels that were made for this question
@@ -106,9 +105,8 @@ class Question:
         return np.log(self.posterior.max()/self.posterior.sum())
 
     def anneal(self,n):
-        # self.prior = ((0.9*self.prior) / (2. ** n))+0.1*self.prior\
-        self.C /= 2**n
-        # print(self.annealdist*self.C)
+        self.C = 1/(1.5**n)
+
     
     def __repr__(self):
         if self.gt:
@@ -155,12 +153,12 @@ class Annotator:
                 debug_print(f'sample annot self.post: {self.posterior}')
                 for _ in range(nSamples):
                     v = a.question.sample()
-                    t = self.sample() # of current posterior
-                    
-                    if (t<1e-10):
-                        t = 1e-10
-                    if t > 1.-1e-10:
-                        t = 1-1e-10
+                    # t = self.sample() # of current posterior
+                    #
+                    # if (t<1e-10):
+                    #     t = 1e-10
+                    # if t > 1.-1e-10:
+                    #     t = 1-1e-10
                     chance = 1.-v[a.value]
                     pos = np.max([v[a.value]-chance,0.])
                     neg = chance
@@ -183,7 +181,7 @@ class Annotator:
             return rng.beta(a,b)
 
     def anneal(self,n):
-        self.C /= 1.5**n
+        self.C = 1/(1.5**n)
 
     
     def logProb(self):
@@ -271,14 +269,17 @@ class mcmc():
     def process_pc_posterior(self):
 
         # average modelled trustworthiness over selected samples
-        for _, u in self.annotators.items():
+        for u in self.annotators.values():
             # u.T = np.mean(u.postsamples, axis=0).max()
-            u.T = rng.beta(*np.mean(u.postsamples, axis=0),1)
+            u.T_model = rng.beta(*np.mean(u.postsamples, axis=0),1)
 
-        for _,q in self.questions.items():
+        for q in self.questions.values():
             alphas = q.postsamples
 
-            p = np.mean([rng.dirichlet(alphas[i]) for i in range(keep_n_samples)], axis=0)
+            # p = np.mean([rng.dirichlet(alphas[i]) for i in range(keep_n_samples)], axis=0)
+            # q.model = p.argmax()
+
+            p = rng.dirichlet(np.mean(alphas, axis=0))
             q.model = p.argmax()
         
     # @timeit
@@ -384,23 +385,25 @@ class ModelSel:
             
             leQ, leA = m.modelEvidence()
             le = leQ + leA
+            if np.exp(le) < 0.5:
+                print(f'Evidence low: lhat -> {np.exp(leQ)} tn -> {np.exp(leA)} pc_m -> {m.pc_m}')
+                # print(f'previous pc_m was: {m.pc_m}')
+                nModels += 1
+
             if le>bestEvidence:
-                print(f'new best evidence {np.exp(le)} is better than old evidence {np.exp(bestEvidence)}')
+                # print(f'new best evidence {np.exp(le)} is better than old evidence {np.exp(bestEvidence)}')
                 bestEvidence = le
                 bestModel = m
                 self.bestQ = leQ
                 self.bestA = leA
 
-            if np.exp(self.bestQ)<0.5:
-                
-                print(f'Evidence low: lhat -> {np.exp(self.bestQ)} tn -> {np.exp(self.bestA)}')
-                print(f'previous pc_m was: {m.pc_m}')
-                nModels +=1
-                if n>=6:
-                    # give up finding better model
+                if le ==1: # cannot get better than 1
                     break
-                else:
-                    continue
+
+            if n >= nModels + 10:
+                # give up finding better model
+                break
+
             n+=1
 
         self.model = bestModel
@@ -413,8 +416,8 @@ if __name__ == "__main__":
     mcmc_data = pandas.DataFrame(columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
                                           'mcmc', 'pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA'])
     for size in datasetsize_list:
-        priors = set_priors(size, priors)
         for car in car_list:
+            priors = set_priors(size, priors, car)
             for T_dist in T_dist_list:
                 session_dir = f'sessions/datasetsize_{size}/cardinality_{car}/prior-{priors["aAlpha"]}_{priors["aBeta"]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
@@ -438,8 +441,11 @@ if __name__ == "__main__":
 
                                     ## add parameters to dataframes
                                     # known goods
-                                    annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
-
+                                    if p_kg > 0:
+                                        while not annotations[f'KG'].any(): # ensure that there is at least one KG
+                                            annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
+                                    else:
+                                        annotations[f'KG'] = np.zeros(annotations.__len__())
                                     # global nQuestions
                                     nQuestions = annotations.__len__()
 
@@ -447,15 +453,15 @@ if __name__ == "__main__":
                                     # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
                                     confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])
                                     confindices = np.where(confs<0.5)
-                                    if confindices[0].__len__()>0:
-                                        print(f'Questions {confindices[0]} need extra attention: confidences are: {[confs[i] for i in confindices[0]]}')
-                                    else:
-                                        print('No further answering needed')
+                                    # if confindices[0].__len__()>0:
+                                    #     print(f'Questions {confindices[0]} need extra attention: confidences are: {[confs[i] for i in confindices[0]]}')
+                                    # else:
+                                    #     print('No further answering needed')
 
                                         # [(i, conf), axis=1) for i, conf in enumerate(np.exp(prob)) for prob in sel_model.model.questions.values()
                                         
-                                    t_diff = np.mean([abs(rng.beta(*a.posterior)-a.T) for _,a in sel_model.model.annotators.items()])
-                                    print(f'pc_m: {sel_model.model.pc_m}, pc_n: {sel_model.model.pc_n}, t_diff: {t_diff}')
+                                    t_diff = np.mean([abs(a.T_model-a.T) for a in sel_model.model.annotators.values()])
+                                    print(f'conf: {np.exp(sel_model.bestQ+sel_model.bestA)}, pc_m: {sel_model.model.pc_m}, pc_n: {sel_model.model.pc_n}, t_diff: {t_diff}')
 
                                     # create mcmc_data dataframe
                                     mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, sel_model, sel_model.model.pc_m, sel_model.model.pc_n, sel_model.bestQ, sel_model.bestA]

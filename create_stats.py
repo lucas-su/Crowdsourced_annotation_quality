@@ -168,11 +168,11 @@ def main():
     data.loc[:,'session'] = 'avg'
 
     if datasetsize == 'small':
-        nQuestions = nAnnot*3
+        nQuestions = nAnnotator * 3
     elif datasetsize == 'medium':
-        nQuestions = nAnnot*6
+        nQuestions = nAnnotator * 6
     else:
-        nQuestions = nAnnot*15
+        nQuestions = nAnnotator * 15
 
 
     if em_sessions.__len__()>0:
