@@ -142,7 +142,7 @@ class Annotator:
         self.C = 1
         self.car = car
         # self.annealdist = np.array(priors['anneal'])
-    
+
     def addAnnotation(self, annot):
         self.annotations.append(annot)
 
@@ -409,23 +409,19 @@ class ModelSel:
         return self.model
     
 if __name__ == "__main__":
-    
-    session_dir = f'sessions/prior-{priors["aAlpha"]}_{priors["aBeta"]}-car{car_list[0]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
-    os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
- 
-    resume_mode = False
-    if resume_mode:
-        with open(f'sessions/mcmc_data_{"_".join(T_dist_list)}.pickle', 'rb') as file:
-            mcmc_data = pickle.load(file)
-    else:
-        mcmc_data = pandas.DataFrame(
-            columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n','CertaintyQ', 'CertaintyA'])
-
-    for size in datasetsize_list: 
+    mcmc_data = pandas.DataFrame(columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
+                                          'mcmc', 'pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA'])
+    for size in datasetsize_list:
+        priors = set_priors(size, priors)
         for car in car_list:
             for T_dist in T_dist_list:
+                session_dir = f'sessions/datasetsize_{size}/cardinality_{car}/prior-{priors["aAlpha"]}_{priors["aBeta"]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+
+                os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
+
                 createData(f'{session_dir}', car, T_dist, dup_list, p_fo_list, p_kg_u_list, ncpu, size)
+
                 for keep_n_samples in keep_samples_list:
                     for dup in dup_list:
                         for p_fo in p_fo_list:

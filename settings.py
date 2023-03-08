@@ -5,7 +5,7 @@ car_list = [3]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]    
 # T_dist_list = [f'beta{round(flt*18+1, 2)}_{round(20-(flt*18+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
+T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.4, 1.1, 0.2)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
@@ -16,8 +16,8 @@ p_kg_u_list = [0.0]
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['medium'] #['small','medium','large']
-datasetsize = datasetsize_list[0]
+    datasetsize_list = ['small', 'medium', 'large'] #['small','medium','large']
+# datasetsize = datasetsize_list[0]
 
 # sampling parameters
 
@@ -25,23 +25,22 @@ datasetsize = datasetsize_list[0]
 priors = {'qAlpha':.1}
             # 'aAlpha':15.,
             # 'aBeta':0.15}
-
-# average number of annotations per annotator can(?) determine alpha and beta prior. (nQuestions-1, (nQuestions-1)/100) seems to work well
-if datasetsize == 'small':
-    priors['aAlpha'] = 3.
-    priors['aBeta'] = .002
-elif datasetsize == 'medium':
-    priors['aAlpha'] = 5.
-    priors['aBeta'] = .05
-elif datasetsize == 'large':
-    priors['aAlpha'] = 5.
-    priors['aBeta'] = .1
-else:
-    raise ValueError
-
-for pr in priors.values():
-    assert type(pr) == float
-
+def set_priors(datasetsize, priors):
+    # average number of annotations per annotator can(?) determine alpha and beta prior. (nQuestions-1, (nQuestions-1)/100) seems to work well
+    if datasetsize == 'small': # avg 3 annots per annotator
+        priors['aAlpha'] = 3.
+        priors['aBeta'] = 0.3
+    elif datasetsize == 'medium': # avg 6 annots per annotator
+        priors['aAlpha'] = 6.
+        priors['aBeta'] = 0.6
+    elif datasetsize == 'large': # avg 15 annots per annotator
+        priors['aAlpha'] = 15.
+        priors['aBeta'] = 1.5
+    else:
+        raise ValueError
+    for pr in priors.values():
+        assert type(pr) == float
+    return priors
 
 # decrease annotators for quick debugging
 if debug:
