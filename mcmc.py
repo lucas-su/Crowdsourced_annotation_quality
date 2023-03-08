@@ -456,8 +456,6 @@ if __name__ == "__main__":
                                         
                                     t_diff = np.mean([abs(rng.beta(*a.posterior)-a.T) for _,a in sel_model.model.annotators.items()])
                                     print(f'pc_m: {sel_model.model.pc_m}, pc_n: {sel_model.model.pc_n}, t_diff: {t_diff}')
-                                    
-                                        
 
                                     # create mcmc_data dataframe
                                     mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, sel_model, sel_model.model.pc_m, sel_model.model.pc_n, sel_model.bestQ, sel_model.bestA]

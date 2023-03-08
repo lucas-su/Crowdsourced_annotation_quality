@@ -5,7 +5,7 @@ car_list = [3]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]    
 # T_dist_list = [f'beta{round(flt*18+1, 2)}_{round(20-(flt*18+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.4, 1.1, 0.2)]
+T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
@@ -16,7 +16,7 @@ p_kg_u_list = [0.0]
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['small', 'medium', 'large'] #['small','medium','large']
+    datasetsize_list = ['small'] #['small','medium','large']
 # datasetsize = datasetsize_list[0]
 
 # sampling parameters
