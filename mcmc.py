@@ -421,7 +421,8 @@ if __name__ == "__main__":
                                           'mcmc', 'pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA'])
     for size in datasetsize_list:
         for car in car_list:
-            priors = set_priors(size, priors, car)
+            nQuestions = set_nQuestions(size)
+            priors = set_priors(nQuestions, car)
             for T_dist in T_dist_list:
                 session_dir = f'sessions/datasetsize_{size}/cardinality_{car}/prior-{priors["aAlpha"]}_{priors["aBeta"]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 

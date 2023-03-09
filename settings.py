@@ -22,7 +22,7 @@ else:
 # sampling parameters
 
     # priors should always be a float
-priors = {'qAlpha':.001} # should be dependent on dup: probably dup/10
+
             # 'aAlpha':15.,
             # 'aBeta':0.15}
 
@@ -36,8 +36,9 @@ def set_nQuestions(datasetsize):
     else:
         raise(ValueError,'Datasetsize should be "small", "medium", or "large"')
     return nQuestions
-def set_priors(nQuestions, priors, car):
+def set_priors(nQuestions, car):
     # average number of annotations per annotator can(?) determine alpha and beta prior. (nQuestions-1, (nQuestions-1)/100) seems to work well
+    priors = {'qAlpha': .001}  # should be dependent on dup: probably dup/10
 
     a = 10*car
     b = 1
