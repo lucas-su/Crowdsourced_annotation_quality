@@ -1,7 +1,7 @@
 import multiprocessing
 import numpy as np
 import platform 
-car_list = [2,3,5,7]
+car_list = [3,5,7]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]    
 # T_dist_list = [f'beta{round(flt*18+1, 2)}_{round(20-(flt*18+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
@@ -16,33 +16,35 @@ p_kg_u_list = [0.0,0.05]
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['small','medium'] #['small','medium','large']
+    datasetsize_list = ['medium', 'large'] #['small','medium','large']
 # datasetsize = datasetsize_list[0]
 
 # sampling parameters
 
     # priors should always be a float
-priors = {'qAlpha':.001} # should be dependant on dup: probably dup/10
+priors = {'qAlpha':.001} # should be dependent on dup: probably dup/10
             # 'aAlpha':15.,
             # 'aBeta':0.15}
-def set_priors(datasetsize, priors, car):
-    # average number of annotations per annotator can(?) determine alpha and beta prior. (nQuestions-1, (nQuestions-1)/100) seems to work well
 
+def set_nQuestions(datasetsize):
     if datasetsize == 'small': # avg 3 annots per annotator
-        nAnnotation = 3.
+        nQuestions = 3.
     elif datasetsize == 'medium': # avg 6 annots per annotator
-        nAnnotation = 6.
+        nQuestions = 6.
     elif datasetsize == 'large': # avg 15 annots per annotator
-        nAnnotation = 15.
+        nQuestions = 15.
     else:
         raise(ValueError,'Datasetsize should be "small", "medium", or "large"')
+    return nQuestions
+def set_priors(nQuestions, priors, car):
+    # average number of annotations per annotator can(?) determine alpha and beta prior. (nQuestions-1, (nQuestions-1)/100) seems to work well
 
-    a = 3*car
-    b = 1 # 0.1->pc_m0.3@0.3
+    a = 10*car
+    b = 1
+    fraction = 5
 
-
-    priors['aAlpha'] = (nAnnotation*(a/(a+b)))/2
-    priors['aBeta'] =  (nAnnotation*(b/(a+b)))/2
+    priors['aAlpha'] = round((nQuestions*(a/(a+b)))/fraction, 1)
+    priors['aBeta'] =  round((nQuestions*(b/(a+b)))/fraction, 1)
 
     for pr in priors.values():
         assert type(pr) == float, 'Priors need to be floats'

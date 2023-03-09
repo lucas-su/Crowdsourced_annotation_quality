@@ -135,6 +135,13 @@ def makeplaceholderframe(model, idx, datalen, cols):
     datalen = int(datalen)
     return pandas.DataFrame(np.concatenate((np.full((1,datalen), idx).T,np.full((1,datalen), model).T, np.zeros((datalen, cols.__len__()-2))), axis=1), columns=cols)
 
+
+
+
+
+
+
+
 def main():
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
 
@@ -167,12 +174,6 @@ def main():
     data.loc[datalen / 2:, 'model'] = "mcmc"
     data.loc[:,'session'] = 'avg'
 
-    if datasetsize == 'small':
-        nQuestions = nAnnotator * 3
-    elif datasetsize == 'medium':
-        nQuestions = nAnnotator * 6
-    else:
-        nQuestions = nAnnotator * 15
 
 
     if em_sessions.__len__()>0:
@@ -210,45 +211,47 @@ def main():
             data = pandas.concat((data, makeplaceholderframe("mcmc", mc_idx, datalen / 2, cols)), ignore_index=True)
             data.loc[(data['session'] == f'{mc_idx}') & (data['model'] == f'mcmc'), ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(mcmc_data.loc[(mcmc_data['size']==datasetsize), ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'mcmc', 'pc_m', 'pc_n']])
             # queue_alpha_uerror_metrics(session_dir, session, 'mcmc',iterations, sessionlen)
+    for size in datasetsize_list:
+        for T_dist in T_dist_list:
+            for model in ['em', 'mcmc']:
+                for car in car_list:
+                    for T_dist in T_dist_list:
+                        for dup in dup_list:
+                            for p_fo in p_fo_list:
+                                for p_kg in p_kg_list:
+                                    for p_kg_u in p_kg_u_list:
+                                        # make a slice of all the sessions without the average
+                                        nQuestions = set_nQuestions(size)
 
-    for T_dist in T_dist_list:
-        for model in ['em', 'mcmc']:
-            for car in car_list:
-                for T_dist in T_dist_list:
-                    for dup in dup_list:
-                        for p_fo in p_fo_list:
-                            for p_kg in p_kg_list:
-                                for p_kg_u in p_kg_u_list:
-                                    # make a slice of all the sessions without the average
-                                    dat = data.loc[(data['session'] != 'avg') &
+                                        dat = data.loc[(data['session'] != 'avg') &
+                                                    (data['model'] == model) &
+                                                    (data['car'] == car) &
+                                                    (data['T_dist'] == T_dist) &
+                                                    (data['dup'] == dup) &
+                                                    (data['p_fo'] == p_fo) &
+                                                    (data['p_kg'] == p_kg) &
+                                                    (data['p_kg_u'] == p_kg_u)]
+                                        # determine SD for maj. vote and model
+                                        data.loc[(data['session'] == 'avg') &
                                                 (data['model'] == model) &
                                                 (data['car'] == car) &
                                                 (data['T_dist'] == T_dist) &
                                                 (data['dup'] == dup) &
                                                 (data['p_fo'] == p_fo) &
                                                 (data['p_kg'] == p_kg) &
-                                                (data['p_kg_u'] == p_kg_u)]
-                                    # determine SD for maj. vote and model
-                                    data.loc[(data['session'] == 'avg') &
-                                            (data['model'] == model) &
-                                            (data['car'] == car) &
-                                            (data['T_dist'] == T_dist) &
-                                            (data['dup'] == dup) &
-                                            (data['p_fo'] == p_fo) &
-                                            (data['p_kg'] == p_kg) &
-                                            (data['p_kg_u'] == p_kg_u), 'pc_n_SD'] = np.std(dat['pc_n'])
+                                                (data['p_kg_u'] == p_kg_u), 'pc_n_SD'] = np.std(dat['pc_n'])
 
-                                    data.loc[(data['session'] == 'avg') &
-                                            (data['model'] == model) &
-                                            (data['car'] == car) &
-                                            (data['T_dist'] == T_dist) &
-                                            (data['dup'] == dup) &
-                                            (data['p_fo'] == p_fo) &
-                                            (data['p_kg'] == p_kg) &
-                                            (data['p_kg_u'] == p_kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
+                                        data.loc[(data['session'] == 'avg') &
+                                                (data['model'] == model) &
+                                                (data['car'] == car) &
+                                                (data['T_dist'] == T_dist) &
+                                                (data['dup'] == dup) &
+                                                (data['p_fo'] == p_fo) &
+                                                (data['p_kg'] == p_kg) &
+                                                (data['p_kg_u'] == p_kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
 
-    with open(f'exports/data_{datasetsize}.pickle', 'wb') as file:
-        pickle.dump(data, file)
+        with open(f'exports/data_{size}.pickle', 'wb') as file:
+            pickle.dump(data, file)
 
 if __name__ == "__main__":
     main()

@@ -105,7 +105,10 @@ class Question:
         return np.log(self.posterior.max()/self.posterior.sum())
 
     def anneal(self,n):
-        self.C = 1/(1.5**n)
+        if n == 0:
+            self.C = 0
+        else:
+            self.C = 1/(1.5**n)
 
     
     def __repr__(self):
@@ -378,6 +381,7 @@ class ModelSel:
         bestEvidence = -np.inf
         bestModel = None
         n =0
+        stop_iteration = nModels + 10
         while n < nModels:
             models.append(mcmc(car, annotations, user))
             m = models[-1]
@@ -400,7 +404,7 @@ class ModelSel:
                 if le ==1: # cannot get better than 1
                     break
 
-            if n >= nModels + 10:
+            if n >= stop_iteration:
                 # give up finding better model
                 break
 
