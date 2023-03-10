@@ -123,7 +123,7 @@ def detType(nAnnot, p_fo, p_KG_u):
     return type
 
 
-def createData(path, car, T_dist, dups, p_fos, p_KG_us, ncpu, size):
+def createData(path, car, T_dist, dup, p_fo, p_KG_u, ncpu, size):
     nAnnot = settings.nAnnotator
 
     if size == 'debug':
@@ -156,58 +156,55 @@ def createData(path, car, T_dist, dups, p_fos, p_KG_us, ncpu, size):
         distribution = dist(param, x)
     else:
         raise ValueError
-    for dup in dups:
-        for p_fo in p_fos:
-            for p_KG_u in p_KG_us:
-                udata = {"ID":range(nAnnot),
-                            "type": detType(nAnnot, p_fo,  p_KG_u),
-                            "T_given": random.choices(x, distribution(), k=nAnnot),
-                            "T_model": np.ones(nAnnot)*0.5}
+    udata = {"ID":range(nAnnot),
+                "type": detType(nAnnot, p_fo,  p_KG_u),
+                "T_given": random.choices(x, distribution(), k=nAnnot),
+                "T_model": np.ones(nAnnot)*0.5}
 
-                for q in range(nQuestions): # keep track of labels in broad format
-                    udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
+    for q in range(nQuestions): # keep track of labels in broad format
+        udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
 
-                user = pandas.DataFrame(data=udata)
+    user = pandas.DataFrame(data=udata)
 
-                annotdict = {"ID":range(nQuestions),
-                                "GT": random.choices(range(car), k=nQuestions),
-                                "model": np.zeros(nQuestions),
-                                "alpha": [[] for _ in range(nQuestions)],
-                                "car": np.ones(nQuestions)*car}
-                for i in range(dup):
-                    annotdict[f'id_{i}'] = np.zeros(nQuestions)
-                    annotdict[f'annot_{i}'] = np.zeros(nQuestions)
+    annotdict = {"ID":range(nQuestions),
+                    "GT": random.choices(range(car), k=nQuestions),
+                    "model": np.zeros(nQuestions),
+                    "alpha": [[] for _ in range(nQuestions)],
+                    "car": np.ones(nQuestions)*car}
+    for i in range(dup):
+        annotdict[f'id_{i}'] = np.zeros(nQuestions)
+        annotdict[f'annot_{i}'] = np.zeros(nQuestions)
 
-                annotation = pandas.DataFrame(data=annotdict)
+    annotation = pandas.DataFrame(data=annotdict)
 
 
-                with Pool(ncpu) as p:
-                    results = p.map(partial(dist_annot, user, annotation, dup, car, T_dist), range(nQuestions))
+    with Pool(ncpu) as p:
+        results = p.map(partial(dist_annot, user, annotation, dup, car, T_dist), range(nQuestions))
 
 
-                res = np.array([np.concatenate(np.column_stack(i)) for i in results])
+    res = np.array([np.concatenate(np.column_stack(i)) for i in results])
 
-                annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(dup)])] = res
+    annotation.loc[:, np.concatenate([[f'id_{i}',f'annot_{i}'] for i in range(dup)])] = res
 
-                for i, q in enumerate(results):
-                    for u_a_pair in zip(q[0],q[1]):
-                        user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
-                ulen = user.__len__()
-                user = user.drop(np.where(np.all(np.array([np.isnan(user[f'q_{i}']) for i in range(nQuestions)]), axis=0) == True)[0])
+    for i, q in enumerate(results):
+        for u_a_pair in zip(q[0],q[1]):
+            user.loc[u_a_pair[0], f'q_{i}'] = u_a_pair[1]
+    ulen = user.__len__()
+    user = user.drop(np.where(np.all(np.array([np.isnan(user[f'q_{i}']) for i in range(nQuestions)]), axis=0) == True)[0])
 
-                if user.__len__() != ulen:
-                    print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
-                print(f"saving {size}, {car}, {T_dist}, {dup}, {p_fo}, {p_KG_u}")
+    if user.__len__() != ulen:
+        print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
+    print(f"saving {size}, {car}, {T_dist}, {dup}, {p_fo}, {p_KG_u}")
 
-                os.makedirs(f'{path}/simulation data/{T_dist}/', exist_ok=True)
-                os.makedirs(f'{path}/simulation data/{T_dist}/csv', exist_ok=True)
-                os.makedirs(f'{path}/simulation data/{T_dist}/pickle', exist_ok=True)
+    os.makedirs(f'{path}/simulation data/{T_dist}/', exist_ok=True)
+    os.makedirs(f'{path}/simulation data/{T_dist}/csv', exist_ok=True)
+    os.makedirs(f'{path}/simulation data/{T_dist}/pickle', exist_ok=True)
 
-                # save data
-                with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
-                    pickle.dump(user, file)
-                with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
-                    pickle.dump(annotation, file)
+    # save data
+    with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
+        pickle.dump(user, file)
+    with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
+        pickle.dump(annotation, file)
 if __name__ == "__main__":
     if platform.system() == 'Windows':
         ncpu = 8

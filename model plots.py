@@ -359,7 +359,9 @@ class plots():
         self.axspc_T.plot(x, naivepc, label='maj. vote')
         self.axspc_T.fill_between(x, np.array(naivepc + naive_sd, dtype=float), np.array(naivepc - naive_sd, dtype=float), alpha=0.2 )
         self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='green')
-        self.axspc_T.set_xlabel('Prop. T=1 vs. T=0')
+        self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
+        self.axspc_T.set_ylabel('Proportion item labels correct')
+        self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items prop. {p_kg}, datasetsize {datasetsize}, known good users prop. {p_kg_u}')
         self.axspc_T.legend()
         plt.show()
 
@@ -369,7 +371,10 @@ if __name__ == "__main__":
 
     iterations = {'em':10,
                   'mcmc': 100}
-    create_stats.main()
+    for size in datasetsize_list:
+        for car in car_list:
+            create_stats.main(size,car)
+
 
 
     with open(f'exports/data_{datasetsize_list[0]}.pickle', 'rb') as file:
@@ -380,15 +385,19 @@ if __name__ == "__main__":
     plot = plots()
 
     # inits
-    p_kg = p_kg_list[0]
-    p_fo = p_fo_list[0]
-    p_kg_u = p_kg_u_list[0]
-    T_dist = T_dist_list[0]
-    car = car_list[0]
-    dup = dup_list[0]
+    # p_kg = p_kg_list[0]
+    # p_fo = p_fo_list[0]
+    # p_kg_u = p_kg_u_list[0]
+    # T_dist = T_dist_list[0]
+    # dup = dup_list[0]
 
 
     # plot.saveplots()
     # plot.plot_interactive()
-    
-    plot.plot_pc_T(car, dup, p_fo, p_kg, datasetsize, p_kg_u)
+    for size in datasetsize_list:
+        for car in car_list:
+            for p_kg in p_kg_list:
+                for p_kg_u in p_kg_u_list:
+                    for dup in dup_list:
+                        for p_fo in p_fo_list:
+                            plot.plot_pc_T(car, dup, p_fo, p_kg, size, p_kg_u)

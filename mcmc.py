@@ -149,7 +149,7 @@ class Annotator:
 
     def computePosterior(self, nSamples):
         if self.KG:
-            return (10,np.spacing(0))
+            return 10,np.spacing(0)
         else:
             alpha,beta = self.prior
             for a in self.annotations:
@@ -166,6 +166,7 @@ class Annotator:
                     pos = np.max([v[a.value]-chance,0.])
                     neg = chance
                     post = pos/(pos+neg)
+
                     # debug(a,v,"pos=%0.2g,neg=%0.2g" % (pos,neg))
                     alpha += (post)/nSamples
                     beta += ((1.-post))/nSamples
@@ -173,7 +174,7 @@ class Annotator:
                     # debug("trustworthiness ",self.name,a.question.name,"a=",a.value,"q=",v, "t=",t,"post=",post,alpha,beta)
                         
             # debug("Annotator posterior ",self.name,"a=",alpha,"b=",beta, "num of annot=",len(self.annotations))
-            return alpha,beta
+            return alpha, beta
         
     def sample(self):
         """Sample the annotator's trustworthiness"""
@@ -417,24 +418,26 @@ class ModelSel:
     
 if __name__ == "__main__":
 
-    mcmc_data = pandas.DataFrame(columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
-                                          'mcmc', 'pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA'])
+
     for size in datasetsize_list:
         for car in car_list:
             nQuestions = set_nQuestions(size)
             priors = set_priors(nQuestions, car)
-            for T_dist in T_dist_list:
-                session_dir = f'sessions/datasetsize_{size}/cardinality_{car}/prior-{priors["aAlpha"]}_{priors["aBeta"]}/session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+            for dup in dup_list:
+                for p_fo in p_fo_list:
+                    for p_kg in p_kg_list:
+                        for p_kg_u in p_kg_u_list:
+                            mcmc_data = pandas.DataFrame(
+                                columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
+                                         'mcmc', 'pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA'])
 
-                os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
+                            session_dir = set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                            for T_dist in T_dist_list:
+                                os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
 
-                createData(f'{session_dir}', car, T_dist, dup_list, p_fo_list, p_kg_u_list, ncpu, size)
+                                createData(f'{session_dir}', car, T_dist, dup, p_fo, p_kg_u, ncpu, size)
 
-                for keep_n_samples in keep_samples_list:
-                    for dup in dup_list:
-                        for p_fo in p_fo_list:
-                            for p_kg in p_kg_list:
-                                for p_kg_u in p_kg_u_list:
+                                for keep_n_samples in keep_samples_list:
                                     # open dataset for selected parameters
                                     with open(f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
                                               'rb') as file:
