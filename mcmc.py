@@ -51,7 +51,7 @@ class Question:
         self.cardinality = len(self.prior)
         self.KG = KG
         self.GT = GT
-        self.C = 1 # 'temperature' of annealing 
+        self.C = 0 # start at 0 to prevent sampling from annealing in first iteration
         self.car = car
         self.diff = difficulty
         self.annotations = []        # Keep track of the labels that were made for this question
@@ -72,8 +72,8 @@ class Question:
             alpha = np.array(self.prior)
             debug_print(f'sample question self.post: {self.posterior}')
             for i in range(nSamples):
-                # a = np.ones(alpha.shape)
-                a = np.zeros(alpha.shape)
+                a = np.ones(alpha.shape)
+                # a = np.zeros(alpha.shape)
                 for l in self.annotations:
                     t = l.annotator.sample()# sample trust
                     if (t<1e-10):
@@ -81,17 +81,17 @@ class Question:
                     if (1-t) < 1e-10:
                         t = 1.-1e-10
                     s = t * l.value1ofk + ((1 - t) / (self.cardinality - 1)) * (1. - l.value1ofk)
-                    a += np.log(s)
-                    # a *= s
+                    # a += np.log(s)
+                    a *= s
                 #     debug(l, "t=",t,"s=",s,"a=",a)
                 # debug(" ==> a=",a/a.sum())
-                alpha += ((np.exp(a)/np.exp(a).sum())/nSamples)
-                # alpha += ((a / a.sum()) / nSamples)
+                # alpha += len(self.annotations) * ((np.exp(a)/np.exp(a).sum())/nSamples)
+                alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
             return alpha
             
     def sample(self):
         """Sample the ground-truth value of this question"""
-        if rng.uniform()<self.C:
+        if rng.uniform()<0.2*self.C:
             p = rng.uniform(size=self.car)
             return p/p.sum()
         else:
@@ -104,11 +104,11 @@ class Question:
         debug_print("logprob q: ", self.posterior)
         return np.log(self.posterior.max()/self.posterior.sum())
 
-    def anneal(self,n):
-        if n == 0:
+    def anneal(self,n, warmup):
+        if n+5>warmup:
             self.C = 0
         else:
-            self.C = 1/(1.5**n)
+            self.C = 1/(1.2**n)
 
     
     def __repr__(self):
@@ -140,7 +140,7 @@ class Annotator:
         self.prior = np.array((priors['aAlpha'],priors['aBeta']))
         self.posterior = np.array((priors['aAlpha'],priors['aBeta']))
         self.postsamples = []
-        self.C = 1
+        self.C = 0 # start at 0 to prevent sampling from annealing in first iter
         self.car = car
         # self.annealdist = np.array(priors['anneal'])
 
@@ -162,14 +162,19 @@ class Annotator:
                     #     t = 1e-10
                     # if t > 1.-1e-10:
                     #     t = 1-1e-10
-                    chance = 1.-v[a.value]
-                    pos = np.max([v[a.value]-chance,0.])
-                    neg = chance
-                    post = pos/(pos+neg)
+                    # chance = (1.-v[a.value])/(self.car-1)
+                    # pos = np.max([v[a.value]-chance,0.])
+                    # neg = chance
+                    # pos =
+                    # post = pos/(pos+neg)
 
                     # debug(a,v,"pos=%0.2g,neg=%0.2g" % (pos,neg))
-                    alpha += (post)/nSamples
-                    beta += ((1.-post))/nSamples
+                    # alpha += (post)/nSamples
+                    # beta += ((1.-post))/nSamples
+                    alp = v[a.value]/nSamples
+                    alpha += alp
+                    bet = (1-v[a.value])/(nSamples*(self.car-1))
+                    beta += bet
 
                     # debug("trustworthiness ",self.name,a.question.name,"a=",a.value,"q=",v, "t=",t,"post=",post,alpha,beta)
                         
@@ -178,14 +183,17 @@ class Annotator:
         
     def sample(self):
         """Sample the annotator's trustworthiness"""
-        if rng.uniform()< self.C:
+        if rng.uniform()< 0.2*self.C:
             return rng.uniform()
         else:
             a,b = self.posterior
             return rng.beta(a,b)
 
-    def anneal(self,n):
-        self.C = 1/(1.5**n)
+    def anneal(self,n, warmup):
+        if n + 5 > warmup:
+            self.C = 0
+        else:
+            self.C = 1 / (1.2 ** n)
 
     
     def logProb(self):
@@ -257,11 +265,11 @@ class mcmc():
     def sampleAIteration(self,nSamples, i):
         return self.annotators[i].computePosterior(nSamples)
 
-    def anneal(self,n):
+    def anneal(self,n, warmup):
         for _,q in self.questions.items():
-            q.anneal(n)
+            q.anneal(n, warmup)
         for _,a in self.annotators.items():
-            a.anneal(n)
+            a.anneal(n, warmup)
             
     def modelEvidence(self):
         for _,q in self.questions.items():
@@ -308,7 +316,6 @@ class mcmc():
                     for i, res in zip(indices, results):
                         debug_print(f'Question posterior KG after sampling:{res}')
                         self.questions[i].posterior = np.array(res)
-                        
 
                 ## sample tn
                 # first do the KG users
@@ -344,7 +351,7 @@ class mcmc():
 
                     sample_cnt += 1
                 self.iter += 1
-                self.anneal(self.iter)
+                self.anneal(self.iter, warmup)
 
              
         assert(sample_cnt == keep_n_samples)
@@ -382,7 +389,7 @@ class ModelSel:
         bestEvidence = -np.inf
         bestModel = None
         n =0
-        stop_iteration = nModels + 10
+        stop_iteration = nModels + 5
         while n < nModels:
             models.append(mcmc(car, annotations, user))
             m = models[-1]
@@ -417,13 +424,11 @@ class ModelSel:
         return self.model
     
 if __name__ == "__main__":
-
-
     for size in datasetsize_list:
         for car in car_list:
             nQuestions = set_nQuestions(size)
-            priors = set_priors(nQuestions, car)
             for dup in dup_list:
+                priors = set_priors(nQuestions, car, dup)
                 for p_fo in p_fo_list:
                     for p_kg in p_kg_list:
                         for p_kg_u in p_kg_u_list:

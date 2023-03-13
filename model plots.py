@@ -1,3 +1,4 @@
+import os.path
 import pickle
 from settings import *
 import matplotlib.pyplot as plt
@@ -373,14 +374,18 @@ if __name__ == "__main__":
                   'mcmc': 100}
     for size in datasetsize_list:
         for car in car_list:
-            create_stats.main(size,car)
+            for dup in dup_list:
+                for p_fo in p_fo_list:
+                    for p_kg in p_kg_list:
+                        for p_kg_u in p_kg_u_list:
+                            if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)}/stats.pickle'):
+                                create_stats.main(size, car, dup, p_fo, p_kg, p_kg_u)
 
 
 
-    with open(f'exports/data_{datasetsize_list[0]}.pickle', 'rb') as file:
-        data = pickle.load(file)
+
     # data['size'] = datasetsize
-    data = data.loc[data['session']=='avg']
+
   
     plot = plots()
 
@@ -400,4 +405,7 @@ if __name__ == "__main__":
                 for p_kg_u in p_kg_u_list:
                     for dup in dup_list:
                         for p_fo in p_fo_list:
+                            with open(f'{set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)}/stats.pickle','rb') as file:
+                                data = pickle.load(file)
+                            data = data.loc[data['session'] == 'avg']
                             plot.plot_pc_T(car, dup, p_fo, p_kg, size, p_kg_u)

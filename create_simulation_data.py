@@ -127,7 +127,7 @@ def createData(path, car, T_dist, dup, p_fo, p_KG_u, ncpu, size):
     nAnnot = settings.nAnnotator
 
     if size == 'debug':
-        nQuestions = nAnnot
+        nQuestions = 2*nAnnot
 
     elif size == 'small':
         nQuestions = nAnnot*3

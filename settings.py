@@ -3,27 +3,28 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [2,3,4,5]
+car_list = [2,3,4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]    
 # T_dist_list = [f'beta{round(flt*18+1, 2)}_{round(20-(flt*18+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
+T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0., 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
 dup_list = [5]
 p_fo_list = [0.0]
 p_kg_list = [0.0]
-p_kg_u_list = [0.0,0.05]
+p_kg_u_list = [0.0, 0.05]
 
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['medium', 'large'] #['small','medium','large']
+    datasetsize_list = ['medium']#, 'large'] #['small','medium','large']
 
 # decrease annotators for quick debugging
 if debug:
     nAnnotator = 3
+    dup_list = [2]
 else:
     nAnnotator = 20
 
@@ -41,13 +42,11 @@ elif platform.system() == 'Windows': # running local: fewer demands
     keep_samples_list = [3]
     nModels = 5
 else:
-    warmup = 20
-    nSamples = 3
-    # keep a sample every sample_interval iterations
-    sample_interval = 1
-    # n samples to keep
-    keep_samples_list = [5]
-    nModels = 10
+    warmup = 25
+    nSamples = 3 #
+    sample_interval = 1 # keep a sample every sample_interval iterations
+    keep_samples_list = [8] # n samples to keep
+    nModels = 5
     T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
 
 # create data settings
@@ -71,17 +70,18 @@ def set_nQuestions(datasetsize):
     else:
         raise(ValueError,'Datasetsize should be "small", "medium", or "large"')
     return nQuestions
-def set_priors(nQuestions, car):
+def set_priors(nQuestions, car, dup):
     # average number of annotations per annotator can(?) determine alpha and beta prior. (nQuestions-1, (nQuestions-1)/100) seems to work well
-    priors = {'qAlpha': .001}  # should be dependent on dup: probably dup/10
+    priors = {'qAlpha': round(dup/10, 2)}
 
-    a = 10*car
+    a = 3*(car-1) # both 1 as annotator difficulty of finding alpha is not dependent on car with the current implementation?
     b = 1
-    fraction = 5
+    fraction = 5 # gwenn advised 5
 
-    priors['aAlpha'] = round((nQuestions*(a/(a+b)))/fraction, 2)
-    priors['aBeta'] =  round((nQuestions*(b/(a+b)))/fraction, 2)
+    priors['aAlpha'] = round((nQuestions*(a/(a+b)))/fraction, 3)
+    priors['aBeta'] =  round((nQuestions*(b/(a+b)))/fraction, 3)
 
     for pr in priors.values():
         assert type(pr) == float, 'Priors need to be floats'
+    print(f'Priors set to: {priors}')
     return priors
