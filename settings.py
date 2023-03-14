@@ -43,11 +43,11 @@ elif platform.system() == 'Windows': # running local: fewer demands
     nModels = 5
 else:
     warmup = 25
-    nSamples = 3 #
+    nSamples = 3 # number of samples per iteration
     sample_interval = 1 # keep a sample every sample_interval iterations
-    keep_samples_list = [8] # n samples to keep
+    keep_samples_list = [5] # n samples to keep
     nModels = 5
-    T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
+
 
 # create data settings
 c_data_mal_T = True # assumes 'malicious' users at T=0 if true, meaning that they give anything but the correct answers. False means uniform chance over all answers at T=0
@@ -71,10 +71,10 @@ def set_nQuestions(datasetsize):
         raise(ValueError,'Datasetsize should be "small", "medium", or "large"')
     return nQuestions
 def set_priors(nQuestions, car, dup):
-    # average number of annotations per annotator can(?) determine alpha and beta prior. (nQuestions-1, (nQuestions-1)/100) seems to work well
+
     priors = {'qAlpha': round(dup/10, 2)}
 
-    a = 3*(car-1) # both 1 as annotator difficulty of finding alpha is not dependent on car with the current implementation?
+    a = 10*car
     b = 1
     fraction = 5 # gwenn advised 5
 

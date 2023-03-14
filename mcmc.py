@@ -91,7 +91,7 @@ class Question:
             
     def sample(self):
         """Sample the ground-truth value of this question"""
-        if rng.uniform()<0.2*self.C:
+        if rng.uniform()<self.C:
             p = rng.uniform(size=self.car)
             return p/p.sum()
         else:
@@ -104,13 +104,6 @@ class Question:
         debug_print("logprob q: ", self.posterior)
         return np.log(self.posterior.max()/self.posterior.sum())
 
-    def anneal(self,n, warmup):
-        if n+5>warmup:
-            self.C = 0
-        else:
-            self.C = 1/(1.2**n)
-
-    
     def __repr__(self):
         if self.gt:
             return "Q+'%s',%s" % (self.name,self.posterior)
@@ -162,40 +155,38 @@ class Annotator:
                     #     t = 1e-10
                     # if t > 1.-1e-10:
                     #     t = 1-1e-10
-                    # chance = (1.-v[a.value])/(self.car-1)
-                    # pos = np.max([v[a.value]-chance,0.])
-                    # neg = chance
-                    # pos =
-                    # post = pos/(pos+neg)
+                    chance = (1. - v[a.value]) / (self.car - 1)
+                    pos = np.max([v[a.value]-chance,0.])
+                    # pos = v[a.value] - chance # picking an extremely unlikely constitutes negative evidence, means that v[a] may not be exactly 0
+                    neg = chance
+                    post = pos/(pos+neg)
 
                     # debug(a,v,"pos=%0.2g,neg=%0.2g" % (pos,neg))
-                    # alpha += (post)/nSamples
-                    # beta += ((1.-post))/nSamples
-                    alp = v[a.value]/nSamples
-                    alpha += alp
-                    bet = (1-v[a.value])/(nSamples*(self.car-1))
-                    beta += bet
+                    alpha += (post)/nSamples
+                    beta += ((1.-post))/nSamples
+                    # alp = v[a.value]/nSamples
+                    # alpha += alp
+                    # bet = (1-v[a.value])/(nSamples*(self.car-1))
+                    # beta += bet
 
                     # debug("trustworthiness ",self.name,a.question.name,"a=",a.value,"q=",v, "t=",t,"post=",post,alpha,beta)
                         
             # debug("Annotator posterior ",self.name,"a=",alpha,"b=",beta, "num of annot=",len(self.annotations))
+            if alpha <= 0:
+                alpha = np.spacing(0)
+            if beta <= 0:
+                beta = np.spacing(0)
             return alpha, beta
         
     def sample(self):
         """Sample the annotator's trustworthiness"""
-        if rng.uniform()< 0.2*self.C:
+        if rng.uniform()<self.C:
             return rng.uniform()
         else:
             a,b = self.posterior
             return rng.beta(a,b)
 
-    def anneal(self,n, warmup):
-        if n + 5 > warmup:
-            self.C = 0
-        else:
-            self.C = 1 / (1.2 ** n)
 
-    
     def logProb(self):
         return np.log(self.posterior.max()/self.posterior.sum())
     
@@ -241,7 +232,7 @@ class Annotation:
         
 
 class mcmc():
-    
+    # @timeit
     def __init__(self, car, annotations, user):
         self.M = np.arange(0,nQuestions)    # Questions
         self.L = np.arange(0,car)             # Given label per question
@@ -266,18 +257,25 @@ class mcmc():
         return self.annotators[i].computePosterior(nSamples)
 
     def anneal(self,n, warmup):
+        if n + 5 > warmup:
+            C = 0
+        else:
+            C = 1 / (1.2 ** n)
+        # print(f'self.C -> {C}')
         for _,q in self.questions.items():
-            q.anneal(n, warmup)
+            q.C = C
         for _,a in self.annotators.items():
-            a.anneal(n, warmup)
-            
+            a.C = C
+
+    # @timeit
     def modelEvidence(self):
         for _,q in self.questions.items():
             logEvidenceQ = q.logProb()
         for _,a in self.annotators.items():
             logEvidenceA = a.logProb()
         return logEvidenceQ, logEvidenceA        
-    
+
+    # @timeit
     def process_pc_posterior(self):
 
         # average modelled trustworthiness over selected samples
@@ -389,7 +387,7 @@ class ModelSel:
         bestEvidence = -np.inf
         bestModel = None
         n =0
-        stop_iteration = nModels + 5
+        stop_iteration = nModels + 7
         while n < nModels:
             models.append(mcmc(car, annotations, user))
             m = models[-1]
