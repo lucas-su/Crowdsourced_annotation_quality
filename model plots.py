@@ -378,8 +378,8 @@ if __name__ == "__main__":
                 for p_fo in p_fo_list:
                     for p_kg in p_kg_list:
                         for p_kg_u in p_kg_u_list:
-                            if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)}/stats.pickle'):
-                                create_stats.main(size, car, dup, p_fo, p_kg, p_kg_u)
+                            # if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)}/stats.pickle'):
+                            create_stats.main(size, car, dup, p_fo, p_kg, p_kg_u)
 
 
 

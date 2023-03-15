@@ -3,18 +3,18 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [2,3,4]
+car_list = [2, 3, 4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]    
 # T_dist_list = [f'beta{round(flt*18+1, 2)}_{round(20-(flt*18+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0., 1.1, 0.1)]
+T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
 dup_list = [5]
 p_fo_list = [0.0]
-p_kg_list = [0.0]
-p_kg_u_list = [0.0, 0.05]
+p_kg_list = [0.]
+p_kg_u_list = [0.0]
 
 if debug:
     datasetsize_list = ['debug'] 
@@ -39,7 +39,7 @@ elif platform.system() == 'Windows': # running local: fewer demands
     warmup = 20
     nSamples = 3
     sample_interval = 1
-    keep_samples_list = [3]
+    keep_samples_list = [1]
     nModels = 5
 else:
     warmup = 25
@@ -72,9 +72,9 @@ def set_nQuestions(datasetsize):
     return nQuestions
 def set_priors(nQuestions, car, dup):
 
-    priors = {'qAlpha': round(dup/10, 2)}
+    priors = {'qAlpha': round(dup/10, 3)}
 
-    a = 10*car
+    a = 2
     b = 1
     fraction = 5 # gwenn advised 5
 

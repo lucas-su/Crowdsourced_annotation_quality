@@ -194,7 +194,7 @@ def createData(path, car, T_dist, dup, p_fo, p_KG_u, ncpu, size):
 
     if user.__len__() != ulen:
         print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
-    print(f"saving {size}, {car}, {T_dist}, {dup}, {p_fo}, {p_KG_u}")
+    print(f"saved annotations | Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, prop. malicious {p_fo}, prop. known good users {p_KG_u}")
 
     os.makedirs(f'{path}/simulation data/{T_dist}/', exist_ok=True)
     os.makedirs(f'{path}/simulation data/{T_dist}/csv', exist_ok=True)

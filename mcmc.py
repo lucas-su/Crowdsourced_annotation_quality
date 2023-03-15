@@ -10,6 +10,7 @@ from datetime import datetime
 import os
 from create_simulation_data import createData
 from settings import *
+from scipy.special import logsumexp
 
 from numpy.random import default_rng
 rng = default_rng()
@@ -72,8 +73,8 @@ class Question:
             alpha = np.array(self.prior)
             debug_print(f'sample question self.post: {self.posterior}')
             for i in range(nSamples):
-                a = np.ones(alpha.shape)
-                # a = np.zeros(alpha.shape)
+                # a = np.ones(alpha.shape)
+                a = np.zeros(alpha.shape)
                 for l in self.annotations:
                     t = l.annotator.sample()# sample trust
                     if (t<1e-10):
@@ -81,12 +82,14 @@ class Question:
                     if (1-t) < 1e-10:
                         t = 1.-1e-10
                     s = t * l.value1ofk + ((1 - t) / (self.cardinality - 1)) * (1. - l.value1ofk)
-                    # a += np.log(s)
-                    a *= s
+                    # if s.argmax() != self.GT:
+                    #     print(f's -> {s} t -> {t} l -> {l.value1ofk} GT -> {self.GT}')
+                    a += np.log(s)
+                    # a *= s
                 #     debug(l, "t=",t,"s=",s,"a=",a)
                 # debug(" ==> a=",a/a.sum())
-                # alpha += len(self.annotations) * ((np.exp(a)/np.exp(a).sum())/nSamples)
-                alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
+                alpha += len(self.annotations) * (np.exp(a-logsumexp(a))/nSamples)
+                # alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
             return alpha
             
     def sample(self):
@@ -102,7 +105,7 @@ class Question:
 
     def logProb(self):
         debug_print("logprob q: ", self.posterior)
-        return np.log(self.posterior.max()/self.posterior.sum())
+        return np.log(self.posterior.max()/logsumexp(self.posterior))
 
     def __repr__(self):
         if self.gt:
@@ -142,7 +145,7 @@ class Annotator:
 
     def computePosterior(self, nSamples):
         if self.KG:
-            return 10,np.spacing(0)
+            return self.annotations.__len__(),np.spacing(0)
         else:
             alpha,beta = self.prior
             for a in self.annotations:
@@ -156,10 +159,10 @@ class Annotator:
                     # if t > 1.-1e-10:
                     #     t = 1-1e-10
                     chance = (1. - v[a.value]) / (self.car - 1)
-                    pos = np.max([v[a.value]-chance,0.])
+                    pos = v[a.value]
                     # pos = v[a.value] - chance # picking an extremely unlikely constitutes negative evidence, means that v[a] may not be exactly 0
                     neg = chance
-                    post = pos/(pos+neg)
+                    post = pos/(pos+neg) # v value -chance/ v value
 
                     # debug(a,v,"pos=%0.2g,neg=%0.2g" % (pos,neg))
                     alpha += (post)/nSamples
@@ -173,9 +176,11 @@ class Annotator:
                         
             # debug("Annotator posterior ",self.name,"a=",alpha,"b=",beta, "num of annot=",len(self.annotations))
             if alpha <= 0:
+
                 alpha = np.spacing(0)
             if beta <= 0:
                 beta = np.spacing(0)
+
             return alpha, beta
         
     def sample(self):
@@ -188,7 +193,7 @@ class Annotator:
 
 
     def logProb(self):
-        return np.log(self.posterior.max()/self.posterior.sum())
+        return np.log(self.posterior.max()/logsumexp(self.posterior))
     
     def __repr__(self):
         s = "Annotator(%s)" % self.id
@@ -236,7 +241,7 @@ class mcmc():
     def __init__(self, car, annotations, user):
         self.M = np.arange(0,nQuestions)    # Questions
         self.L = np.arange(0,car)             # Given label per question
-        self.K = car                          # Number of answer options
+        self.car = car                          # Number of answer options
         self.cm = car-1                       # -1 because there's one good answer and the rest is wrong
         self.iter = 0
 
@@ -260,10 +265,10 @@ class mcmc():
         if n + 5 > warmup:
             C = 0
         else:
-            C = 1 / (1.2 ** n)
-        # print(f'self.C -> {C}')
+            C = 0.5 / (1.5 ** n)
+
         for _,q in self.questions.items():
-            q.C = C
+            q.C = C *(1-1/self.car)
         for _,a in self.annotators.items():
             a.C = C
 
@@ -342,9 +347,9 @@ class mcmc():
                     self.annotators[i].posterior = np.array(res)
                 
                 if posteriorindices[self.iter]:
-                    for _, annotator in self.annotators.items():
+                    for annotator in self.annotators.values():
                         annotator.postsamples.append(annotator.posterior)
-                    for _, question in self.questions.items():
+                    for question in self.questions.values():
                         question.postsamples.append(question.posterior)
 
                     sample_cnt += 1
@@ -363,8 +368,22 @@ class mcmc():
 
 def majority(annotations, nQuestions, car):
     maj_ans =[]
+    disc_annot = [] # discarded annotators
+    for q in annotations.loc[annotations['KG']==1, :].iterrows():
+        for d in range(dup):
+            if q[1][f'annot_{d}'] != q[1]['GT']:
+                disc_annot.append(q[1][f'id_{d}'])
+    for u in user.loc[user['type']=='KG', :].iterrows():
+        for d in range(dup):
+            for q in annotations.loc[annotations[f'id_{d}'] == u[0], :].iterrows():# for all questions answered by a KG annotator
+                if q[1][f'annot_{d}'] != u[1][f'q_{q[0]}']:
+                    disc_annot.append(q[1][f'id_{d}'])
+    disc_annot = set(disc_annot)
+    if disc_annot.__len__() == user.__len__():
+        return [np.nan]*annotations.__len__() # don't bother figuring out pc if there are no annotators left
     for q in range(nQuestions):
         # weights for all k options list
+
         k_w = []
         for k in range(car):
             # counter for number of people who chose option k
@@ -452,14 +471,14 @@ if __name__ == "__main__":
 
                                     ## add parameters to dataframes
                                     # known goods
+                                    annotations[f'KG'] = np.zeros(annotations.__len__())
                                     if p_kg > 0:
                                         while not annotations[f'KG'].any(): # ensure that there is at least one KG
                                             annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
-                                    else:
-                                        annotations[f'KG'] = np.zeros(annotations.__len__())
+
                                     # global nQuestions
                                     nQuestions = annotations.__len__()
-
+                                    # majority(annotations, nQuestions, car)
                                     sel_model = ModelSel(keep_n_samples, car, nQuestions, user, annotations, priors, nModels,nSamples)
                                     # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
                                     confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])
