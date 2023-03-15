@@ -265,11 +265,12 @@ class mcmc():
         if n + 5 > warmup:
             C = 0
         else:
-            C = 0.5 / (1.5 ** n)
+            C = 0.3 / (1.5 ** n)
+            # C = 0
 
-        for _,q in self.questions.items():
-            q.C = C *(1-1/self.car)
-        for _,a in self.annotators.items():
+        # for q in self.questions.values():
+        #     q.C = C
+        for a in self.annotators.values():
             a.C = C
 
     # @timeit
@@ -491,7 +492,7 @@ if __name__ == "__main__":
                                         # [(i, conf), axis=1) for i, conf in enumerate(np.exp(prob)) for prob in sel_model.model.questions.values()
                                         
                                     t_diff = np.mean([abs(a.T_model-a.T) for a in sel_model.model.annotators.values()])
-                                    print(f'conf: {np.exp(sel_model.bestQ+sel_model.bestA)}, pc_m: {sel_model.model.pc_m}, pc_n: {sel_model.model.pc_n}, t_diff: {t_diff}')
+                                    print(f'conf: {np.exp(sel_model.bestQ+sel_model.bestA)}, prop. correct modelled: {sel_model.model.pc_m}, prop. correct maj. vote: {sel_model.model.pc_n}, avg. diff. T: {t_diff}')
 
                                     # create mcmc_data dataframe
                                     mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, sel_model, sel_model.model.pc_m, sel_model.model.pc_n, sel_model.bestQ, sel_model.bestA]

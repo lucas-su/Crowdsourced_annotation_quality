@@ -7,7 +7,7 @@ car_list = [2, 3, 4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]    
 # T_dist_list = [f'beta{round(flt*18+1, 2)}_{round(20-(flt*18+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
@@ -72,7 +72,7 @@ def set_nQuestions(datasetsize):
     return nQuestions
 def set_priors(nQuestions, car, dup):
 
-    priors = {'qAlpha': round(dup/10, 3)}
+    priors = {'qAlpha': 1e-20}
 
     a = 2
     b = 1
