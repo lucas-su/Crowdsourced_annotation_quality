@@ -57,7 +57,7 @@ class dist():
         cum = np.zeros(self.x.__len__())
         for dist in self.param:
             func = eval(f'self.{dist[0]}') # eval to determine which distribution to take. Options: gamma beta gaussian uniform
-            if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform', 'single', 'T_else']:
+            if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform', 'single', 'propT_']:
                 raise NotImplementedError
             cum += func(*dist[1:])
 
@@ -83,7 +83,7 @@ class dist():
     def uniform(self):
         return self.x * (max(self.x) / self.x.__len__())
     
-    def T_else(self, prop):
+    def propT_(self, prop):
         probs = np.zeros(self.x.shape[0])
         prop = float(prop)
         probs[0] = 1-prop
@@ -151,8 +151,8 @@ def createData(path, car, T_dist, dup, p_fo, p_KG_u, ncpu, size):
     elif T_dist[:4] == "beta":
         param = [['beta', float(T_dist[4:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:])]]
         distribution = dist(param, x)
-    elif T_dist[:6] == 'T_else':
-        param = [['T_else', T_dist[6:]]]
+    elif T_dist[:6] == 'propT_':
+        param = [['propT_', T_dist[6:]]]
         distribution = dist(param, x)
     else:
         raise ValueError

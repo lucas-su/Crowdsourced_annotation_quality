@@ -3,18 +3,19 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [2, 3, 4]
+car_list = [2,3,4]
 
-# T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]    
-# T_dist_list = [f'beta{round(flt*18+1, 2)}_{round(20-(flt*18+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'T_else{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
+# T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+beta_base = 5
+# T_dist_list = [f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
+T_dist_list = [f'propT_{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
-dup_list = [5]
+dup_list = [2,3,5,7]
 p_fo_list = [0.0]
-p_kg_list = [0.]
-p_kg_u_list = [0.0]
+p_kg_list = [0.0, 0.05]
+p_kg_u_list = [0.0, 0.05]
 
 if debug:
     datasetsize_list = ['debug'] 

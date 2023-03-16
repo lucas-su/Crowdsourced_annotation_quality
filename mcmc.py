@@ -363,43 +363,72 @@ class mcmc():
         self.process_pc_posterior()
         
         self.pc_m = np.sum([q.model==q.GT for _,q in self.questions.items()])/nQuestions
-        self.pc_n = np.sum([q.GT==maj_ans for (_,q), maj_ans in zip(self.questions.items(), majority(annotations, nQuestions, car))])/nQuestions
+        # self.pc_n = np.sum([q.GT==maj_ans for (_,q), maj_ans in zip(self.questions.items(), majority(annotations, nQuestions, car))])/nQuestions
         
 
 
-def majority(annotations, nQuestions, car):
-    maj_ans =[]
-    disc_annot = [] # discarded annotators
-    for q in annotations.loc[annotations['KG']==1, :].iterrows():
-        for d in range(dup):
-            if q[1][f'annot_{d}'] != q[1]['GT']:
-                disc_annot.append(q[1][f'id_{d}'])
-    for u in user.loc[user['type']=='KG', :].iterrows():
-        for d in range(dup):
-            for q in annotations.loc[annotations[f'id_{d}'] == u[0], :].iterrows():# for all questions answered by a KG annotator
-                if q[1][f'annot_{d}'] != u[1][f'q_{q[0]}']:
-                    disc_annot.append(q[1][f'id_{d}'])
-    disc_annot = set(disc_annot)
-    if disc_annot.__len__() == user.__len__():
-        return [np.nan]*annotations.__len__() # don't bother figuring out pc if there are no annotators left
-    for q in range(nQuestions):
-        # weights for all k options list
+class majority():
+    def __init__(self, annotations, nQuestions):
+        self.maj_ans =[]
+        self.disc_annot = set([]) # discarded annotators
+        self.set_pc(annotations, nQuestions)
 
-        k_w = []
-        for k in range(car):
-            # counter for number of people who chose option k
-            d_w = 0
+    def set_discard(self, annotations):
+
+        for q in annotations.loc[annotations['KG']==1, :].iterrows():
             for d in range(dup):
-                if annotations.at[q, f'annot_{d}'] == k:
-                    d_w += 1
-            k_w.append(d_w)
-        max_val = max(k_w)
-        max_indices = []
-        for i, k in enumerate(k_w):
-            if k == max_val:
-                max_indices.append(i)
-        maj_ans.append(max_indices[np.random.randint(max_indices.__len__())])
-    return maj_ans
+                if q[1][f'annot_{d}'] != q[1]['GT']:
+                    self.disc_annot.add(q[1][f'id_{d}'])
+        for u in user.loc[user['type']=='KG', :].iterrows():
+            for d in range(dup):
+                for q in annotations.loc[annotations[f'id_{d}'] == u[0], :].iterrows():# for all questions answered by a KG annotator
+                    for d_ in range(dup): # go over all the other annotations for this question
+                        if q[1][f'annot_{d_}'] != u[1][f'q_{q[0]}']:
+                            self.disc_annot.add(q[1][f'id_{d_}'])
+        if self.disc_annot.__len__() > 0:
+            print(f'annotators {self.disc_annot} were removed')
+        if self.disc_annot.__len__() == user.__len__():
+            print(f'No annotators left who agree with all known good questions/annotators')
+            return [np.nan]*annotations.__len__() # don't bother figuring out pc if there are no annotators left
+
+    def set_pc(self, annotations, nQuestions):
+        self.pc = np.sum(annotations['GT'] == self.run(annotations, nQuestions, with_disc=False))/ nQuestions
+        if np.any(annotations['KG'])| np.any(user['type']=='KG'):
+            self.pc_KG = np.sum(annotations['GT'] == self.run(annotations,nQuestions, with_disc=True))/ nQuestions
+        else:
+            self.pc_KG = self.pc
+
+    def run(self, annotations,nQuestions, with_disc = False):
+        self.maj_ans = []
+        if with_disc:
+            self.set_discard(annotations)
+        else:
+            self.disc_annot = set([])
+
+        for q in range(nQuestions):
+            # weights for all k options list
+            if annotations.at[q, f'KG']:
+                self.maj_ans.append(annotations.at[q, f'GT'])
+            else:
+                k_weight = np.zeros(car)
+                for k in range(car):
+                    # counter for number of people who chose option k
+                    for d in range(dup):
+                        if not annotations.at[q, f'id_{d}'] in self.disc_annot:
+                            if annotations.at[q, f'annot_{d}'] == k:
+                                k_weight[k] +=1
+
+
+                if not np.array_equal(np.zeros(car),k_weight):
+                    max_val = max(k_weight)
+                    max_indices = []
+                    for i, k in enumerate(k_weight):
+                        if k == max_val:
+                            max_indices.append(i)
+                    self.maj_ans.append(max_indices[np.random.randint(max_indices.__len__())])
+                else:
+                    self.maj_ans.append(np.nan)
+        return self.maj_ans
 
 class ModelSel:
     def __init__(self,keep_n_samples, car, nQuestions, user, annotations, priors,nModels,nSamples):
@@ -452,7 +481,7 @@ if __name__ == "__main__":
                         for p_kg_u in p_kg_u_list:
                             mcmc_data = pandas.DataFrame(
                                 columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
-                                         'mcmc', 'pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA'])
+                                         'mcmc', 'pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA'])
 
                             session_dir = set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                             for T_dist in T_dist_list:
@@ -480,6 +509,7 @@ if __name__ == "__main__":
                                     # global nQuestions
                                     nQuestions = annotations.__len__()
                                     # majority(annotations, nQuestions, car)
+                                    maj = majority(annotations, nQuestions)
                                     sel_model = ModelSel(keep_n_samples, car, nQuestions, user, annotations, priors, nModels,nSamples)
                                     # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
                                     confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])
@@ -490,17 +520,22 @@ if __name__ == "__main__":
                                     #     print('No further answering needed')
 
                                         # [(i, conf), axis=1) for i, conf in enumerate(np.exp(prob)) for prob in sel_model.model.questions.values()
-                                        
+
+
                                     t_diff = np.mean([abs(a.T_model-a.T) for a in sel_model.model.annotators.values()])
-                                    print(f'conf: {np.exp(sel_model.bestQ+sel_model.bestA)}, prop. correct modelled: {sel_model.model.pc_m}, prop. correct maj. vote: {sel_model.model.pc_n}, avg. diff. T: {t_diff}')
+                                    print(f'conf: {np.exp(sel_model.bestQ+sel_model.bestA)} \n'
+                                          f'prop. correct modelled: \t\t\t\t {sel_model.model.pc_m} \n'
+                                          f'prop. correct maj. vote: \t\t\t\t {maj.pc}\n'
+                                          f'prop. correct maj. vote KG corrected:\t {maj.pc_KG}\n'
+                                          f'avg. diff. T: {t_diff}')
 
                                     # create mcmc_data dataframe
-                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, sel_model, sel_model.model.pc_m, sel_model.model.pc_n, sel_model.bestQ, sel_model.bestA]
+                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, sel_model, sel_model.model.pc_m, maj.pc, maj.pc_KG, sel_model.bestQ, sel_model.bestA]
  
                                     # save data
-                                    with open(f'{session_dir}/output/mcmc_annotations_data_size-{size}_T_dist-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{keep_n_samples}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_annotations_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
                                         pickle.dump(annotations, file)
-                                    with open(f'{session_dir}/output/mcmc_user_data_size-{size}_T_dist-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{keep_n_samples}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_user_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
                                         pickle.dump(user, file)
-                                    with open(f'{session_dir}/output/mcmc_data_size-{size}{"_".join(T_dist_list)}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_data_{"_".join(T_dist_list)}.pickle', 'wb') as file:
                                         pickle.dump(mcmc_data, file)

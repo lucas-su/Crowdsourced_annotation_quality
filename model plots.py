@@ -354,11 +354,11 @@ class plots():
         x = np.arange(11)/10
 
         self.axspc_T.plot(x, mcmcpc_m, label='mcmc')
-        self.axspc_T.fill_between(x, np.array(mcmcpc_m+mcmc_sd, dtype=float), np.array(mcmcpc_m-mcmc_sd, dtype=float), alpha=0.2)
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], alpha=0.2)
         # self.axspc_T.plot(x, empc_m, label='em')
         # self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
         self.axspc_T.plot(x, naivepc, label='maj. vote')
-        self.axspc_T.fill_between(x, np.array(naivepc + naive_sd, dtype=float), np.array(naivepc - naive_sd, dtype=float), alpha=0.2 )
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naivepc + naive_sd, dtype=float)], [max(sd, 0) for sd in np.array(naivepc - naive_sd, dtype=float)], alpha=0.2 )
         self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='green')
         self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
         self.axspc_T.set_ylabel('Proportion item labels correct')
@@ -378,8 +378,8 @@ if __name__ == "__main__":
                 for p_fo in p_fo_list:
                     for p_kg in p_kg_list:
                         for p_kg_u in p_kg_u_list:
-                            # if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)}/stats.pickle'):
-                            create_stats.main(size, car, dup, p_fo, p_kg, p_kg_u)
+                            if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)}/stats.pickle'):
+                                create_stats.main(size, car, dup, p_fo, p_kg, p_kg_u)
 
 
 
