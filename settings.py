@@ -8,14 +8,14 @@ car_list = [2,3,4]
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_base = 5
 # T_dist_list = [f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'propT_{round(flt, 2)}' for flt in np.arange(0.0, 1.1, 0.1)]
+T_dist_list = [f'propT_{round(flt, 2)}' for flt in np.arange(0., 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
-dup_list = [2,3,5,7]
+dup_list = [2,3,7]
 p_fo_list = [0.0]
-p_kg_list = [0.0, 0.05]
-p_kg_u_list = [0.0, 0.05]
+kg_q_list = [0,10,20]
+kg_u_list = [0,1,2]
 
 if debug:
     datasetsize_list = ['debug'] 
@@ -37,14 +37,14 @@ if debug:
     nModels = 2
 
 elif platform.system() == 'Windows': # running local: fewer demands
-    warmup = 20
-    nSamples = 3
+    warmup = 10
+    nSamples = 1
     sample_interval = 1
     keep_samples_list = [1]
     nModels = 5
 else:
-    warmup = 25
-    nSamples = 3 # number of samples per iteration
+    warmup = 15
+    nSamples = 1 # number of samples per iteration
     sample_interval = 1 # keep a sample every sample_interval iterations
     keep_samples_list = [5] # n samples to keep
     nModels = 5
@@ -53,9 +53,9 @@ else:
 # create data settings
 c_data_mal_T = True # assumes 'malicious' users at T=0 if true, meaning that they give anything but the correct answers. False means uniform chance over all answers at T=0
 
-def set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u):
+def set_session_dir(size, car, dup, p_fo, kg_q, kg_u):
 
-    session_dir = f'sessions/datasetsize_{size}/cardinality_{car}/dup_{dup}/p_fo_{p_fo}/p_kg_{p_kg}/p_kg_u_{p_kg_u}/'
+    session_dir = f'sessions/datasetsize_{size}/cardinality_{car}/dup_{dup}/p_fo_{p_fo}/kg_q_{kg_q}/kg_u_{kg_u}/'
     return session_dir
 
 
@@ -75,12 +75,12 @@ def set_priors(nQuestions, car, dup):
 
     priors = {'qAlpha': 1e-20}
 
-    a = 2
-    b = 1
-    fraction = 5 # gwenn advised 5
+    a = 1.2
+    b = 1.
+    # fraction =2
 
-    priors['aAlpha'] = round((nQuestions*(a/(a+b)))/fraction, 3)
-    priors['aBeta'] =  round((nQuestions*(b/(a+b)))/fraction, 3)
+    priors['aAlpha'] = a
+    priors['aBeta'] =  b
 
     for pr in priors.values():
         assert type(pr) == float, 'Priors need to be floats'

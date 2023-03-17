@@ -64,32 +64,56 @@ class Question:
     def computePosterior(self, nSamples):
         if self.KG:
             # This is a special question, the ground-truth answer is known. Don't sample
-            return np.eye(self.cardinality)[self.GT]+np.spacing(0)
+            return 10000 * np.eye(self.cardinality)[self.GT] + np.array(self.prior)
         elif np.any([annotation.annotator.KG for annotation in self.annotations]):
             # is we know at least one of the annotators is good, we don't need to sample
             # this should really be: if we have a KG, take the answer from the person, but this is the same as taking GT
-            return np.eye(self.cardinality)[self.GT]+np.spacing(0)
+            return 10000 * np.eye(self.cardinality)[self.GT] + np.array(self.prior)
         else:
             alpha = np.array(self.prior)
             debug_print(f'sample question self.post: {self.posterior}')
             for i in range(nSamples):
                 # a = np.ones(alpha.shape)
                 a = np.zeros(alpha.shape)
-                for l in self.annotations:
-                    t = l.annotator.sample()# sample trust
-                    if (t<1e-10):
-                        t = 1e-10
-                    if (1-t) < 1e-10:
-                        t = 1.-1e-10
-                    s = t * l.value1ofk + ((1 - t) / (self.cardinality - 1)) * (1. - l.value1ofk)
-                    # if s.argmax() != self.GT:
-                    #     print(f's -> {s} t -> {t} l -> {l.value1ofk} GT -> {self.GT}')
-                    a += np.log(s)
-                    # a *= s
-                #     debug(l, "t=",t,"s=",s,"a=",a)
-                # debug(" ==> a=",a/a.sum())
-                alpha += len(self.annotations) * (np.exp(a-logsumexp(a))/nSamples)
-                # alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
+                # a_T = np.array([(x.value, x.annotator.sample()) for x in self.annotations])
+                # pos = [np.prod([a_T[y, 1] if y != [] else 0 for y in np.where(a_T.T[0]==c)]) for c in range(self.car)]
+                # pos_norm = [pos[c]*len(np.where(a_T.T[0]==c))/self.car for c in range(self.car)]
+                # for i, p in enumerate(pos_norm):
+                #     a += (1-p)*(1- np.eye(self.car)[i])
+
+
+                ts = [l.annotator.sample() for l in self.annotations]
+                a = np.ones(alpha.shape)
+                for v in range(self.cardinality):
+                    # For every possible answer
+                    cs = [l.value == v for l in
+                          self.annotations]  # check which annotator is correct for this answer
+                    for t, c in zip(ts, cs):
+                        a[v] *= t if c else 1. - t  # Compute the probability that this combination of correctnesses happens
+                    # debug("posterior question", self, "for v=", v, ":", ts, cs)
+                # debug(" --> a", a)
+                alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
+
+            #
+            #     for l in self.annotations:
+            #         t = l.annotator.sample()# sample trust
+            #         # if (t<1e-10):
+            #         #     t = np.spacing(3)
+            #         # if (1-t) < 1e-10:
+            #         #     t = 1.-np.spacing(3)
+            #         s = t * l.value1ofk + ((1 - t) / (self.cardinality - 1)) * (1. - l.value1ofk)
+            #         # if s.argmax() != self.GT:
+            #         #     print(f's -> {s} t -> {t} l -> {l.value1ofk} GT -> {self.GT}')
+            #         a += np.log(s)
+            #         # a *= s
+            #     #     debug(l, "t=",t,"s=",s,"a=",a)
+            #     # debug(" ==> a=",a/a.sum())
+            #     with np.errstate(all="raise"):
+            #         try:
+            #             alpha += len(self.annotations) * (np.exp(a-logsumexp(a))/nSamples)
+            #         except:
+            #             pass
+
             return alpha
             
     def sample(self):
@@ -145,13 +169,18 @@ class Annotator:
 
     def computePosterior(self, nSamples):
         if self.KG:
-            return self.annotations.__len__(),np.spacing(0)
+            # return self.annotations.__len__()+priors['aAlpha'],priors['aBeta']
+            return 1000, 1e-10
         else:
             alpha,beta = self.prior
             for a in self.annotations:
                 debug_print(f'sample annot self.post: {self.posterior}')
                 for _ in range(nSamples):
                     v = a.question.sample()
+
+                    # KG samples are 0 0 1 0 etc., are non KG 0 0 4 0 etc?
+
+
                     # t = self.sample() # of current posterior
                     #
                     # if (t<1e-10):
@@ -186,7 +215,8 @@ class Annotator:
     def sample(self):
         """Sample the annotator's trustworthiness"""
         if rng.uniform()<self.C:
-            return rng.uniform()
+            return 0. if rng.uniform() < 0.5 else 1.
+
         else:
             a,b = self.posterior
             return rng.beta(a,b)
@@ -265,8 +295,8 @@ class mcmc():
         if n + 5 > warmup:
             C = 0
         else:
-            C = 0.3 / (1.5 ** n)
-            # C = 0
+            # C = 0.3 / (1.5 ** n)
+            C = 0
 
         # for q in self.questions.values():
         #     q.C = C
@@ -477,34 +507,34 @@ if __name__ == "__main__":
             for dup in dup_list:
                 priors = set_priors(nQuestions, car, dup)
                 for p_fo in p_fo_list:
-                    for p_kg in p_kg_list:
-                        for p_kg_u in p_kg_u_list:
+                    for kg_q in kg_q_list:
+                        for kg_u in kg_u_list:
                             mcmc_data = pandas.DataFrame(
                                 columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
                                          'mcmc', 'pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA'])
 
-                            session_dir = set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                            session_dir = set_session_dir(size, car, dup, p_fo, kg_q, kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                             for T_dist in T_dist_list:
                                 os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
 
-                                createData(f'{session_dir}', car, T_dist, dup, p_fo, p_kg_u, ncpu, size)
+                                createData(f'{session_dir}', car, T_dist, dup, p_fo, kg_u, ncpu, size)
 
                                 for keep_n_samples in keep_samples_list:
                                     # open dataset for selected parameters
-                                    with open(f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_user.pickle',
+                                    with open(f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_user.pickle',
                                               'rb') as file:
                                         user = pickle.load(file)
                                     with open(
-                                            f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_kg_u}_annotations_empty.pickle',
+                                            f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_annotations_empty.pickle',
                                             'rb') as file:
                                         annotations = pickle.load(file)
 
                                     ## add parameters to dataframes
                                     # known goods
                                     annotations[f'KG'] = np.zeros(annotations.__len__())
-                                    if p_kg > 0:
-                                        while not annotations[f'KG'].any(): # ensure that there is at least one KG
-                                            annotations[f'KG'] = [np.random.choice([0,1], p=[1-p_kg,p_kg]) for _ in range(annotations.__len__())]
+                                    if kg_q>0:
+                                        annotations.loc[:kg_q-1, f'KG'] = 1
+                                    # annotations[f'KG'] = [np.random.choice([0,1], p=[1 - kg_q, kg_q]) for _ in range(annotations.__len__())]
 
                                     # global nQuestions
                                     nQuestions = annotations.__len__()
@@ -530,7 +560,7 @@ if __name__ == "__main__":
                                           f'avg. diff. T: {t_diff}')
 
                                     # create mcmc_data dataframe
-                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, p_kg, p_kg_u, sel_model, sel_model.model.pc_m, maj.pc, maj.pc_KG, sel_model.bestQ, sel_model.bestA]
+                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, kg_q, kg_u, sel_model, sel_model.model.pc_m, maj.pc, maj.pc_KG, sel_model.bestQ, sel_model.bestA]
  
                                     # save data
                                     with open(f'{session_dir}/output/mcmc_annotations_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:

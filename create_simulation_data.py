@@ -110,20 +110,17 @@ class dist():
         ax.plot(np.linspace(0,10,self.cum.__len__()), self.cum, 'o')
         plt.show()
 
-def detType(nAnnot, p_fo, p_KG_u):
+def detType(nAnnot, p_fo):
 
     rans = [random.random() for _ in range(nAnnot)]
-    type = ["normal" if ran > p_fo + p_KG_u
-            else "KG" if ran > p_fo
+    type = ["normal" if ran > p_fo
             else "first_only" for ran in rans]
-    if (p_KG_u>0) and not ('KG' in type):
-        type = detType(nAnnot, p_fo, p_KG_u)
     if (p_fo>0) and not ('first_only' in type):
-        type = detType(nAnnot, p_fo, p_KG_u)
+        type = detType(nAnnot, p_fo)
     return type
 
 
-def createData(path, car, T_dist, dup, p_fo, p_KG_u, ncpu, size):
+def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
     nAnnot = settings.nAnnotator
 
     if size == 'debug':
@@ -157,7 +154,7 @@ def createData(path, car, T_dist, dup, p_fo, p_KG_u, ncpu, size):
     else:
         raise ValueError
     udata = {"ID":range(nAnnot),
-                "type": detType(nAnnot, p_fo,  p_KG_u),
+                "type": detType(nAnnot, p_fo),
                 "T_given": random.choices(x, distribution(), k=nAnnot),
                 "T_model": np.ones(nAnnot)*0.5}
 
@@ -165,6 +162,15 @@ def createData(path, car, T_dist, dup, p_fo, p_KG_u, ncpu, size):
         udata[f"q_{q}"] = np.ones(nAnnot)*np.nan
 
     user = pandas.DataFrame(data=udata)
+
+    kg_u_cnt = 0
+    for i, u in (user['type']=='normal').iteritems():
+        if kg_u == kg_u_cnt:
+            break
+        if u:
+            user.loc[i, 'type'] = 'KG'
+            kg_u_cnt += 1
+
 
     annotdict = {"ID":range(nQuestions),
                     "GT": random.choices(range(car), k=nQuestions),
@@ -194,16 +200,16 @@ def createData(path, car, T_dist, dup, p_fo, p_KG_u, ncpu, size):
 
     if user.__len__() != ulen:
         print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
-    print(f"saved annotations | Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, prop. malicious {p_fo}, prop. known good users {p_KG_u}")
+    print(f"saved annotations | Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, prop. malicious {p_fo}, prop. known good users {kg_u}")
 
     os.makedirs(f'{path}/simulation data/{T_dist}/', exist_ok=True)
     os.makedirs(f'{path}/simulation data/{T_dist}/csv', exist_ok=True)
     os.makedirs(f'{path}/simulation data/{T_dist}/pickle', exist_ok=True)
 
     # save data
-    with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_user.pickle', 'wb') as file:
+    with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_user.pickle', 'wb') as file:
         pickle.dump(user, file)
-    with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{p_KG_u}_annotations_empty.pickle', 'wb') as file:
+    with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_annotations_empty.pickle', 'wb') as file:
         pickle.dump(annotation, file)
 if __name__ == "__main__":
     if platform.system() == 'Windows':

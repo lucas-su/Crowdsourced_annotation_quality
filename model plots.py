@@ -111,8 +111,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == p_kg) &
-                    (data['p_kg_u'] == p_kg_u) &
+                    (data['p_kg'] == kg_q) &
+                    (data['p_kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'pc_n'
                 ], label='Maj. vote')
@@ -125,8 +125,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == p_kg) &
-                    (data['p_kg_u'] == p_kg_u) &
+                    (data['p_kg'] == kg_q) &
+                    (data['p_kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'pc_m'
                 ], label='EM')
@@ -139,8 +139,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == p_kg) &
-                    (data['p_kg_u'] == p_kg_u) &
+                    (data['p_kg'] == kg_q) &
+                    (data['p_kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'uerror'
                 ], label='EM')
@@ -154,8 +154,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == p_kg) &
-                    (data['p_kg_u'] == p_kg_u) &
+                    (data['p_kg'] == kg_q) &
+                    (data['p_kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'pc_m'
                 ], label='MCMC')
@@ -168,8 +168,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == p_kg) &
-                    (data['p_kg_u'] == p_kg_u) &
+                    (data['p_kg'] == kg_q) &
+                    (data['p_kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'uerror'
                 ], label='MCMC')
@@ -182,8 +182,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == p_kg) &
-                    (data['p_kg_u'] == p_kg_u) &
+                    (data['p_kg'] == kg_q) &
+                    (data['p_kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'pc_aftr_prun_total' # pc_aftr_prun_total pc_aftr_prun
                 ], label='Krip a')
@@ -372,14 +372,17 @@ if __name__ == "__main__":
 
     iterations = {'em':10,
                   'mcmc': 100}
+    # walk = os.walk('sessions')
+    # for step in walk:
+    #     find()
     for size in datasetsize_list:
         for car in car_list:
             for dup in dup_list:
                 for p_fo in p_fo_list:
                     for p_kg in p_kg_list:
                         for p_kg_u in p_kg_u_list:
-                            if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)}/stats.pickle'):
-                                create_stats.main(size, car, dup, p_fo, p_kg, p_kg_u)
+                            if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, kg_q, kg_u)}/stats.pickle'):
+                                create_stats.main(size, car, dup, p_fo, kg_q, kg_u)
 
 
 
@@ -405,7 +408,7 @@ if __name__ == "__main__":
                 for p_kg_u in p_kg_u_list:
                     for dup in dup_list:
                         for p_fo in p_fo_list:
-                            with open(f'{set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)}/stats.pickle','rb') as file:
+                            with open(f'{set_session_dir(size, car, dup, p_fo, kg_q, kg_u)}/stats.pickle', 'rb') as file:
                                 data = pickle.load(file)
                             data = data.loc[data['session'] == 'avg']
-                            plot.plot_pc_T(car, dup, p_fo, p_kg, size, p_kg_u)
+                            plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)

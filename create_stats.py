@@ -117,7 +117,7 @@ def makeplaceholderframe(model, idx, datalen, cols):
 
 
 def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u):
-    with open(f'{session_dir}/{sessions[0]}/output/{model}_data_size-{size}{"_".join(T_dist_list)}.pickle', 'rb') as file:
+    with open(f'{session_dir}/{sessions[0]}/output/{model}_data_{"_".join(T_dist_list)}.pickle', 'rb') as file:
         tmp_data = pickle.load(file)
     data.loc[(data['model'] == model) & (data['session'] == 'avg'),
     ['car', 'T_dist', 'dup', 'p_fo', 'p_kg','p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size'] == size) & (tmp_data['car'] == car) & (tmp_data['p_kg_u'] == p_kg_u),
@@ -125,7 +125,7 @@ def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo
 
     # fill frame with values
     for idx, session in enumerate(sessions):
-        filepath = f'{session_dir}/{session}/output/{model}_data_size-{size}{"_".join(T_dist_list)}.pickle'
+        filepath = f'{session_dir}/{session}/output/{model}_data_{"_".join(T_dist_list)}.pickle'
         with open(filepath, 'rb') as file:
             tmp_data = pickle.load(file)
         data.loc[(data['model'] == model) & (data['session'] == 'avg'),
