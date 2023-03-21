@@ -61,7 +61,7 @@ class Question:
     def addAnnotation(self,annot):
         self.annotations.append(annot)
         
-    def computePosterior(self, nSamples):
+    def computePosterior(self, nSamples, u_idx = None):
         if self.KG:
             # This is a special question, the ground-truth answer is known. Don't sample
             return 10000 * np.eye(self.cardinality)[self.GT] + np.array(self.prior)
@@ -74,22 +74,24 @@ class Question:
             debug_print(f'sample question self.post: {self.posterior}')
             for i in range(nSamples):
                 # a = np.ones(alpha.shape)
-                a = np.zeros(alpha.shape)
+                # a = np.zeros(alpha.shape)
                 # a_T = np.array([(x.value, x.annotator.sample()) for x in self.annotations])
                 # pos = [np.prod([a_T[y, 1] if y != [] else 0 for y in np.where(a_T.T[0]==c)]) for c in range(self.car)]
                 # pos_norm = [pos[c]*len(np.where(a_T.T[0]==c))/self.car for c in range(self.car)]
                 # for i, p in enumerate(pos_norm):
                 #     a += (1-p)*(1- np.eye(self.car)[i])
 
-
-                ts = [l.annotator.sample() for l in self.annotations]
+                if u_idx == None:
+                    ls = self.annotations
+                else:
+                    ls = [l for l in self.annotations if l.annotator.id in u_idx]
+                ts = [l.annotator.sample() for l in ls]
                 a = np.ones(alpha.shape)
                 for v in range(self.cardinality):
                     # For every possible answer
-                    cs = [l.value == v for l in
-                          self.annotations]  # check which annotator is correct for this answer
+                    cs = [l.value == v for l in self.annotations]  # check which annotator is correct for this answer
                     for t, c in zip(ts, cs):
-                        a[v] *= t if c else 1. - t  # Compute the probability that this combination of correctnesses happens
+                        a[v] *= t if c else (1. - t)  # Compute the probability that this combination of correctnesses happens
                     # debug("posterior question", self, "for v=", v, ":", ts, cs)
                 # debug(" --> a", a)
                 alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
@@ -167,13 +169,18 @@ class Annotator:
     def addAnnotation(self, annot):
         self.annotations.append(annot)
 
-    def computePosterior(self, nSamples):
+    def computePosterior(self, nSamples, q_idx = None):
         if self.KG:
             # return self.annotations.__len__()+priors['aAlpha'],priors['aBeta']
             return 1000, 1e-10
         else:
             alpha,beta = self.prior
-            for a in self.annotations:
+            if q_idx == None:
+                ls = self.annotations
+            else:
+                ls = [l for l in self.annotations if l.annotator.id in q_idx]
+
+            for a in ls:
                 debug_print(f'sample annot self.post: {self.posterior}')
                 for _ in range(nSamples):
                     v = a.question.sample()
@@ -202,7 +209,7 @@ class Annotator:
                     # beta += bet
 
                     # debug("trustworthiness ",self.name,a.question.name,"a=",a.value,"q=",v, "t=",t,"post=",post,alpha,beta)
-                        
+
             # debug("Annotator posterior ",self.name,"a=",alpha,"b=",beta, "num of annot=",len(self.annotations))
             if alpha <= 0:
 
@@ -268,7 +275,7 @@ class Annotation:
 
 class mcmc():
     # @timeit
-    def __init__(self, car, annotations, user):
+    def __init__(self, car, items, user):
         self.M = np.arange(0,nQuestions)    # Questions
         self.L = np.arange(0,car)             # Given label per question
         self.car = car                          # Number of answer options
@@ -276,11 +283,11 @@ class mcmc():
         self.iter = 0
 
         self.annotators = {id: Annotator(id, type, T_given, car) for id, type, T_given in zip(user.ID, user.type, user.T_given)}
-        self.questions = {qid: Question(qid, KG, GT, car) for qid, KG, GT in zip(annotations.ID, annotations.KG, annotations.GT)}
+        self.questions = {qid: Question(qid, KG, GT, car) for qid, KG, GT in zip(items.ID, items.KG, items.GT)}
 
         self.annotations = []
 
-        for row in annotations.iterrows():
+        for row in items.iterrows():
             for i in range(dup):
                 self.annotations.append(Annotation(self.annotators[row[1][f'id_{i}']], self.questions[row[0]], row[1][f'annot_{i}']))
     
@@ -327,23 +334,56 @@ class mcmc():
 
             p = rng.dirichlet(np.mean(alphas, axis=0))
             q.model = p.argmax()
-        
+
+    def KG_warmup(self, a_idx, i_idx):
+        i_from_a = []
+        for a in self.annotators.values():
+            if a.id in a_idx:
+                a.posterior = a.computePosterior(nSamples, i_idx)
+                i_from_a += [ann.question.id for ann in a.annotations]
+
+        a_from_i = []
+        for i in self.questions.values():
+            if i.id in i_idx:
+                i.posterior = i.computePosterior(nSamples, a_idx)
+                a_from_i += [ann.annotator.id for ann in i.annotations]
+
+        a_idx = set(a_idx)
+        a_idx.update(a_from_i)
+        i_idx = set(i_idx)
+        i_idx.update(i_from_a)
+
+        return a_idx, i_idx
+
+
     # @timeit
-    def run(self, keep_n_samples, car, nQuestions, user, annotations, priors, nSamples):
+    def run(self, keep_n_samples, car, nQuestions, users, items, priors, nSamples):
         
         # generate binary array of to be selected estimates for posterior: ten rounds warmup, then every third estimate
         posteriorindices = (warmup * [False])+[x % sample_interval == 0 for x in range(keep_n_samples*sample_interval)]
         sample_cnt = 0
         
-        # counter to keep track of how many samples are taken
-        
+
+
+        a_idx, i_idx = self.KG_warmup(users.loc[(users['type'] == 'KG'), 'ID'], items.loc[(items['KG'] == True), 'ID'])
+        while a_idx.__len__() != users.__len__() or i_idx.__len__() != items.__len__():
+            a_len = a_idx.__len__()
+            i_len = i_idx.__len__()
+            a_idx, i_idx = self.KG_warmup(a_idx, i_idx)
+            if a_len == a_idx.__len__() and i_len == i_idx.__len__():
+                debug_print('warming up cannot be expanded anymore, stopping')
+                break
+            debug_print(f'warmed up {a_idx.__len__()} users out of {users.__len__()}')
+            debug_print(f'warmed up {i_idx.__len__()} questions out of {items.__len__()}')
+
+        debug_print('done warming up')
         with Pool(ncpu) as p:
         
             while self.iter < posteriorindices.__len__():
         
                 ## sample l_hat
                 # first only the KG's, as that primes the lhats for the other samples with the right bias
-                indices = annotations.loc[(annotations['KG']==True), 'ID']
+                indices = items.loc[(items['KG'] == True), 'ID']
                 if indices.__len__()>0:
                     
                     results = p.map(partial(self.sampleQIteration, nSamples), indices)
@@ -353,7 +393,7 @@ class mcmc():
 
                 ## sample tn
                 # first do the KG users
-                indices = user.loc[(user['type']=='KG'), 'ID']
+                indices = users.loc[(users['type'] == 'KG'), 'ID']
                 if indices.__len__()>0:
                     results = p.map(partial(self.sampleAIteration, nSamples), indices)
                     for i, res in zip(indices, results):
@@ -362,7 +402,7 @@ class mcmc():
                     # no need to sample known good users: they are known good and therefore T = 1
                 
                 # after the KG tn's, do the rest of the lhats
-                indices = annotations.loc[(annotations['KG'] == False), 'ID']
+                indices = items.loc[(items['KG'] == False), 'ID']
                 
                 results = p.map(partial(self.sampleQIteration, nSamples), indices)
                 for i, res in zip(indices, results):
@@ -371,7 +411,7 @@ class mcmc():
                     
                 
                 # finally the rest of tn's 
-                indices = user.loc[(user['type'] != 'KG'), 'ID']
+                indices = users.loc[(users['type'] != 'KG'), 'ID']
                 results = p.map(partial(self.sampleAIteration, nSamples), indices)
                 for i, res in zip(indices, results):
                     debug_print(f'Annot posterior normal: {res}')
@@ -409,7 +449,7 @@ class majority():
             for d in range(dup):
                 if q[1][f'annot_{d}'] != q[1]['GT']:
                     self.disc_annot.add(q[1][f'id_{d}'])
-        for u in user.loc[user['type']=='KG', :].iterrows():
+        for u in users.loc[users['type'] == 'KG', :].iterrows():
             for d in range(dup):
                 for q in annotations.loc[annotations[f'id_{d}'] == u[0], :].iterrows():# for all questions answered by a KG annotator
                     for d_ in range(dup): # go over all the other annotations for this question
@@ -417,13 +457,13 @@ class majority():
                             self.disc_annot.add(q[1][f'id_{d_}'])
         if self.disc_annot.__len__() > 0:
             print(f'annotators {self.disc_annot} were removed')
-        if self.disc_annot.__len__() == user.__len__():
+        if self.disc_annot.__len__() == users.__len__():
             print(f'No annotators left who agree with all known good questions/annotators')
             return [np.nan]*annotations.__len__() # don't bother figuring out pc if there are no annotators left
 
     def set_pc(self, annotations, nQuestions):
         self.pc = np.sum(annotations['GT'] == self.run(annotations, nQuestions, with_disc=False))/ nQuestions
-        if np.any(annotations['KG'])| np.any(user['type']=='KG'):
+        if np.any(annotations['KG'])| np.any(users['type'] == 'KG'):
             self.pc_KG = np.sum(annotations['GT'] == self.run(annotations,nQuestions, with_disc=True))/ nQuestions
         else:
             self.pc_KG = self.pc
@@ -523,24 +563,24 @@ if __name__ == "__main__":
                                     # open dataset for selected parameters
                                     with open(f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_user.pickle',
                                               'rb') as file:
-                                        user = pickle.load(file)
+                                        users = pickle.load(file)
                                     with open(
                                             f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_annotations_empty.pickle',
                                             'rb') as file:
-                                        annotations = pickle.load(file)
+                                        items = pickle.load(file)
 
                                     ## add parameters to dataframes
                                     # known goods
-                                    annotations[f'KG'] = np.zeros(annotations.__len__())
+                                    items[f'KG'] = np.zeros(items.__len__())
                                     if kg_q>0:
-                                        annotations.loc[:kg_q-1, f'KG'] = 1
+                                        items.loc[:kg_q - 1, f'KG'] = 1
                                     # annotations[f'KG'] = [np.random.choice([0,1], p=[1 - kg_q, kg_q]) for _ in range(annotations.__len__())]
 
                                     # global nQuestions
-                                    nQuestions = annotations.__len__()
+                                    nQuestions = items.__len__()
                                     # majority(annotations, nQuestions, car)
-                                    maj = majority(annotations, nQuestions)
-                                    sel_model = ModelSel(keep_n_samples, car, nQuestions, user, annotations, priors, nModels,nSamples)
+                                    maj = majority(items, nQuestions)
+                                    sel_model = ModelSel(keep_n_samples, car, nQuestions, users, items, priors, nModels, nSamples)
                                     # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
                                     confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])
                                     confindices = np.where(confs<0.5)
@@ -564,8 +604,8 @@ if __name__ == "__main__":
  
                                     # save data
                                     with open(f'{session_dir}/output/mcmc_annotations_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
-                                        pickle.dump(annotations, file)
+                                        pickle.dump(items, file)
                                     with open(f'{session_dir}/output/mcmc_user_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
-                                        pickle.dump(user, file)
+                                        pickle.dump(users, file)
                                     with open(f'{session_dir}/output/mcmc_data_{"_".join(T_dist_list)}.pickle', 'wb') as file:
                                         pickle.dump(mcmc_data, file)

@@ -10,18 +10,16 @@ from em import EM
 from mcmc import *
 from matplotlib.widgets import Slider, Button
 from mpl_toolkits.mplot3d.axes3d import get_test_data
-
-
-
+from create_stats import find_params
 
 
 class plots():
-    def __init__(self):
-        self.figcar, self.axscar = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
-        self.figuerror, self.axsuerror = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
-        self.figsave, self.axssave = plt.subplots()
-        self.figsave.set_size_inches(8,4)
-        self.figsave.subplots_adjust(top=0.98, bottom=0.12,right=0.83,left=0.08)
+    # def __init__(self):
+        # self.figcar, self.axscar = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
+        # self.figuerror, self.axsuerror = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
+        # self.figsave, self.axssave = plt.subplots()
+        # self.figsave.set_size_inches(8,4)
+        # self.figsave.subplots_adjust(top=0.98, bottom=0.12,right=0.83,left=0.08)
 
     def plot_one(self, mode, dup, p_fo, p_kg, iterations, datasetsize, p_kg_u):
         self.axssave.plot(car_list, data.loc[
@@ -308,7 +306,7 @@ class plots():
         plt.show()
 
     def plot_pc_T(self, car, dup, p_fo, p_kg, datasetsize, p_kg_u):
-        self.figpc_T, self.axspc_T = plt.subplots()
+        self.figpc_T, self.axspc_T = plt.subplots(figsize=(16,9))
         mcmcpc_m = data.loc[(data['model'] == 'mcmc') &
                         (data['car'] == car) &
                         (data['dup'] == dup) &
@@ -323,6 +321,20 @@ class plots():
                             (data['p_kg'] == p_kg) &
                             # (data['size'] == datasetsize) &
                             (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
+        certQ = data.loc[(data['model'] == 'mcmc') &
+                           (data['car'] == car) &
+                           (data['dup'] == dup) &
+                           (data['p_fo'] == p_fo) &
+                           (data['p_kg'] == p_kg) &
+                           # (data['size'] == datasetsize) &
+                           (data['p_kg_u'] == p_kg_u), 'CertaintyQ']
+        certA = data.loc[(data['model'] == 'mcmc') &
+                           (data['car'] == car) &
+                           (data['dup'] == dup) &
+                           (data['p_fo'] == p_fo) &
+                           (data['p_kg'] == p_kg) &
+                           # (data['size'] == datasetsize) &
+                           (data['p_kg_u'] == p_kg_u), 'CertaintyA']
         # empc_m = data.loc[(data['model'] == 'em') &
         #                     (data['car'] == car) &
         #                     (data['dup'] == dup) &
@@ -351,19 +363,31 @@ class plots():
                            (data['p_kg'] == p_kg) &
                         #    (data['size'] == datasetsize) &
                            (data['p_kg_u'] == p_kg_u), 'pc_n_SD']
+
+
+
         x = np.arange(11)/10
 
-        self.axspc_T.plot(x, mcmcpc_m, label='mcmc')
-        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], alpha=0.2)
+        # barw = 0.005
+        certQ = [np.exp(cert) for cert in certQ]
+        certA = [np.exp(cert) for cert in certA]
+        # self.axspc_T.bar(x-0.5*barw, certQ, barw, label='certQ', alpha=0.5)
+        # self.axspc_T.bar(x+0.5*barw, certA, barw, label='certA', alpha=0.5)
+        self.axspc_T.plot(x, certQ,  label='certQ', color='#d62728', alpha=0.5, linestyle='dashed')
+        self.axspc_T.plot(x, certA,  label='certA', color='#9467bd', alpha=0.5, linestyle='dashed')
+
+        self.axspc_T.plot(x, mcmcpc_m, label='mcmc', color='#1f77b4')
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], color='#1f77b4', alpha=0.2)
         # self.axspc_T.plot(x, empc_m, label='em')
         # self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
-        self.axspc_T.plot(x, naivepc, label='maj. vote')
-        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naivepc + naive_sd, dtype=float)], [max(sd, 0) for sd in np.array(naivepc - naive_sd, dtype=float)], alpha=0.2 )
-        self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='green')
+        self.axspc_T.plot(x, naivepc, label='maj. vote', color='#ff7f0e')
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naivepc + naive_sd, dtype=float)], [max(sd, 0) for sd in np.array(naivepc - naive_sd, dtype=float)],color='#ff7f0e', alpha=0.2 )
+        self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='#2ca02c')
         self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
-        self.axspc_T.set_ylabel('Proportion item labels correct')
-        self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items prop. {p_kg}, datasetsize {datasetsize}, known good users prop. {p_kg_u}')
+        self.axspc_T.set_ylabel('--- Proportion item labels correct\n- - - Confidence in questions and answers')
+        self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {p_kg}, datasetsize {datasetsize}, known good users {p_kg_u}')
         self.axspc_T.legend()
+
         plt.show()
 
 if __name__ == "__main__":
@@ -372,17 +396,33 @@ if __name__ == "__main__":
 
     iterations = {'em':10,
                   'mcmc': 100}
-    # walk = os.walk('sessions')
-    # for step in walk:
-    #     find()
-    for size in datasetsize_list:
-        for car in car_list:
-            for dup in dup_list:
-                for p_fo in p_fo_list:
-                    for p_kg in p_kg_list:
-                        for p_kg_u in p_kg_u_list:
-                            if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, kg_q, kg_u)}/stats.pickle'):
-                                create_stats.main(size, car, dup, p_fo, kg_q, kg_u)
+    plot = plots()
+    walk = os.walk('sessions')
+    for step in walk:
+        session_dir = ""
+        try:
+            if step[1][0][:7] == 'session':
+                session_dir = step[0]
+        except:
+            continue
+        if session_dir != "":
+            create_stats.main(session_dir, step)
+            with open(f'{session_dir}/stats.pickle', 'rb') as file:
+                data = pickle.load(file)
+            data = data.loc[data['session'] == 'avg']
+            size, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
+            plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)
+            continue
+
+
+    # for size in datasetsize_list:
+    #     for car in car_list:
+    #         for dup in dup_list:
+    #             for p_fo in p_fo_list:
+    #                 for p_kg in p_kg_list:
+    #                     for p_kg_u in p_kg_u_list:
+    #                         if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, kg_q, kg_u)}/stats.pickle'):
+    #                             create_stats.main(size, car, dup, p_fo, kg_q, kg_u)
 
 
 
@@ -390,7 +430,7 @@ if __name__ == "__main__":
     # data['size'] = datasetsize
 
   
-    plot = plots()
+
 
     # inits
     # p_kg = p_kg_list[0]
@@ -402,13 +442,13 @@ if __name__ == "__main__":
 
     # plot.saveplots()
     # plot.plot_interactive()
-    for size in datasetsize_list:
-        for car in car_list:
-            for p_kg in p_kg_list:
-                for p_kg_u in p_kg_u_list:
-                    for dup in dup_list:
-                        for p_fo in p_fo_list:
-                            with open(f'{set_session_dir(size, car, dup, p_fo, kg_q, kg_u)}/stats.pickle', 'rb') as file:
-                                data = pickle.load(file)
-                            data = data.loc[data['session'] == 'avg']
-                            plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)
+    # for size in datasetsize_list:
+    #     for car in car_list:
+    #         for p_kg in p_kg_list:
+    #             for p_kg_u in p_kg_u_list:
+    #                 for dup in dup_list:
+    #                     for p_fo in p_fo_list:
+    #                         with open(f'{set_session_dir(size, car, dup, p_fo, kg_q, kg_u)}/stats.pickle', 'rb') as file:
+    #                             data = pickle.load(file)
+    #                         data = data.loc[data['session'] == 'avg']
+    #                         plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)

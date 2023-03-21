@@ -12,10 +12,10 @@ T_dist_list = [f'propT_{round(flt, 2)}' for flt in np.arange(0., 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
-dup_list = [2,3,7]
+dup_list = [2,5]
 p_fo_list = [0.0]
-kg_q_list = [0,10,20]
-kg_u_list = [0,1,2]
+kg_q_list = [0,1,5]
+kg_u_list = [0,1,5]
 
 if debug:
     datasetsize_list = ['debug'] 
@@ -73,9 +73,9 @@ def set_nQuestions(datasetsize):
     return nQuestions
 def set_priors(nQuestions, car, dup):
 
-    priors = {'qAlpha': 1e-20}
+    priors = {'qAlpha': 1e-5}
 
-    a = 1.2
+    a = 1.5
     b = 1.
     # fraction =2
 

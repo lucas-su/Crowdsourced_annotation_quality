@@ -1,5 +1,6 @@
+import re
 import time
-from settings import *
+# from settings import *
 import krippendorff
 
 from em import EM
@@ -167,49 +168,65 @@ def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo
                      (data['p_kg_u'] == p_kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
     return data
 
-def main(size, car, dup, p_fo, p_kg, p_kg_u):
+def find_params(session_dir):
+    properties = session_dir.split("\\")
+    size = properties[1][properties[1].index("_")+1:]
+    car = int(properties[2][properties[2].index("_")+1:])
+    dup = int(properties[3][properties[3].index("_") + 1:])
+    p_fo = float(properties[4][-3:])
+    kg_q = int(properties[5][re.match('kg_q_', properties[5]).regs[0][1]:])
+    kg_u = int(properties[6][re.match('kg_u_', properties[6]).regs[0][1]:])
+    return size, car, dup, p_fo, kg_q, kg_u
+
+def main(session_dir, step):
     # latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
 
-    session_dir = set_session_dir(size, car, dup, p_fo, p_kg, p_kg_u)
-    try:
-        walk = next(os.walk(session_dir))[1]
-    except:
-        pass
-    em_sessions = []
-    mcmc_sessions = []
-    for dir in walk:
-        try:
-            type = next(os.walk(f"{session_dir}/{dir}/output"))[2][0][:2]
-        except:
-            pass
-        if type == 'em':
-            em_sessions.append(dir)
-        elif type == 'mc':
-            mcmc_sessions.append(dir)
-        else:
-            raise ValueError
+    if not os.path.exists(f'{session_dir}/stats.pickle'):
 
-    # initialize dataset
-    datalen = 2* T_dist_list.__len__()
+        em_sessions = []
+        mcmc_sessions = []
+        for dir in step[1]:
+            try:
+                type = next(os.walk(f'{session_dir}/{dir}/output'))[2][0][:2]
+            except:
+                print(f'Incomplete session: {session_dir}')
+                continue
+            if type == 'em':
+                em_sessions.append(dir)
+            elif type == 'mc':
+                mcmc_sessions.append(dir)
+            else:
+                raise ValueError
 
-    # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
-    cols = ['session', 'model', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'CertaintyQ',
-            'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
-            'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
-    data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
-    data.loc[:datalen/2,'model'] = "em"
-    data.loc[datalen / 2:, 'model'] = "mcmc"
-    data.loc[:,'session'] = 'avg'
+            # initialize dataset
+            session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__()-1)/2)
+            if session_len != 11:
+                print(f"WARNING number of sessions was expected to be 11, but is {session_len}")
 
-    if em_sessions.__len__()>0:
-        data = process_model('em', session_dir, em_sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u)
+            datalen = 2*session_len # account for both EM and MCMC models
+
+            size, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
 
 
-    if mcmc_sessions.__len__()>0:
-        data = process_model('mcmc', session_dir, mcmc_sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u)
+            # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
+            cols = ['session', 'model', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'CertaintyQ',
+                    'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
+                    'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
+            data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
+            data.loc[:datalen/2,'model'] = "em"
+            data.loc[datalen / 2:, 'model'] = "mcmc"
+            data.loc[:,'session'] = 'avg'
 
-    with open(f'{session_dir}/stats.pickle', 'wb') as file:
-        pickle.dump(data, file)
+            if em_sessions.__len__()>0:
+                data = process_model('em', session_dir, em_sessions, data, cols, size, car, dup, p_fo, kg_q, kg_u)
+
+
+            if mcmc_sessions.__len__()>0:
+                data = process_model('mcmc', session_dir, mcmc_sessions, data, cols, size, car, dup, p_fo, kg_q, kg_u)
+
+            with open(f'{session_dir}/stats.pickle', 'wb') as file:
+                pickle.dump(data, file)
+
 
 if __name__ == "__main__":
     for dup in dup_list:
