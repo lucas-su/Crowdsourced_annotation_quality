@@ -235,6 +235,7 @@ class plots():
             axpkg.clear()
             self.plot()
             pkg_slider = getKGSlider(val)
+
             plt.show()
 
         ## known good user ##
@@ -387,8 +388,10 @@ class plots():
         self.axspc_T.set_ylabel('--- Proportion item labels correct\n- - - Confidence in questions and answers')
         self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {p_kg}, datasetsize {datasetsize}, known good users {p_kg_u}')
         self.axspc_T.legend()
-
-        plt.show()
+        plt.savefig(f'plots/datasetsize_{size}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
+        plt.savefig(f'{session_dir}/plot.png')
+        plt.close()
+        # plt.show()
 
 if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
@@ -407,48 +410,13 @@ if __name__ == "__main__":
             continue
         if session_dir != "":
             create_stats.main(session_dir, step)
-            with open(f'{session_dir}/stats.pickle', 'rb') as file:
-                data = pickle.load(file)
-            data = data.loc[data['session'] == 'avg']
-            size, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
-            plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)
-            continue
 
-
-    # for size in datasetsize_list:
-    #     for car in car_list:
-    #         for dup in dup_list:
-    #             for p_fo in p_fo_list:
-    #                 for p_kg in p_kg_list:
-    #                     for p_kg_u in p_kg_u_list:
-    #                         if not os.path.exists(f'{set_session_dir(size, car, dup, p_fo, kg_q, kg_u)}/stats.pickle'):
-    #                             create_stats.main(size, car, dup, p_fo, kg_q, kg_u)
+            if not os.path.exists(f'{session_dir}/plot.png'):
+                with open(f'{session_dir}/stats.pickle', 'rb') as file:
+                    data = pickle.load(file)
+                data = data.loc[data['session'] == 'avg']
+                size, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
+                plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)
 
 
 
-
-    # data['size'] = datasetsize
-
-  
-
-
-    # inits
-    # p_kg = p_kg_list[0]
-    # p_fo = p_fo_list[0]
-    # p_kg_u = p_kg_u_list[0]
-    # T_dist = T_dist_list[0]
-    # dup = dup_list[0]
-
-
-    # plot.saveplots()
-    # plot.plot_interactive()
-    # for size in datasetsize_list:
-    #     for car in car_list:
-    #         for p_kg in p_kg_list:
-    #             for p_kg_u in p_kg_u_list:
-    #                 for dup in dup_list:
-    #                     for p_fo in p_fo_list:
-    #                         with open(f'{set_session_dir(size, car, dup, p_fo, kg_q, kg_u)}/stats.pickle', 'rb') as file:
-    #                             data = pickle.load(file)
-    #                         data = data.loc[data['session'] == 'avg']
-    #                         plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)

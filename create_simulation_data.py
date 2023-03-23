@@ -169,6 +169,7 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
             break
         if u:
             user.loc[i, 'type'] = 'KG'
+            user.loc[i, 'T_given'] = 1
             kg_u_cnt += 1
 
 
@@ -200,7 +201,7 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
 
     if user.__len__() != ulen:
         print(f"warning, user dropped because there were no simulated annotations. user length now: {user.__len__()}")
-    print(f"saved annotations | Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, prop. malicious {p_fo}, prop. known good users {kg_u}")
+    # print(f"saved annotations | Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, prop. malicious {p_fo}, prop. known good users {kg_u}")
 
     os.makedirs(f'{path}/simulation data/{T_dist}/', exist_ok=True)
     os.makedirs(f'{path}/simulation data/{T_dist}/csv', exist_ok=True)

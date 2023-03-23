@@ -8,14 +8,15 @@ car_list = [2,3,4]
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_base = 5
 # T_dist_list = [f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'propT_{round(flt, 2)}' for flt in np.arange(0., 1.1, 0.1)]
+T_dist_list = [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
 dup_list = [2,5]
 p_fo_list = [0.0]
 kg_q_list = [0,1,5]
-kg_u_list = [0,1,5]
+kg_u_list = [0,1]
+
 
 if debug:
     datasetsize_list = ['debug'] 
@@ -43,8 +44,8 @@ elif platform.system() == 'Windows': # running local: fewer demands
     keep_samples_list = [1]
     nModels = 5
 else:
-    warmup = 15
-    nSamples = 1 # number of samples per iteration
+    warmup = 10
+    nSamples = 3 # number of samples per iteration
     sample_interval = 1 # keep a sample every sample_interval iterations
     keep_samples_list = [5] # n samples to keep
     nModels = 5

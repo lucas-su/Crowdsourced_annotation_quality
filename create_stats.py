@@ -120,9 +120,12 @@ def makeplaceholderframe(model, idx, datalen, cols):
 def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u):
     with open(f'{session_dir}/{sessions[0]}/output/{model}_data_{"_".join(T_dist_list)}.pickle', 'rb') as file:
         tmp_data = pickle.load(file)
-    data.loc[(data['model'] == model) & (data['session'] == 'avg'),
-    ['car', 'T_dist', 'dup', 'p_fo', 'p_kg','p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size'] == size) & (tmp_data['car'] == car) & (tmp_data['p_kg_u'] == p_kg_u),
-    ['car', 'T_dist','dup', 'p_fo','p_kg', 'p_kg_u']])
+    try:
+        data.loc[(data['model'] == model) & (data['session'] == 'avg'),
+        ['car', 'T_dist', 'dup', 'p_fo', 'p_kg','p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size'] == size) & (tmp_data['car'] == car) & (tmp_data['p_kg_u'] == p_kg_u),
+        ['car', 'T_dist','dup', 'p_fo','p_kg', 'p_kg_u']])
+    except:
+        print(f'process model failed on {[model, session_dir, sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u]}')
 
     # fill frame with values
     for idx, session in enumerate(sessions):
@@ -227,12 +230,3 @@ def main(session_dir, step):
             with open(f'{session_dir}/stats.pickle', 'wb') as file:
                 pickle.dump(data, file)
 
-
-if __name__ == "__main__":
-    for dup in dup_list:
-        for p_fo in p_fo_list:
-            for p_kg in p_kg_list:
-                for p_kg_u in p_kg_u_list:
-                    for size in datasetsize_list:
-                        for car in car_list:
-                            main(size, car, dup, p_fo, p_kg, p_kg_u)

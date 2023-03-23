@@ -185,7 +185,6 @@ class Annotator:
                 for _ in range(nSamples):
                     v = a.question.sample()
 
-                    # KG samples are 0 0 1 0 etc., are non KG 0 0 4 0 etc?
 
 
                     # t = self.sample() # of current posterior
@@ -337,20 +336,31 @@ class mcmc():
 
     def KG_warmup(self, a_idx, i_idx):
         i_from_a = []
+
+        # compute posteriors for current annotators based on current items
+        # determine items associated with annotators
         for a in self.annotators.values():
             if a.id in a_idx:
                 a.posterior = a.computePosterior(nSamples, i_idx)
                 i_from_a += [ann.question.id for ann in a.annotations]
 
+        # compute posteriors for items based on current annotators
+        # compute posteriors for items associated with annotators_ based on current annotators
+        # determine annotators associated with items
         a_from_i = []
         for i in self.questions.values():
-            if i.id in i_idx:
+            if i.id in i_idx or i.id in i_from_a:
                 i.posterior = i.computePosterior(nSamples, a_idx)
                 a_from_i += [ann.annotator.id for ann in i.annotations]
 
-        a_idx = set(a_idx)
+        # compute posteriors for annotators _associated with items_ based on current items
+        for a in self.annotators.values():
+            if a.id in a_from_i:
+                a.posterior = a.computePosterior(nSamples, i_idx)
+
+        # merge current annotators with annotators associated with items
         a_idx.update(a_from_i)
-        i_idx = set(i_idx)
+        # merge current items with items associated with annotators
         i_idx.update(i_from_a)
 
         return a_idx, i_idx
@@ -365,16 +375,21 @@ class mcmc():
         
 
 
-        a_idx, i_idx = self.KG_warmup(users.loc[(users['type'] == 'KG'), 'ID'], items.loc[(items['KG'] == True), 'ID'])
+        a_idx = set(users.loc[(users['type'] == 'KG'), 'ID'])
+        i_idx = set(items.loc[(items['KG'] == True), 'ID'])
+        for a in self.annotators.values():
+            if a.id in a_idx:
+                i_idx.update([ann.question.id for ann in a.annotations])
+
         while a_idx.__len__() != users.__len__() or i_idx.__len__() != items.__len__():
             a_len = a_idx.__len__()
             i_len = i_idx.__len__()
             a_idx, i_idx = self.KG_warmup(a_idx, i_idx)
             if a_len == a_idx.__len__() and i_len == i_idx.__len__():
-                debug_print('warming up cannot be expanded anymore, stopping')
+                print('warming up cannot be expanded anymore, stopping')
                 break
-            debug_print(f'warmed up {a_idx.__len__()} users out of {users.__len__()}')
-            debug_print(f'warmed up {i_idx.__len__()} questions out of {items.__len__()}')
+            # print(f'warmed up {a_idx.__len__()} users out of {users.__len__()}')
+            # print(f'warmed up {i_idx.__len__()} questions out of {items.__len__()}')
 
         debug_print('done warming up')
         with Pool(ncpu) as p:
@@ -558,7 +573,7 @@ if __name__ == "__main__":
                                 os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
 
                                 createData(f'{session_dir}', car, T_dist, dup, p_fo, kg_u, ncpu, size)
-
+                                print(f"Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, malicious {p_fo}, known good items {kg_q}, known good users {kg_u}")
                                 for keep_n_samples in keep_samples_list:
                                     # open dataset for selected parameters
                                     with open(f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_user.pickle',
