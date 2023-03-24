@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [3,4]
+car_list = [2,3,4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_base = 5
