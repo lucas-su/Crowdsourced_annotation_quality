@@ -632,5 +632,5 @@ if __name__ == "__main__":
                                         pickle.dump(items, file)
                                     with open(f'{session_dir}/output/mcmc_user_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
                                         pickle.dump(users, file)
-                                    with open(f'{session_dir}/output/mcmc_data_{"_".join(T_dist_list)}.pickle', 'wb') as file:
+                                    with open(f'{session_dir}/output/mcmc_data.pickle', 'wb') as file:
                                         pickle.dump(mcmc_data, file)
