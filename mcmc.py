@@ -331,7 +331,7 @@ class mcmc():
             # p = np.mean([rng.dirichlet(alphas[i]) for i in range(keep_n_samples)], axis=0)
             # q.model = p.argmax()
 
-            p = rng.dirichlet(np.mean(alphas, axis=0))
+            p = np.mean(alphas, axis=0)
             q.model = p.argmax()
 
     def KG_warmup(self, a_idx, i_idx):
@@ -386,12 +386,17 @@ class mcmc():
             i_len = i_idx.__len__()
             a_idx, i_idx = self.KG_warmup(a_idx, i_idx)
             if a_len == a_idx.__len__() and i_len == i_idx.__len__():
-                print('warming up cannot be expanded anymore, stopping')
+                if a_len+i_len >0:
+                    print('Island detected during warmup')
                 break
             # print(f'warmed up {a_idx.__len__()} users out of {users.__len__()}')
             # print(f'warmed up {i_idx.__len__()} questions out of {items.__len__()}')
 
         debug_print('done warming up')
+        post_history_cols = np.concatenate((np.array(
+            [[f'q_{i}', f'q_{i}_correct'] for i in range(nQuestions)]).flatten(), np.array(
+            [[f'a_{i}', f'a_{i}_dT'] for i in range(nAnnotator)]).flatten()))
+        history = pandas.DataFrame(columns=post_history_cols)
         with Pool(ncpu) as p:
         
             while self.iter < posteriorindices.__len__():
@@ -442,14 +447,15 @@ class mcmc():
                 self.iter += 1
                 self.anneal(self.iter, warmup)
 
-             
+                history.loc[self.iter] =  np.concatenate(( np.array([[q.posterior, np.argmax(q.posterior) == q.GT] for q in self.questions.values()],dtype=object).flatten(), np.array([[a.posterior, abs(rng.beta(*a.posterior) - a.T)] for a in self.annotators.values()],dtype=object).flatten()))
+
         assert(sample_cnt == keep_n_samples)
 
         self.process_pc_posterior()
         
         self.pc_m = np.sum([q.model==q.GT for _,q in self.questions.items()])/nQuestions
         # self.pc_n = np.sum([q.GT==maj_ans for (_,q), maj_ans in zip(self.questions.items(), majority(annotations, nQuestions, car))])/nQuestions
-        
+        return history
 
 
 class majority():
@@ -518,15 +524,18 @@ class majority():
 class ModelSel:
     def __init__(self,keep_n_samples, car, nQuestions, user, annotations, priors,nModels,nSamples):
         models = []
+        best_history = None
         bestEvidence = -np.inf
         bestModel = None
         n =0
         stop_iteration = nModels + 7
+
         while n < nModels:
             models.append(mcmc(car, annotations, user))
             m = models[-1]
-            m.run(keep_n_samples, car, nQuestions, user, annotations, priors, nSamples)
-            
+
+            history = m.run(keep_n_samples, car, nQuestions, user, annotations, priors, nSamples)
+
             leQ, leA = m.modelEvidence()
             le = leQ + leA
             if np.exp(le) < 0.5:
@@ -538,6 +547,7 @@ class ModelSel:
                 # print(f'new best evidence {np.exp(le)} is better than old evidence {np.exp(bestEvidence)}')
                 bestEvidence = le
                 bestModel = m
+                best_history = history
                 self.bestQ = leQ
                 self.bestA = leA
 
@@ -549,7 +559,8 @@ class ModelSel:
                 break
 
             n+=1
-
+        with open(f'{session_dir}/output/post_hist_{T_dist}.pickle', 'wb') as file:
+            pickle.dump(best_history, file)
         self.model = bestModel
 
     def best(self):
@@ -558,9 +569,8 @@ class ModelSel:
 if __name__ == "__main__":
     for size in datasetsize_list:
         for car in car_list:
-            nQuestions = set_nQuestions(size)
             for dup in dup_list:
-                priors = set_priors(nQuestions, car, dup)
+                priors = set_priors()
                 for p_fo in p_fo_list:
                     for kg_q in kg_q_list:
                         for kg_u in kg_u_list:
@@ -604,7 +614,7 @@ if __name__ == "__main__":
                                     # else:
                                     #     print('No further answering needed')
 
-                                        # [(i, conf), axis=1) for i, conf in enumerate(np.exp(prob)) for prob in sel_model.model.questions.values()
+                                    # [(i, conf), axis=1) for i, conf in enumerate(np.exp(prob)) for prob in sel_model.model.questions.values()
 
 
                                     t_diff = np.mean([abs(a.T_model-a.T) for a in sel_model.model.annotators.values()])
@@ -616,7 +626,7 @@ if __name__ == "__main__":
 
                                     # create mcmc_data dataframe
                                     mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, kg_q, kg_u, sel_model, sel_model.model.pc_m, maj.pc, maj.pc_KG, sel_model.bestQ, sel_model.bestA]
- 
+
                                     # save data
                                     with open(f'{session_dir}/output/mcmc_annotations_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
                                         pickle.dump(items, file)

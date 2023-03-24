@@ -7,3 +7,4 @@ sessions
 .idea
 *.pickle
 __pycache__
+plots

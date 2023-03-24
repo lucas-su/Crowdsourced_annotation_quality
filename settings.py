@@ -3,18 +3,18 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [2,3,4]
+car_list = [3,4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_base = 5
-# T_dist_list = [f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list = [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+T_dist_list = [f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
+T_dist_list += [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 ncpu = multiprocessing.cpu_count()
 debug = False
 
 dup_list = [2,5]
 p_fo_list = [0.0]
-kg_q_list = [0,1,5]
+kg_q_list = [0,5]
 kg_u_list = [0,1]
 
 
@@ -44,7 +44,7 @@ elif platform.system() == 'Windows': # running local: fewer demands
     keep_samples_list = [1]
     nModels = 5
 else:
-    warmup = 10
+    warmup = 15
     nSamples = 3 # number of samples per iteration
     sample_interval = 1 # keep a sample every sample_interval iterations
     keep_samples_list = [5] # n samples to keep
@@ -60,19 +60,19 @@ def set_session_dir(size, car, dup, p_fo, kg_q, kg_u):
     return session_dir
 
 
-def set_nQuestions(datasetsize):
-    if datasetsize == 'debug':
-        nQuestions = 2.
-    elif datasetsize == 'small': # avg 3 annots per annotator
-        nQuestions = 3.
-    elif datasetsize == 'medium': # avg 6 annots per annotator
-        nQuestions = 6.
-    elif datasetsize == 'large': # avg 15 annots per annotator
-        nQuestions = 15.
-    else:
-        raise(ValueError,'Datasetsize should be "small", "medium", or "large"')
-    return nQuestions
-def set_priors(nQuestions, car, dup):
+# def set_nQuestions(datasetsize):
+#     if datasetsize == 'debug':
+#         nQ_per_annot = 2.
+#     elif datasetsize == 'small': # avg 3 annots per annotator
+#         nQ_per_annot = 3.
+#     elif datasetsize == 'medium': # avg 6 annots per annotator
+#         nQ_per_annot = 6.
+#     elif datasetsize == 'large': # avg 15 annots per annotator
+#         nQ_per_annot = 15.
+#     else:
+#         raise(ValueError,'Datasetsize should be "small", "medium", or "large"')
+#     return nQ_per_annot
+def set_priors():
 
     priors = {'qAlpha': 1e-5}
 

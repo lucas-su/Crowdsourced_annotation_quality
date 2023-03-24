@@ -309,33 +309,33 @@ class plots():
     def plot_pc_T(self, car, dup, p_fo, p_kg, datasetsize, p_kg_u):
         self.figpc_T, self.axspc_T = plt.subplots(figsize=(16,9))
         mcmcpc_m = data.loc[(data['model'] == 'mcmc') &
-                        (data['car'] == car) &
-                        (data['dup'] == dup) &
-                        (data['p_fo'] == p_fo) &
-                        (data['p_kg'] == p_kg) &
-                        # (data['size'] == datasetsize) &
-                        (data['p_kg_u'] == p_kg_u), 'pc_m']
-        mcmc_sd = data.loc[(data['model'] == 'mcmc') &
                             (data['car'] == car) &
                             (data['dup'] == dup) &
                             (data['p_fo'] == p_fo) &
                             (data['p_kg'] == p_kg) &
                             # (data['size'] == datasetsize) &
-                            (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
+                            (data['p_kg_u'] == p_kg_u), 'pc_m']
+        mcmc_sd = data.loc[(data['model'] == 'mcmc') &
+                           (data['car'] == car) &
+                           (data['dup'] == dup) &
+                           (data['p_fo'] == p_fo) &
+                           (data['p_kg'] == p_kg) &
+                           # (data['size'] == datasetsize) &
+                           (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
         certQ = data.loc[(data['model'] == 'mcmc') &
-                           (data['car'] == car) &
-                           (data['dup'] == dup) &
-                           (data['p_fo'] == p_fo) &
-                           (data['p_kg'] == p_kg) &
-                           # (data['size'] == datasetsize) &
-                           (data['p_kg_u'] == p_kg_u), 'CertaintyQ']
+                         (data['car'] == car) &
+                         (data['dup'] == dup) &
+                         (data['p_fo'] == p_fo) &
+                         (data['p_kg'] == p_kg) &
+                         # (data['size'] == datasetsize) &
+                         (data['p_kg_u'] == p_kg_u), 'CertaintyQ']
         certA = data.loc[(data['model'] == 'mcmc') &
-                           (data['car'] == car) &
-                           (data['dup'] == dup) &
-                           (data['p_fo'] == p_fo) &
-                           (data['p_kg'] == p_kg) &
-                           # (data['size'] == datasetsize) &
-                           (data['p_kg_u'] == p_kg_u), 'CertaintyA']
+                         (data['car'] == car) &
+                         (data['dup'] == dup) &
+                         (data['p_fo'] == p_fo) &
+                         (data['p_kg'] == p_kg) &
+                         # (data['size'] == datasetsize) &
+                         (data['p_kg_u'] == p_kg_u), 'CertaintyA']
         # empc_m = data.loc[(data['model'] == 'em') &
         #                     (data['car'] == car) &
         #                     (data['dup'] == dup) &
@@ -351,47 +351,92 @@ class plots():
         #                    (data['size'] == size) &
         #                    (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
         naivepc = data.loc[(data['model'] == 'mcmc') &
-                            (data['car'] == car) &
-                            (data['dup'] == dup) &
-                            (data['p_fo'] == p_fo) &
-                            (data['p_kg'] == p_kg) &
-                            # (data['size'] == datasetsize) &
-                            (data['p_kg_u'] == p_kg_u), 'pc_n']
-        naive_sd = data.loc[(data['model'] == 'mcmc') &
                            (data['car'] == car) &
                            (data['dup'] == dup) &
                            (data['p_fo'] == p_fo) &
                            (data['p_kg'] == p_kg) &
-                        #    (data['size'] == datasetsize) &
-                           (data['p_kg_u'] == p_kg_u), 'pc_n_SD']
+                           # (data['size'] == datasetsize) &
+                           (data['p_kg_u'] == p_kg_u), 'pc_n']
+        naive_sd = data.loc[(data['model'] == 'mcmc') &
+                            (data['car'] == car) &
+                            (data['dup'] == dup) &
+                            (data['p_fo'] == p_fo) &
+                            (data['p_kg'] == p_kg) &
+                            #    (data['size'] == datasetsize) &
+                            (data['p_kg_u'] == p_kg_u), 'pc_n_SD']
 
+        naiveKGpc = data.loc[(data['model'] == 'mcmc') &
+                             (data['car'] == car) &
+                             (data['dup'] == dup) &
+                             (data['p_fo'] == p_fo) &
+                             (data['p_kg'] == p_kg) &
+                             # (data['size'] == datasetsize) &
+                             (data['p_kg_u'] == p_kg_u), 'pc_n_KG']
+        naiveKG_sd = data.loc[(data['model'] == 'mcmc') &
+                              (data['car'] == car) &
+                              (data['dup'] == dup) &
+                              (data['p_fo'] == p_fo) &
+                              (data['p_kg'] == p_kg) &
+                              #    (data['size'] == datasetsize) &
+                              (data['p_kg_u'] == p_kg_u), 'pc_n_KG_SD']
 
+        pc_krip = data.loc[(data['model'] == 'mcmc') &
+                             (data['car'] == car) &
+                             (data['dup'] == dup) &
+                             (data['p_fo'] == p_fo) &
+                             (data['p_kg'] == p_kg) &
+                             # (data['size'] == datasetsize) &
+                             (data['p_kg_u'] == p_kg_u), 'pc_krip']
+        pc_krip_SD = data.loc[(data['model'] == 'mcmc') &
+                              (data['car'] == car) &
+                              (data['dup'] == dup) &
+                              (data['p_fo'] == p_fo) &
+                              (data['p_kg'] == p_kg) &
+                              #    (data['size'] == datasetsize) &
+                              (data['p_kg_u'] == p_kg_u), 'pc_krip_SD']
 
         x = np.arange(11)/10
 
-        # barw = 0.005
+        # maj. vote
+        self.axspc_T.plot(x, naivepc, label='maj. vote', color='darkorange')
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naivepc + naive_sd, dtype=float)], [max(sd, 0) for sd in np.array(naivepc - naive_sd, dtype=float)],color='darkorange', alpha=0.2 )
+
+        # mcmc
+        self.axspc_T.plot(x, mcmcpc_m, label='mcmc', color='#1f77b4')
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], color='#1f77b4', alpha=0.2)
+
+        # em
+        # self.axspc_T.plot(x, empc_m, label='em')
+        # self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
+
+        # KG maj. vote
+        if p_kg > 0 or p_kg_u > 0:
+            self.axspc_T.plot(x, naiveKGpc, label='maj. vote KG', color='firebrick')
+            self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naiveKGpc+naiveKG_sd, dtype=float)], [max(sd, 0) for sd in np.array(naiveKGpc-naiveKG_sd, dtype=float)], color='firebrick', alpha=0.2)
+
+        # krip
+        self.axspc_T.plot(x, pc_krip, label='krip', color='gold')
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(pc_krip + pc_krip_SD, dtype=float)], [max(sd, 0) for sd in np.array(pc_krip - pc_krip_SD, dtype=float)],color='gold', alpha=0.2 )
+
+
+        # cardinality
+        self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='#2ca02c')
+
+        # certainty
         certQ = [np.exp(cert) for cert in certQ]
         certA = [np.exp(cert) for cert in certA]
-        # self.axspc_T.bar(x-0.5*barw, certQ, barw, label='certQ', alpha=0.5)
-        # self.axspc_T.bar(x+0.5*barw, certA, barw, label='certA', alpha=0.5)
         self.axspc_T.plot(x, certQ,  label='certQ', color='#d62728', alpha=0.5, linestyle='dashed')
         self.axspc_T.plot(x, certA,  label='certA', color='#9467bd', alpha=0.5, linestyle='dashed')
 
-        self.axspc_T.plot(x, mcmcpc_m, label='mcmc', color='#1f77b4')
-        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], color='#1f77b4', alpha=0.2)
-        # self.axspc_T.plot(x, empc_m, label='em')
-        # self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
-        self.axspc_T.plot(x, naivepc, label='maj. vote', color='#ff7f0e')
-        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naivepc + naive_sd, dtype=float)], [max(sd, 0) for sd in np.array(naivepc - naive_sd, dtype=float)],color='#ff7f0e', alpha=0.2 )
-        self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='#2ca02c')
+
         self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
         self.axspc_T.set_ylabel('--- Proportion item labels correct\n- - - Confidence in questions and answers')
         self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {p_kg}, datasetsize {datasetsize}, known good users {p_kg_u}')
         self.axspc_T.legend()
         plt.savefig(f'plots/datasetsize_{size}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
         plt.savefig(f'{session_dir}/plot.png')
-        plt.close()
-        # plt.show()
+        plt.show()
+        # plt.close()
 
 if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
@@ -411,12 +456,12 @@ if __name__ == "__main__":
         if session_dir != "":
             create_stats.main(session_dir, step)
 
-            if not os.path.exists(f'{session_dir}/plot.png'):
-                with open(f'{session_dir}/stats.pickle', 'rb') as file:
-                    data = pickle.load(file)
-                data = data.loc[data['session'] == 'avg']
-                size, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
-                plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)
+            # if not os.path.exists(f'{session_dir}/plot.png'):
+            with open(f'{session_dir}/stats.pickle', 'rb') as file:
+                data = pickle.load(file)
+            data = data.loc[data['session'] == 'avg']
+            size, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
+            plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)
 
 
 

@@ -11,46 +11,40 @@ def process_alpha(data):
     alphas += [krippendorff.alpha(reliability_data=data.loc[np.eye(data.__len__())[x] != 1]) for x in range(data.__len__())]
     return alphas
 
-def queue_alpha_uerror_metrics(data, session_dir, session_folder, model, iterations, sessionlen, nQuestions, size):
+def queue_alpha_uerror_metrics(model, session_dir, session, session_idx, data, T_dist_list, car, dup, p_fo, p_kg, p_kg_u):
+
+    iterations = {'mcmc':5, 'em':100}
     with Pool(32) as p:
-        for car in car_list:
-            for T_dist in T_dist_list:
-                for dup in dup_list:
-                    for p_fo in p_fo_list:
-                        for p_kg in p_kg_list:
-                            # for p_kg_u in p_kg_us:
+        result = p.map(partial(alpha_uerror_metrics, session_dir, model, car, iterations, session), T_dist_list)
+        for T_dist, res in result:
+            data.loc[(data['session'].values == f'{session_idx}') &
+                     (data['model'].values == model) &
+                     (data['car'].values == car) &
+                     (data['T_dist'].values == T_dist) &
+                     (data['dup'].values == dup) &
+                     (data['p_fo'].values == p_fo) &
+                     (data['p_kg'].values == p_kg) &
+                     (data['p_kg'].values == p_kg_u), 'uerror'] += res
 
-                            result = p.map_async(partial(alpha_uerror_metrics, session_dir, session_folder, model, car, T_dist, dup, p_fo, p_kg, iterations, sessionlen, size), p_kg_u_list)
-                            data.loc[(data['session'].values == 'avg') &
-                                     (data['model'].values == model) &
-                                     (data['car'].values == car) &
-                                     (data['T_dist'].values == T_dist) &
-                                     (data['dup'].values == dup) &
-                                     (data['p_fo'].values == p_fo) &
-                                     (data['p_kg'].values == p_kg), 'uerror'] += result.get()
-                            if min(data.loc[(data['session'].values == 'avg') &
-                                            (data['model'].values == model) &
-                                             (data['car'].values == car) &
-                                             (data['T_dist'].values == T_dist) &
-                                             (data['dup'].values == dup) &
-                                             (data['p_fo'].values == p_fo) &
-                                             (data['p_kg'].values == p_kg), 'n_annot_aftr_prun']) == 0:
-                                result = p.map(partial(process_krip, session_dir, session_folder, model, car, T_dist, dup, p_fo, p_kg, iterations, nQuestions, size), p_kg_u_list)
-                                data.loc[(data['session'].values == 'avg') &
-                                         (data['model'].values == model) &
-                                         (data['car'].values == car) &
-                                         (data['T_dist'].values == T_dist) &
-                                         (data['dup'].values == dup) &
-                                         (data['p_fo'].values == p_fo) &
-                                         (data['p_kg'].values == p_kg), ['alpha_bfr_prun',
-                                                                         'n_annot_aftr_prun',
-                                                                         'alpha_aftr_prun',
-                                                                         'n_answ_aftr_prun',
-                                                                         'pc_aftr_prun',
-                                                                         'pc_aftr_prun_total']] = result
+        result = p.map(partial(process_krip, session_dir, model, car, dup, iterations, session), T_dist_list)
+        for T_dist, res in result:
+            data.loc[(data['session'].values == f'{session_idx}') &
+                     (data['model'].values == model) &
+                     (data['car'].values == car) &
+                     (data['T_dist'].values == T_dist) &
+                     (data['dup'].values == dup) &
+                     (data['p_fo'].values == p_fo) &
+                     (data['p_kg'].values == p_kg)&
+                     (data['p_kg'].values == p_kg_u), ['alpha_bfr_prun',
+                                                     'n_annot_aftr_prun',
+                                                     'alpha_aftr_prun',
+                                                     'n_answ_aftr_prun',
+                                                     'pc_aftr_prun',
+                                                     'pc_krip']] = res
+        # print('q_alpha_done')
 
-def alpha_uerror_metrics(session_dir, session_folder, model, car, T_dist, dup, p_fo, p_kg, iterations, sessionlen, size, p_kg_u):
-    with open(f'{session_dir}/{session_folder}/output/{model}_user_data_size-{size}_T_dist-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+def alpha_uerror_metrics(session_dir, model, car, iterations, session, T_dist):
+    with open(f'{session_dir}/{session}/output/{model}_user_T_dist-{T_dist}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_user = pickle.load(file)
     # error for normal users: modelled T - GT
     u_norm_error = sum(abs(tmp_user.loc[(tmp_user['type']=='normal'), 'T_model']-tmp_user.loc[(tmp_user['type']=='normal'), 'T_given']))
@@ -61,17 +55,17 @@ def alpha_uerror_metrics(session_dir, session_folder, model, car, T_dist, dup, p
     # error for malicious users: modelled T - 1/K
     u_fo_error = sum(abs(tmp_user.loc[(tmp_user['type'] == 'KG'), 'T_model'] - (1/car)))
 
-    return ((u_norm_error + u_kg_error + u_fo_error)/tmp_user.__len__())/sessionlen[model]
+    return T_dist, ((u_norm_error + u_kg_error + u_fo_error)/tmp_user.__len__())
 
-def process_krip(session_dir, session_folder, model, car, T_dist, dup, p_fo, p_kg, iterations, nQuestions, size, p_kg_u):
-    # do krippendorf pruning and pc calculation, is the same for all sessions so needs to be done only once per condition combination
-    with open(f'{session_dir}/{session_folder}/output/{model}_user_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+def process_krip(session_dir, model, car, dup, iterations, session, T_dist):
+    # do krippendorf pruning and pc calculation
+    with open(f'{session_dir}/{session}/output/{model}_user_T_dist-{T_dist}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_user = pickle.load(file)
-    with open(f'{session_dir}/{session_folder}/output/{model}_annotations_data_size-{size}_mode-{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-{p_kg}_p-kg-u{p_kg_u}_iters-{iterations[model]}.pickle', 'rb') as file:
+    with open(f'{session_dir}/{session}/output/{model}_annotations_T_dist-{T_dist}_iters-{iterations[model]}.pickle', 'rb') as file:
         tmp_annotations = pickle.load(file)
     a = 0
-    endindex = -42 if model == 'mcmc' else -12
-    users = tmp_user.iloc[:, 4:endindex]
+
+    users = tmp_user.iloc[:, 4:]
     alpha_bfr_prun = krippendorff.alpha(reliability_data=users)
     while (a < 0.8) & (users.__len__()>2):
         alphas = process_alpha(users)
@@ -88,17 +82,25 @@ def process_krip(session_dir, session_folder, model, car, T_dist, dup, p_fo, p_k
 
     tmp_annotations['krip'] = [np.nan]*tmp_annotations.__len__()
 
-    for q in range(nQuestions):
-        k_w = []
+    for q in range(tmp_annotations.__len__()):
+        k_weight = np.zeros(car)
         for k in range(car):
-            d_w = 0
+            # d_w = 0
             u_include = [x[0] for x in users.iterrows()]
             for d in range(dup):
                 if (tmp_annotations.loc[q, f'annot_{d}'] == k) & (tmp_annotations.loc[q, f'id_{d}'] in u_include):
-                    d_w += 1
-            k_w.append(d_w)
-        if sum(k_w) > 0:
-            tmp_annotations.loc[q, 'krip'] = k_w.index(max(k_w))
+                    k_weight[k] +=1
+
+        if not np.array_equal(np.zeros(car), k_weight):
+            max_val = max(k_weight)
+            max_indices = []
+            for i, k in enumerate(k_weight):
+                if k == max_val:
+                    max_indices.append(i)
+            tmp_annotations.loc[q, 'krip'] = max_indices[np.random.randint(max_indices.__len__())]
+        else:
+            tmp_annotations.loc[q, 'krip'] = np.nan
+
 
     # determine differences
     diff_k = tmp_annotations.loc[tmp_annotations['krip'].notnull(), 'GT'] - tmp_annotations.loc[tmp_annotations['krip'].notnull(), 'krip']
@@ -107,14 +109,16 @@ def process_krip(session_dir, session_folder, model, car, T_dist, dup, p_fo, p_k
     diff_k_cnt = (diff_k != 0).sum()
 
     # proportion correct after pruning and pc corrected for missing items
-    pc_aftr_prun =  100 * (1 - (diff_k_cnt / sum(tmp_annotations['krip'].notnull())))
-    pc_aftr_prun_total =  pc_aftr_prun*(np.count_nonzero(np.sum(users.notnull()))/nQuestions)
-    return alpha_bfr_prun, n_annot_aftr_prun, alpha_aftr_prun, n_answ_aftr_prun, pc_aftr_prun, pc_aftr_prun_total
+    pc_aftr_prun =  (1 - (diff_k_cnt / sum(tmp_annotations['krip'].notnull())))
+    pc_aftr_prun_total =  pc_aftr_prun*(np.count_nonzero(np.sum(users.notnull()))/tmp_annotations.__len__())
+    return T_dist, (alpha_bfr_prun, n_annot_aftr_prun, alpha_aftr_prun, n_answ_aftr_prun, pc_aftr_prun, pc_aftr_prun_total)
 
 def makeplaceholderframe(model, idx, datalen, cols):
     assert datalen % 1 == 0
     datalen = int(datalen)
-    return pandas.DataFrame(np.concatenate((np.full((1,datalen), idx).T,np.full((1,datalen), model).T, np.zeros((datalen, cols.__len__()-2))), axis=1), columns=cols)
+    df = pandas.DataFrame(np.concatenate((np.full((1,datalen), idx),np.full((1,datalen), model))).T, columns = cols[:2])
+    df[cols[2:]] = np.zeros((datalen, cols.__len__()-2))
+    return df
 
 
 def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u):
@@ -133,15 +137,18 @@ def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo
         with open(filepath, 'rb') as file:
             tmp_data = pickle.load(file)
         data.loc[(data['model'] == model) & (data['session'] == 'avg'),
-            ['pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA']] = data.loc[(data['model'] == model) & (data['session'] == 'avg'),
-            ['pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA']] + np.array(tmp_data.loc[:, ['pc_m', 'pc_n', 'CertaintyQ', 'CertaintyA']] / sessions.__len__())
+            ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] = data.loc[(data['model'] == model) & (data['session'] == 'avg'),
+            ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] + np.array(tmp_data.loc[:, ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] / sessions.__len__())
         data = pandas.concat((data, makeplaceholderframe(model, idx, T_dist_list.__len__(), cols)), ignore_index=True)
         data.loc[(data['session'] == f'{idx}') & (data['model'] == f'{model}'),
-        ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n']] = np.array(tmp_data.loc[:,
-        ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', f'{model}', 'pc_m', 'pc_n']])
-        # queue_alpha_uerror_metrics(session_dir, session, model,iterations, sessionlen)
+        ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n', 'pc_n_KG']] = np.array(tmp_data.loc[:,
+        ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', f'{model}', 'pc_m', 'pc_n', 'pc_n_KG']])
 
+
+        if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
+            queue_alpha_uerror_metrics(model, session_dir, session, idx, data, T_dist_list, car, dup, p_fo, p_kg, p_kg_u)
         for T_dist in T_dist_list:
+
             # make a slice of all the sessions without the average
             dat = data.loc[(data['session'] != 'avg') &
                            (data['model'] == model) &
@@ -160,6 +167,14 @@ def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo
                      (data['p_fo'] == p_fo) &
                      (data['p_kg'] == p_kg) &
                      (data['p_kg_u'] == p_kg_u), 'pc_n_SD'] = np.std(dat['pc_n'])
+            data.loc[(data['session'] == 'avg') &
+                     (data['model'] == model) &
+                     (data['car'] == car) &
+                     (data['T_dist'] == T_dist) &
+                     (data['dup'] == dup) &
+                     (data['p_fo'] == p_fo) &
+                     (data['p_kg'] == p_kg) &
+                     (data['p_kg_u'] == p_kg_u), 'pc_n_KG_SD'] = np.std(dat['pc_n_KG'])
 
             data.loc[(data['session'] == 'avg') &
                      (data['model'] == model) &
@@ -169,6 +184,23 @@ def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo
                      (data['p_fo'] == p_fo) &
                      (data['p_kg'] == p_kg) &
                      (data['p_kg_u'] == p_kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
+
+            data.loc[(data['session'] == 'avg') &
+                     (data['model'] == model) &
+                     (data['car'] == car) &
+                     (data['T_dist'] == T_dist) &
+                     (data['dup'] == dup) &
+                     (data['p_fo'] == p_fo) &
+                     (data['p_kg'] == p_kg) &
+                     (data['p_kg_u'] == p_kg_u), 'pc_krip'] = np.mean(dat['pc_krip'])
+            data.loc[(data['session'] == 'avg') &
+                     (data['model'] == model) &
+                     (data['car'] == car) &
+                     (data['T_dist'] == T_dist) &
+                     (data['dup'] == dup) &
+                     (data['p_fo'] == p_fo) &
+                     (data['p_kg'] == p_kg) &
+                     (data['p_kg_u'] == p_kg_u), 'pc_krip_SD'] = np.std(dat['pc_krip'])
     return data
 
 def find_params(session_dir):
@@ -204,7 +236,7 @@ def main(session_dir, step):
             # initialize dataset
             session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__()-1)/2)
             if session_len != 11:
-                print(f"WARNING number of sessions was expected to be 11, but is {session_len}")
+                print(f"WARNING number of sessions was expected to be 11, but is {session_len} in folder {session_dir}/{dir}")
 
             datalen = 2*session_len # account for both EM and MCMC models
 
@@ -213,8 +245,8 @@ def main(session_dir, step):
 
             # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
             cols = ['session', 'model', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'CertaintyQ',
-                    'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
-                    'pc_aftr_prun', 'alpha_aftr_prun', 'pc_aftr_prun_total' ]
+                    'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'pc_n_KG', 'pc_n_KG_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
+                    'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD' ]
             data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
             data.loc[:datalen/2,'model'] = "em"
             data.loc[datalen / 2:, 'model'] = "mcmc"
