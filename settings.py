@@ -7,8 +7,8 @@ car_list = [2,3,4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_base = 5
-T_dist_list = [f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]
-T_dist_list += [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+sweeps = {'beta':[f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)],
+          "propT": [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]}
 ncpu = multiprocessing.cpu_count()
 debug = False
 
@@ -54,9 +54,9 @@ else:
 # create data settings
 c_data_mal_T = True # assumes 'malicious' users at T=0 if true, meaning that they give anything but the correct answers. False means uniform chance over all answers at T=0
 
-def set_session_dir(size, car, dup, p_fo, kg_q, kg_u):
+def set_session_dir(size, sweeptype, car, dup, p_fo, kg_q, kg_u):
 
-    session_dir = f'sessions/datasetsize_{size}/cardinality_{car}/dup_{dup}/p_fo_{p_fo}/kg_q_{kg_q}/kg_u_{kg_u}/'
+    session_dir = f'sessions/datasetsize_{size}/sweeptype_{sweeptype}/cardinality_{car}/dup_{dup}/p_fo_{p_fo}/kg_q_{kg_q}/kg_u_{kg_u}/'
     return session_dir
 
 

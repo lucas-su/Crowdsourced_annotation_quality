@@ -568,69 +568,70 @@ class ModelSel:
     
 if __name__ == "__main__":
     for size in datasetsize_list:
-        for car in car_list:
-            for dup in dup_list:
-                priors = set_priors()
-                for p_fo in p_fo_list:
-                    for kg_q in kg_q_list:
-                        for kg_u in kg_u_list:
-                            mcmc_data = pandas.DataFrame(
-                                columns=['size', 'iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
-                                         'mcmc', 'pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA'])
+        for sweeptype, T_dist_list in sweeps.items():
+            for car in car_list:
+                for dup in dup_list:
+                    priors = set_priors()
+                    for p_fo in p_fo_list:
+                        for kg_q in kg_q_list:
+                            for kg_u in kg_u_list:
+                                mcmc_data = pandas.DataFrame(
+                                    columns=['size', 'iterations', 'car', 'T_dist', 'sweeptype', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
+                                             'mcmc', 'pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA'])
 
-                            session_dir = set_session_dir(size, car, dup, p_fo, kg_q, kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
-                            for T_dist in T_dist_list:
-                                os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
+                                session_dir = set_session_dir(size, sweeptype, car, dup, p_fo, kg_q, kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                                for T_dist in T_dist_list:
+                                    os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
 
-                                createData(f'{session_dir}', car, T_dist, dup, p_fo, kg_u, ncpu, size)
-                                print(f"Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, malicious {p_fo}, known good items {kg_q}, known good users {kg_u}")
-                                for keep_n_samples in keep_samples_list:
-                                    # open dataset for selected parameters
-                                    with open(f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_user.pickle',
-                                              'rb') as file:
-                                        users = pickle.load(file)
-                                    with open(
-                                            f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_annotations_empty.pickle',
-                                            'rb') as file:
-                                        items = pickle.load(file)
+                                    createData(f'{session_dir}', car, T_dist, dup, p_fo, kg_u, ncpu, size)
+                                    print(f"Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, malicious {p_fo}, known good items {kg_q}, known good users {kg_u}")
+                                    for keep_n_samples in keep_samples_list:
+                                        # open dataset for selected parameters
+                                        with open(f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_user.pickle',
+                                                  'rb') as file:
+                                            users = pickle.load(file)
+                                        with open(
+                                                f'{session_dir}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_annotations_empty.pickle',
+                                                'rb') as file:
+                                            items = pickle.load(file)
 
-                                    ## add parameters to dataframes
-                                    # known goods
-                                    items[f'KG'] = np.zeros(items.__len__())
-                                    if kg_q>0:
-                                        items.loc[:kg_q - 1, f'KG'] = 1
-                                    # annotations[f'KG'] = [np.random.choice([0,1], p=[1 - kg_q, kg_q]) for _ in range(annotations.__len__())]
+                                        ## add parameters to dataframes
+                                        # known goods
+                                        items[f'KG'] = np.zeros(items.__len__())
+                                        if kg_q>0:
+                                            items.loc[:kg_q - 1, f'KG'] = 1
+                                        # annotations[f'KG'] = [np.random.choice([0,1], p=[1 - kg_q, kg_q]) for _ in range(annotations.__len__())]
 
-                                    # global nQuestions
-                                    nQuestions = items.__len__()
-                                    # majority(annotations, nQuestions, car)
-                                    maj = majority(items, nQuestions)
-                                    sel_model = ModelSel(keep_n_samples, car, nQuestions, users, items, priors, nModels, nSamples)
-                                    # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
-                                    confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])
-                                    confindices = np.where(confs<0.5)
-                                    # if confindices[0].__len__()>0:
-                                    #     print(f'Questions {confindices[0]} need extra attention: confidences are: {[confs[i] for i in confindices[0]]}')
-                                    # else:
-                                    #     print('No further answering needed')
+                                        # global nQuestions
+                                        nQuestions = items.__len__()
+                                        # majority(annotations, nQuestions, car)
+                                        maj = majority(items, nQuestions)
+                                        sel_model = ModelSel(keep_n_samples, car, nQuestions, users, items, priors, nModels, nSamples)
+                                        # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
+                                        confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])
+                                        confindices = np.where(confs<0.5)
+                                        # if confindices[0].__len__()>0:
+                                        #     print(f'Questions {confindices[0]} need extra attention: confidences are: {[confs[i] for i in confindices[0]]}')
+                                        # else:
+                                        #     print('No further answering needed')
 
-                                    # [(i, conf), axis=1) for i, conf in enumerate(np.exp(prob)) for prob in sel_model.model.questions.values()
+                                        # [(i, conf), axis=1) for i, conf in enumerate(np.exp(prob)) for prob in sel_model.model.questions.values()
 
 
-                                    t_diff = np.mean([abs(a.T_model-a.T) for a in sel_model.model.annotators.values()])
-                                    print(f'conf: {np.exp(sel_model.bestQ+sel_model.bestA)} \n'
-                                          f'prop. correct modelled: \t\t\t\t {sel_model.model.pc_m} \n'
-                                          f'prop. correct maj. vote: \t\t\t\t {maj.pc}\n'
-                                          f'prop. correct maj. vote KG corrected:\t {maj.pc_KG}\n'
-                                          f'avg. diff. T: {t_diff}')
+                                        t_diff = np.mean([abs(a.T_model-a.T) for a in sel_model.model.annotators.values()])
+                                        print(f'conf: {np.exp(sel_model.bestQ+sel_model.bestA)} \n'
+                                              f'prop. correct modelled: \t\t\t\t {sel_model.model.pc_m} \n'
+                                              f'prop. correct maj. vote: \t\t\t\t {maj.pc}\n'
+                                              f'prop. correct maj. vote KG corrected:\t {maj.pc_KG}\n'
+                                              f'avg. diff. T: {t_diff}')
 
-                                    # create mcmc_data dataframe
-                                    mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, dup, p_fo, kg_q, kg_u, sel_model, sel_model.model.pc_m, maj.pc, maj.pc_KG, sel_model.bestQ, sel_model.bestA]
+                                        # create mcmc_data dataframe
+                                        mcmc_data.loc[mcmc_data.__len__(), :] = [size, keep_n_samples, car, T_dist, sweeptype, dup, p_fo, kg_q, kg_u, sel_model, sel_model.model.pc_m, maj.pc, maj.pc_KG, sel_model.bestQ, sel_model.bestA]
 
-                                    # save data
-                                    with open(f'{session_dir}/output/mcmc_annotations_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
-                                        pickle.dump(items, file)
-                                    with open(f'{session_dir}/output/mcmc_user_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
-                                        pickle.dump(users, file)
-                                    with open(f'{session_dir}/output/mcmc_data.pickle', 'wb') as file:
-                                        pickle.dump(mcmc_data, file)
+                                        # save data
+                                        with open(f'{session_dir}/output/mcmc_annotations_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
+                                            pickle.dump(items, file)
+                                        with open(f'{session_dir}/output/mcmc_user_T_dist-{T_dist}_iters-{keep_n_samples}.pickle', 'wb') as file:
+                                            pickle.dump(users, file)
+                                        with open(f'{session_dir}/output/mcmc_data.pickle', 'wb') as file:
+                                            pickle.dump(mcmc_data, file)

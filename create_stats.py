@@ -121,33 +121,33 @@ def makeplaceholderframe(model, idx, datalen, cols):
     return df
 
 
-def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u):
-    with open(f'{session_dir}/{sessions[0]}/output/{model}_data_{"_".join(T_dist_list)}.pickle', 'rb') as file:
+def process_model(model, session_dir, sessions, data, cols, size, sweeptype, car, dup, p_fo, p_kg, p_kg_u):
+    with open(f'{session_dir}/{sessions[0]}/output/{model}_data.pickle', 'rb') as file:
         tmp_data = pickle.load(file)
     try:
         data.loc[(data['model'] == model) & (data['session'] == 'avg'),
-        ['car', 'T_dist', 'dup', 'p_fo', 'p_kg','p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size'] == size) & (tmp_data['car'] == car) & (tmp_data['p_kg_u'] == p_kg_u),
-        ['car', 'T_dist','dup', 'p_fo','p_kg', 'p_kg_u']])
+        ['car', 'T_dist', 'sweeptype', 'dup', 'p_fo', 'p_kg','p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size'] == size) & (tmp_data['car'] == car) & (tmp_data['p_kg_u'] == p_kg_u),
+        ['car', 'T_dist', 'sweeptype', 'dup', 'p_fo','p_kg', 'p_kg_u']])
     except:
         print(f'process model failed on {[model, session_dir, sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u]}')
 
     # fill frame with values
     for idx, session in enumerate(sessions):
-        filepath = f'{session_dir}/{session}/output/{model}_data_{"_".join(T_dist_list)}.pickle'
+        filepath = f'{session_dir}/{session}/output/{model}_data.pickle'
         with open(filepath, 'rb') as file:
             tmp_data = pickle.load(file)
         data.loc[(data['model'] == model) & (data['session'] == 'avg'),
             ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] = data.loc[(data['model'] == model) & (data['session'] == 'avg'),
             ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] + np.array(tmp_data.loc[:, ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] / sessions.__len__())
-        data = pandas.concat((data, makeplaceholderframe(model, idx, T_dist_list.__len__(), cols)), ignore_index=True)
+        data = pandas.concat((data, makeplaceholderframe(model, idx, sweeps[sweeptype].__len__(), cols)), ignore_index=True)
         data.loc[(data['session'] == f'{idx}') & (data['model'] == f'{model}'),
         ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n', 'pc_n_KG']] = np.array(tmp_data.loc[:,
         ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', f'{model}', 'pc_m', 'pc_n', 'pc_n_KG']])
 
 
         if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
-            queue_alpha_uerror_metrics(model, session_dir, session, idx, data, T_dist_list, car, dup, p_fo, p_kg, p_kg_u)
-        for T_dist in T_dist_list:
+            queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
+        for T_dist in sweeps[sweeptype]:
 
             # make a slice of all the sessions without the average
             dat = data.loc[(data['session'] != 'avg') &
@@ -206,12 +206,13 @@ def process_model(model, session_dir, sessions, data, cols, size, car, dup, p_fo
 def find_params(session_dir):
     properties = session_dir.split("\\")
     size = properties[1][properties[1].index("_")+1:]
-    car = int(properties[2][properties[2].index("_")+1:])
-    dup = int(properties[3][properties[3].index("_") + 1:])
-    p_fo = float(properties[4][-3:])
-    kg_q = int(properties[5][re.match('kg_q_', properties[5]).regs[0][1]:])
-    kg_u = int(properties[6][re.match('kg_u_', properties[6]).regs[0][1]:])
-    return size, car, dup, p_fo, kg_q, kg_u
+    sweeptype = properties[2][properties[2].index("_")+1:]
+    car = int(properties[3][properties[3].index("_")+1:])
+    dup = int(properties[4][properties[4].index("_") + 1:])
+    p_fo = float(properties[5][-3:])
+    kg_q = int(properties[6][re.match('kg_q_', properties[6]).regs[0][1]:])
+    kg_u = int(properties[7][re.match('kg_u_', properties[7]).regs[0][1]:])
+    return size, sweeptype, car, dup, p_fo, kg_q, kg_u
 
 def main(session_dir, step):
     # latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
@@ -234,17 +235,17 @@ def main(session_dir, step):
                 raise ValueError
 
             # initialize dataset
-            session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__()-1)/2)
+            session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__()-1)/3)
             if session_len != 11:
                 print(f"WARNING number of sessions was expected to be 11, but is {session_len} in folder {session_dir}/{dir}")
 
             datalen = 2*session_len # account for both EM and MCMC models
 
-            size, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
+            size, sweeptype, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
 
 
             # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
-            cols = ['session', 'model', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'CertaintyQ',
+            cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'CertaintyQ',
                     'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'pc_n_KG', 'pc_n_KG_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
                     'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD' ]
             data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
@@ -253,11 +254,11 @@ def main(session_dir, step):
             data.loc[:,'session'] = 'avg'
 
             if em_sessions.__len__()>0:
-                data = process_model('em', session_dir, em_sessions, data, cols, size, car, dup, p_fo, kg_q, kg_u)
+                data = process_model('em', session_dir, em_sessions, data, cols, size, sweeptype, car, dup, p_fo, kg_q, kg_u)
 
 
             if mcmc_sessions.__len__()>0:
-                data = process_model('mcmc', session_dir, mcmc_sessions, data, cols, size, car, dup, p_fo, kg_q, kg_u)
+                data = process_model('mcmc', session_dir, mcmc_sessions, data, cols, size, sweeptype, car, dup, p_fo, kg_q, kg_u)
 
             with open(f'{session_dir}/stats.pickle', 'wb') as file:
                 pickle.dump(data, file)
