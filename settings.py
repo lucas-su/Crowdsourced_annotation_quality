@@ -14,8 +14,8 @@ debug = False
 
 dup_list = [2,5]
 p_fo_list = [0.0]
-kg_q_list = [0,5]
-kg_u_list = [0,1]
+kg_q_list = [5]
+kg_u_list = [5]
 
 
 if debug:
