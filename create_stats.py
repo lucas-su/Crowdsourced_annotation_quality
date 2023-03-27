@@ -222,13 +222,14 @@ def main(session_dir, step):
         em_sessions = []
         mcmc_sessions = []
         for dir in step[1]:
-            type_walk = os.walk(f'{session_dir}/{dir}/output')
+            types = next(os.walk(f'{session_dir}/{dir}/output'))[2]
 
             # try:
-            type = next(type_walk)[2][0][:2]
+            type = types[0][:2]
+            tpcnt = 0
             while type != 'mc' and type != 'em':
-                print(type)
-                type = next(type_walk)[2][0][:2]
+                tpcnt += 1
+                type = types[tpcnt][:2]
             # except Exception as e:
             #     print(f'Incomplete session: {session_dir}/{dir}')
             #     print(e)
