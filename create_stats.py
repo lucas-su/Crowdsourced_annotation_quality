@@ -224,15 +224,15 @@ def main(session_dir, step):
         for dir in step[1]:
             type_walk = os.walk(f'{session_dir}/{dir}/output')
 
-            try:
+            # try:
+            type = next(type_walk)[2][0][:2]
+            while type != 'mc' and type != 'em':
+                print(type)
                 type = next(type_walk)[2][0][:2]
-                while type != 'mc' and type != 'em':
-                    print(type)
-                    type = next(type_walk)[2][0][:2]
-            except Exception as e:
-                print(f'Incomplete session: {session_dir}/{dir}')
-                print(e)
-                continue
+            # except Exception as e:
+            #     print(f'Incomplete session: {session_dir}/{dir}')
+            #     print(e)
+            #     continue
             if type == 'em':
                 em_sessions.append(dir)
             elif type == 'mc':
