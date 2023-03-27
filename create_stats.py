@@ -230,7 +230,7 @@ def main(session_dir, step):
                     print(type)
                     type = next(type_walk)[2][0][:2]
             except Exception as e:
-                print(f'Incomplete session: {session_dir}')
+                print(f'Incomplete session: {session_dir}/{dir}')
                 print(e)
                 continue
             if type == 'em':
