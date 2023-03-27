@@ -229,9 +229,9 @@ def main(session_dir, step):
                 while type != 'mc' or type != 'em':
                     print(type)
                     type = next(type_walk)[2][0][:2]
-                    pass
-            except:
+            except Exception as e:
                 print(f'Incomplete session: {session_dir}')
+                print(e)
                 continue
             if type == 'em':
                 em_sessions.append(dir)
