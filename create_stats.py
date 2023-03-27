@@ -205,6 +205,7 @@ def process_model(model, session_dir, sessions, data, cols, size, sweeptype, car
 
 def find_params(session_dir):
     properties = session_dir.split("\\")
+    print(properties, session_dir)
     size = properties[1][properties[1].index("_")+1:]
     sweeptype = properties[2][properties[2].index("_")+1:]
     car = int(properties[3][properties[3].index("_")+1:])
