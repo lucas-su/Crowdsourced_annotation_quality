@@ -226,7 +226,9 @@ def main(session_dir, step):
 
             try:
                 type = next(type_walk)[2][0][:2]
-                while next(type_walk)[2][0][:2] == 'po':
+                while type != 'mc' or type != 'em':
+                    print(type)
+                    type = next(type_walk)[2][0][:2]
                     pass
             except:
                 print(f'Incomplete session: {session_dir}')
