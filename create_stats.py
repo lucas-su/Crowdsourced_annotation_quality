@@ -204,7 +204,10 @@ def process_model(model, session_dir, sessions, data, cols, size, sweeptype, car
     return data
 
 def find_params(session_dir):
-    properties = session_dir.split("\\")
+    if platform.system() == 'Windows':
+        properties = session_dir.split("\\")
+    else:
+        properties = session_dir.split("/")
     print(properties, session_dir)
     size = properties[1][properties[1].index("_")+1:]
     sweeptype = properties[2][properties[2].index("_")+1:]
