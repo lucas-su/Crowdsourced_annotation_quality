@@ -306,36 +306,40 @@ class plots():
 
         plt.show()
 
-    def plot_pc_T(self, car, dup, p_fo, p_kg, datasetsize, p_kg_u):
+    def plot_pc_T(self, datasetsize, sweeptype, car, dup, p_fo, kg_q, kg_u):
         self.figpc_T, self.axspc_T = plt.subplots(figsize=(16,9))
-        mcmcpc_m = data.loc[(data['model'] == 'mcmc') &
-                            (data['car'] == car) &
-                            (data['dup'] == dup) &
-                            (data['p_fo'] == p_fo) &
-                            (data['p_kg'] == p_kg) &
+        mcmcpc_m = data.loc[(data['model'] == 'mcmc')
+                            # (data['car'] == car) &
+                            # (data['dup'] == dup) &
+                            # (data['p_fo'] == p_fo) &
+                            # (data['p_kg'] == p_kg) &
                             # (data['size'] == datasetsize) &
-                            (data['p_kg_u'] == p_kg_u), 'pc_m']
-        mcmc_sd = data.loc[(data['model'] == 'mcmc') &
-                           (data['car'] == car) &
-                           (data['dup'] == dup) &
-                           (data['p_fo'] == p_fo) &
-                           (data['p_kg'] == p_kg) &
+                            # (data['p_kg_u'] == p_kg_u)
+        , 'pc_m']
+        mcmc_sd = data.loc[(data['model'] == 'mcmc')
+                           # (data['car'] == car) &
+                           # (data['dup'] == dup) &
+                           # (data['p_fo'] == p_fo) &
+                           # (data['p_kg'] == p_kg) &
                            # (data['size'] == datasetsize) &
-                           (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
-        certQ = data.loc[(data['model'] == 'mcmc') &
-                         (data['car'] == car) &
-                         (data['dup'] == dup) &
-                         (data['p_fo'] == p_fo) &
-                         (data['p_kg'] == p_kg) &
+                           # (data['p_kg_u'] == p_kg_u)
+        , 'pc_m_SD']
+        certQ = data.loc[(data['model'] == 'mcmc')
+                         # (data['car'] == car) &
+                         # (data['dup'] == dup) &
+                         # (data['p_fo'] == p_fo) &
+                         # (data['p_kg'] == p_kg) &
                          # (data['size'] == datasetsize) &
-                         (data['p_kg_u'] == p_kg_u), 'CertaintyQ']
-        certA = data.loc[(data['model'] == 'mcmc') &
-                         (data['car'] == car) &
-                         (data['dup'] == dup) &
-                         (data['p_fo'] == p_fo) &
-                         (data['p_kg'] == p_kg) &
+                         # (data['p_kg_u'] == p_kg_u)
+        , 'CertaintyQ']
+        certA = data.loc[(data['model'] == 'mcmc')
+                         # (data['car'] == car) &
+                         # (data['dup'] == dup) &
+                         # (data['p_fo'] == p_fo) &
+                         # (data['p_kg'] == p_kg) &
                          # (data['size'] == datasetsize) &
-                         (data['p_kg_u'] == p_kg_u), 'CertaintyA']
+                         # (data['p_kg_u'] == p_kg_u)
+        , 'CertaintyA']
         # empc_m = data.loc[(data['model'] == 'em') &
         #                     (data['car'] == car) &
         #                     (data['dup'] == dup) &
@@ -350,50 +354,56 @@ class plots():
         #                    (data['p_kg'] == p_kg) &
         #                    (data['size'] == size) &
         #                    (data['p_kg_u'] == p_kg_u), 'pc_m_SD']
-        naivepc = data.loc[(data['model'] == 'mcmc') &
-                           (data['car'] == car) &
-                           (data['dup'] == dup) &
-                           (data['p_fo'] == p_fo) &
-                           (data['p_kg'] == p_kg) &
+        naivepc = data.loc[(data['model'] == 'mcmc')
+                           # (data['car'] == car) &
+                           # (data['dup'] == dup) &
+                           # (data['p_fo'] == p_fo) &
+                           # (data['p_kg'] == p_kg) &
                            # (data['size'] == datasetsize) &
-                           (data['p_kg_u'] == p_kg_u), 'pc_n']
-        naive_sd = data.loc[(data['model'] == 'mcmc') &
-                            (data['car'] == car) &
-                            (data['dup'] == dup) &
-                            (data['p_fo'] == p_fo) &
-                            (data['p_kg'] == p_kg) &
+                           # (data['p_kg_u'] == p_kg_u)
+        , 'pc_n']
+        naive_sd = data.loc[(data['model'] == 'mcmc')
+                            # (data['car'] == car) &
+                            # (data['dup'] == dup) &
+                            # (data['p_fo'] == p_fo) &
+                            # (data['p_kg'] == p_kg) &
                             #    (data['size'] == datasetsize) &
-                            (data['p_kg_u'] == p_kg_u), 'pc_n_SD']
+                            # (data['p_kg_u'] == p_kg_u)
+        , 'pc_n_SD']
 
-        naiveKGpc = data.loc[(data['model'] == 'mcmc') &
-                             (data['car'] == car) &
-                             (data['dup'] == dup) &
-                             (data['p_fo'] == p_fo) &
-                             (data['p_kg'] == p_kg) &
+        naiveKGpc = data.loc[(data['model'] == 'mcmc')
+                             # (data['car'] == car) &
+                             # (data['dup'] == dup) &
+                             # (data['p_fo'] == p_fo) &
+                             # (data['p_kg'] == p_kg) &
                              # (data['size'] == datasetsize) &
-                             (data['p_kg_u'] == p_kg_u), 'pc_n_KG']
-        naiveKG_sd = data.loc[(data['model'] == 'mcmc') &
-                              (data['car'] == car) &
-                              (data['dup'] == dup) &
-                              (data['p_fo'] == p_fo) &
-                              (data['p_kg'] == p_kg) &
+                             # (data['p_kg_u'] == p_kg_u)
+        , 'pc_n_KG']
+        naiveKG_sd = data.loc[(data['model'] == 'mcmc')
+                              # (data['car'] == car) &
+                              # (data['dup'] == dup) &
+                              # (data['p_fo'] == p_fo) &
+                              # (data['p_kg'] == p_kg) &
                               #    (data['size'] == datasetsize) &
-                              (data['p_kg_u'] == p_kg_u), 'pc_n_KG_SD']
+                              # (data['p_kg_u'] == p_kg_u)
+        , 'pc_n_KG_SD']
 
-        pc_krip = data.loc[(data['model'] == 'mcmc') &
-                             (data['car'] == car) &
-                             (data['dup'] == dup) &
-                             (data['p_fo'] == p_fo) &
-                             (data['p_kg'] == p_kg) &
+        pc_krip = data.loc[(data['model'] == 'mcmc')
+                             # (data['car'] == car) &
+                             # (data['dup'] == dup) &
+                             # (data['p_fo'] == p_fo) &
+                             # (data['p_kg'] == p_kg) &
                              # (data['size'] == datasetsize) &
-                             (data['p_kg_u'] == p_kg_u), 'pc_krip']
-        pc_krip_SD = data.loc[(data['model'] == 'mcmc') &
-                              (data['car'] == car) &
-                              (data['dup'] == dup) &
-                              (data['p_fo'] == p_fo) &
-                              (data['p_kg'] == p_kg) &
+                             # (data['p_kg_u'] == p_kg_u)
+        , 'pc_krip']
+        pc_krip_SD = data.loc[(data['model'] == 'mcmc')
+                              # (data['car'] == car) &
+                              # (data['dup'] == dup) &
+                              # (data['p_fo'] == p_fo) &
+                              # (data['p_kg'] == p_kg) &
                               #    (data['size'] == datasetsize) &
-                              (data['p_kg_u'] == p_kg_u), 'pc_krip_SD']
+                              # (data['p_kg_u'] == p_kg_u)
+        , 'pc_krip_SD']
 
         x = np.arange(11)/10
 
@@ -410,7 +420,7 @@ class plots():
         # self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
 
         # KG maj. vote
-        if p_kg > 0 or p_kg_u > 0:
+        if kg_q > 0 or kg_u > 0:
             self.axspc_T.plot(x, naiveKGpc, label='maj. vote KG', color='firebrick')
             self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naiveKGpc+naiveKG_sd, dtype=float)], [max(sd, 0) for sd in np.array(naiveKGpc-naiveKG_sd, dtype=float)], color='firebrick', alpha=0.2)
 
@@ -431,12 +441,12 @@ class plots():
 
         self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
         self.axspc_T.set_ylabel('--- Proportion item labels correct\n- - - Confidence in questions and answers')
-        self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {p_kg}, datasetsize {datasetsize}, known good users {p_kg_u}')
+        self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {kg_q}, datasetsize {datasetsize}, known good users {kg_u}')
         self.axspc_T.legend()
-        plt.savefig(f'plots/datasetsize_{size}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
+        plt.savefig(f'plots/datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
         plt.savefig(f'{session_dir}/plot.png')
-        plt.show()
-        # plt.close()
+        # plt.show()
+        plt.close()
 
 if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
@@ -460,8 +470,8 @@ if __name__ == "__main__":
             with open(f'{session_dir}/stats.pickle', 'rb') as file:
                 data = pickle.load(file)
             data = data.loc[data['session'] == 'avg']
-            size, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
-            plot.plot_pc_T(car, dup, p_fo, kg_q, size, kg_u)
+            size, sweeptype, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
+            plot.plot_pc_T(size, sweeptype, car, dup, p_fo, kg_q, kg_u)
 
 
 
