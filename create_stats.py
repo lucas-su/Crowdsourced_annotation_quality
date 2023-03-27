@@ -222,8 +222,12 @@ def main(session_dir, step):
         em_sessions = []
         mcmc_sessions = []
         for dir in step[1]:
+            type_walk = os.walk(f'{session_dir}/{dir}/output')
+
             try:
-                type = next(os.walk(f'{session_dir}/{dir}/output'))[2][0][:2]
+                type = next(type_walk)[2][0][:2]
+                while next(type_walk)[2][0][:2] == 'po':
+                    pass
             except:
                 print(f'Incomplete session: {session_dir}')
                 continue
@@ -232,6 +236,7 @@ def main(session_dir, step):
             elif type == 'mc':
                 mcmc_sessions.append(dir)
             else:
+                print(f"unexpected type: {type}")
                 raise ValueError
 
             # initialize dataset
