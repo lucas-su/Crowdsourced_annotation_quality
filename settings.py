@@ -9,19 +9,20 @@ car_list = [2,3,4]
 beta_base = 5
 sweeps = {'beta':[f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)],
           "propT": [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]}
+# sweeps = {'beta':[f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]}
 ncpu = multiprocessing.cpu_count()
 debug = False
 
 dup_list = [2,5]
 p_fo_list = [0.0]
-kg_q_list = [5]
-kg_u_list = [5]
+kg_q_list = [0]
+kg_u_list = [0]
 
 
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['medium']#, 'large'] #['small','medium','large']
+    datasetsize_list = ['large', 'xlarge']#, 'large'] #['small','medium','large', 'xlarge']
 
 # decrease annotators for quick debugging
 if debug:

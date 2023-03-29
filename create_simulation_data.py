@@ -130,8 +130,10 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
         nQuestions = nAnnot*3
     elif size == 'medium':
         nQuestions = nAnnot*6
-    else:
-        nQuestions = nAnnot*15
+    elif size == 'large':
+        nQuestions = nAnnot*20
+    elif size == 'xlarge':
+        nQuestions = nAnnot * 50
 
     if T_dist == 'uniform':
         param = [['uniform']]
