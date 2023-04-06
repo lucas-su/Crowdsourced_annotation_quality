@@ -3,26 +3,27 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [2,3,4]
+car_list = [2,4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
-beta_base = 5
-sweeps = {'beta':[f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)],
+beta_min = 0.01
+beta_max = 0.8
+sweeps = {'beta_small':[f'beta{round(flt, 2)}_{round(beta_max-flt, 2)}' for flt in np.linspace(beta_min, beta_max-beta_min, 11)],
           "propT": [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]}
-# sweeps = {'beta':[f'beta{round((flt*(beta_base-1))+1, 2)}_{round(beta_base+1-((flt*(beta_base-1))+1), 2)}' for flt in np.arange(0, 1.1, 0.1)]}
+
 ncpu = multiprocessing.cpu_count()
 debug = False
 
-dup_list = [2,5]
+dup_list = [2,3,4,5]
 p_fo_list = [0.0]
-kg_q_list = [0]
-kg_u_list = [0]
+kg_q_list = [0,5]
+kg_u_list = [0,1]
 
 
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['large', 'xlarge']#, 'large'] #['small','medium','large', 'xlarge']
+    datasetsize_list = ['medium']# ['small','medium','large', 'xlarge']
 
 # decrease annotators for quick debugging
 if debug:
@@ -60,19 +61,6 @@ def set_session_dir(size, sweeptype, car, dup, p_fo, kg_q, kg_u):
     session_dir = f'sessions/datasetsize_{size}/sweeptype_{sweeptype}/cardinality_{car}/dup_{dup}/p_fo_{p_fo}/kg_q_{kg_q}/kg_u_{kg_u}/'
     return session_dir
 
-
-# def set_nQuestions(datasetsize):
-#     if datasetsize == 'debug':
-#         nQ_per_annot = 2.
-#     elif datasetsize == 'small': # avg 3 annots per annotator
-#         nQ_per_annot = 3.
-#     elif datasetsize == 'medium': # avg 6 annots per annotator
-#         nQ_per_annot = 6.
-#     elif datasetsize == 'large': # avg 15 annots per annotator
-#         nQ_per_annot = 15.
-#     else:
-#         raise(ValueError,'Datasetsize should be "small", "medium", or "large"')
-#     return nQ_per_annot
 def set_priors():
 
     priors = {'qAlpha': 1e-5}

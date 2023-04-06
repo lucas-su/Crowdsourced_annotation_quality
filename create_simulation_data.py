@@ -10,6 +10,7 @@ import numpy as np
 import pandas
 import  random
 from settings import c_data_mal_T
+from scipy.stats import beta
 
 # set globals
 xmax = 1
@@ -75,7 +76,8 @@ class dist():
         return 1/(beta**(alpha)*math.gamma(alpha))*self.x**(alpha-1)*math.e**(-self.x/beta)
 
     def beta(self, a,b):
-        return (((self.x) ** (a - 1)) * ((1 - self.x) ** (b - 1))) / ((math.gamma(a)*math.gamma(b))/math.gamma(a+b))
+        return beta.pdf(self.x, a,b)
+        # return (((self.x) ** (a - 1)) * ((1 - self.x) ** (b - 1))) / ((math.gamma(a)*math.gamma(b))/math.gamma(a+b)) # same thing but my own function doesn't cope with low a and b well, produces overflow warning
 
     def gaussian(self, mu, sd):
         return (math.e ** (-((self.x - mu) ** 2) / 2 * (sd) ** (2))) / sd * math.sqrt(2 * math.pi)
@@ -125,7 +127,6 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
 
     if size == 'debug':
         nQuestions = 2*nAnnot
-
     elif size == 'small':
         nQuestions = nAnnot*3
     elif size == 'medium':
@@ -134,6 +135,8 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
         nQuestions = nAnnot*20
     elif size == 'xlarge':
         nQuestions = nAnnot * 50
+    else:
+        raise ValueError
 
     if T_dist == 'uniform':
         param = [['uniform']]
@@ -146,6 +149,9 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
         distribution = dist(param, x)
     elif T_dist[:6] == 'single':
         param = [['single', T_dist[6:]]]
+        distribution = dist(param, x)
+    elif T_dist[:5] == "beta2":
+        param = [['beta', float(T_dist[4:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:])]]
         distribution = dist(param, x)
     elif T_dist[:4] == "beta":
         param = [['beta', float(T_dist[4:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:])]]
@@ -214,23 +220,23 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
         pickle.dump(user, file)
     with open(f'{path}/simulation data/{T_dist}/pickle/{size}_{T_dist}_dup-{dup}_car-{car}_p-fo-{p_fo}_p-kg-u-{kg_u}_annotations_empty.pickle', 'wb') as file:
         pickle.dump(annotation, file)
-if __name__ == "__main__":
-    if platform.system() == 'Windows':
-        ncpu = 8
-    else:
-        ncpu = 32
-    # car_list = list(range(2,8))
-    car_list = [3]
-
-    # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
-    # modes = ['beta2_4', 'beta2_2', 'beta4_2']
-    T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
-    # dups = [3, 5, 7, 9]
-    # dups = [2,5,9]
-    dup_list = [3]
-
-    p_fo_list = [0.0, 0.1]
-    # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
-    p_KG_u_list = [0.0, 0.1]
-    # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
-    createData(os.getcwd(), car_list, T_dist_list, dup_list, p_fo_list, p_KG_u_list, ncpu)
+# if __name__ == "__main__":
+#     if platform.system() == 'Windows':
+#         ncpu = 8
+#     else:
+#         ncpu = 32
+#     # car_list = list(range(2,8))
+#     car_list = [3]
+#
+#     # modes = ['uniform', 'single0', 'single1', 'beta2_2', 'beta3_2', 'beta4_2']
+#     # modes = ['beta2_4', 'beta2_2', 'beta4_2']
+#     T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+#     # dups = [3, 5, 7, 9]
+#     # dups = [2,5,9]
+#     dup_list = [3]
+#
+#     p_fo_list = [0.0, 0.1]
+#     # p_fos = [0.0, 0.05, 0.1, 0.15, 0.2]
+#     p_KG_u_list = [0.0, 0.1]
+#     # p_kg_us = [0.0, 0.05, 0.1, 0.15, 0.2]
+#     createData(os.getcwd(), car_list, T_dist_list, dup_list, p_fo_list, p_KG_u_list, ncpu)

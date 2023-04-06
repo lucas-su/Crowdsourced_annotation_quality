@@ -356,9 +356,13 @@ class plots():
         self.axspc_T.plot(x, certQ,  label='certQ', color='#d62728', alpha=0.5, linestyle='dashed')
         self.axspc_T.plot(x, certA,  label='certA', color='#9467bd', alpha=0.5, linestyle='dashed')
 
-
-        self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
-        self.axspc_T.set_ylabel('--- Proportion item labels correct\n- - - Confidence in questions and answers')
+        if sweeptype == 'propT':
+            self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
+        elif sweeptype == 'beta':
+            self.axspc_T.set_xlabel('Mean density in beta distribution')
+        else:
+            raise ValueError
+        self.axspc_T.set_ylabel('— Proportion item labels correct\n- - - Confidence in questions and answers')
         self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {kg_q}, datasetsize {datasetsize}, known good users {kg_u}')
         self.axspc_T.legend()
         plt.savefig(f'plots/datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')

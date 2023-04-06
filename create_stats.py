@@ -7,9 +7,22 @@ from em import EM
 from mcmc import *
 
 def process_alpha(data):
-    alphas = [krippendorff.alpha(reliability_data=data)]
+    try:
+        with np.errstate(all='raise'):
+            OK_permutations = []
+            for x in range(data.__len__()):
+                # check if there is at least one overlapping question after removing annotator
+                if sum(np.all(~np.isnan(data.loc[np.eye(data.__len__())[x] != 1]).T, axis=1))>0:
+                    # check if there is a disagreement among the overlapping questions: krippendorff alpha is undefined if all overlapping answers agree
 
-    alphas += [krippendorff.alpha(reliability_data=data.loc[np.eye(data.__len__())[x] != 1]) for x in range(data.__len__())]
+                    if np.all(np.diff(np.array(data.loc[np.eye(data.__len__())[x] != 1,np.all(~np.isnan(data.loc[np.eye(data.__len__())[x] != 1]), axis=0)]), axis=0)==0):
+                        OK_permutations.append(x)
+
+            alphas = [krippendorff.alpha(reliability_data=data)]
+
+            alphas += [krippendorff.alpha(reliability_data=data.loc[np.eye(data.__len__())[x] != 1]) if x in OK_permutations else -1 for x in range(data.__len__())]
+    except Exception as e:
+        print(f'Process alpha error {e}')
     return alphas
 
 def queue_alpha_uerror_metrics(model, session_dir, session, session_idx, data, T_dist_list, car, dup, p_fo, p_kg, p_kg_u):
@@ -25,7 +38,7 @@ def queue_alpha_uerror_metrics(model, session_dir, session, session_idx, data, T
                      (data['dup'].values == dup) &
                      (data['p_fo'].values == p_fo) &
                      (data['p_kg'].values == p_kg) &
-                     (data['p_kg'].values == p_kg_u), 'uerror'] += res
+                     (data['p_kg_u'].values == p_kg_u), 'uerror'] += res
 
         result = p.map(partial(process_krip, session_dir, model, car, dup, iterations, session), T_dist_list)
         for T_dist, res in result:
@@ -36,7 +49,7 @@ def queue_alpha_uerror_metrics(model, session_dir, session, session_idx, data, T
                      (data['dup'].values == dup) &
                      (data['p_fo'].values == p_fo) &
                      (data['p_kg'].values == p_kg)&
-                     (data['p_kg'].values == p_kg_u), ['alpha_bfr_prun',
+                     (data['p_kg_u'].values == p_kg_u), ['alpha_bfr_prun',
                                                      'n_annot_aftr_prun',
                                                      'alpha_aftr_prun',
                                                      'n_answ_aftr_prun',
@@ -146,8 +159,8 @@ def process_model(model, session_dir, sessions, data, cols, size, sweeptype, car
         ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', f'{model}', 'pc_m', 'pc_n', 'pc_n_KG']])
 
 
-        if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
-            queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
+        # if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
+        #     queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
         for T_dist in sweeps[sweeptype]:
 
             # make a slice of all the sessions without the average
@@ -221,8 +234,8 @@ def find_params(session_dir):
 def main(session_dir, step):
     # latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
 
-    if not os.path.exists(f'{session_dir}/stats.pickle'):
-
+    # if not os.path.exists(f'{session_dir}/stats.pickle'):
+    if True:
         em_sessions = []
         mcmc_sessions = []
         for dir in step[1]:
