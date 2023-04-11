@@ -150,7 +150,7 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
     elif T_dist[:6] == 'single':
         param = [['single', T_dist[6:]]]
         distribution = dist(param, x)
-    elif T_dist[:5] == "beta2":
+    elif T_dist[:5] == "beta_small":
         param = [['beta', float(T_dist[4:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:])]]
         distribution = dist(param, x)
     elif T_dist[:4] == "beta":

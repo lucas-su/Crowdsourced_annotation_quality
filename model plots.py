@@ -15,11 +15,11 @@ from create_stats import find_params
 
 class plots():
     # def __init__(self):
-        # self.figcar, self.axscar = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
-        # self.figuerror, self.axsuerror = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
-        # self.figsave, self.axssave = plt.subplots()
-        # self.figsave.set_size_inches(8,4)
-        # self.figsave.subplots_adjust(top=0.98, bottom=0.12,right=0.83,left=0.08)
+    #     self.figcar, self.axscar = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
+    #     self.figuerror, self.axsuerror = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
+    #     self.figsave, self.axssave = plt.subplots()
+    #     self.figsave.set_size_inches(8,4)
+    #     self.figsave.subplots_adjust(top=0.98, bottom=0.12,right=0.83,left=0.08)
 
     def plot_one(self, mode, dup, p_fo, p_kg, iterations, datasetsize, p_kg_u):
         self.axssave.plot(car_list, data.loc[
@@ -81,8 +81,6 @@ class plots():
         self.axssave.legend(loc='lower left', bbox_to_anchor=(1, 0, 1, 1))
         self.axssave.set_ylabel(f'Proportion correct')
 
-
-
     def saveplots(self):
         # mode, dup, p_fo, p_kg, iterations, size, p_kg_u
         plotdata = [['beta2_4', 2,0,0,iterations,'small', 0],
@@ -95,7 +93,6 @@ class plots():
             self.plot_one(*plotdatum)
             plt.savefig(f'C:\\Users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\PC_mode-{plotdatum[0]}_dup-{plotdatum[1]}_p_fo-{plotdatum[2]}_p_kg-{plotdatum[3]}_size-{plotdatum[5]}_p_kg_u{plotdatum[6]}.png', dpi=300)
             self.axssave.clear()
-
 
     def plot(self):
         # todo make non-global
@@ -343,8 +340,8 @@ class plots():
             self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naiveKGpc+naiveKG_sd, dtype=float)], [max(sd, 0) for sd in np.array(naiveKGpc-naiveKG_sd, dtype=float)], color='firebrick', alpha=0.2)
 
         # krip
-        self.axspc_T.plot(x, pc_krip, label='krip', color='gold')
-        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(pc_krip + pc_krip_SD, dtype=float)], [max(sd, 0) for sd in np.array(pc_krip - pc_krip_SD, dtype=float)],color='gold', alpha=0.2 )
+        # self.axspc_T.plot(x, pc_krip, label='krip', color='gold')
+        # self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(pc_krip + pc_krip_SD, dtype=float)], [max(sd, 0) for sd in np.array(pc_krip - pc_krip_SD, dtype=float)],color='gold', alpha=0.2 )
 
 
         # cardinality
@@ -360,6 +357,9 @@ class plots():
             self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
         elif sweeptype == 'beta':
             self.axspc_T.set_xlabel('Mean density in beta distribution')
+        elif sweeptype == 'beta_small':
+            self.axspc_T.set_xlabel('Mean density in beta distribution')
+
         else:
             raise ValueError
         self.axspc_T.set_ylabel('— Proportion item labels correct\n- - - Confidence in questions and answers')

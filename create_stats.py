@@ -161,8 +161,8 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
         ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', f'{model}', 'pc_m', 'pc_n', 'pc_n_KG']])
 
 
-        if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
-            queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
+        # if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
+        #     queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
         for T_dist in sweeps[sweeptype]:
 
             # make a slice of all the sessions without the average
