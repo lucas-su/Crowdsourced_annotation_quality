@@ -1,6 +1,6 @@
 import os.path
 import pickle
-from settings import *
+# from settings import *
 import matplotlib.pyplot as plt
 import create_stats
 import pandas
@@ -374,6 +374,16 @@ if __name__ == "__main__":
     # model = "mcmc"  # options "em" or "mcmc"
     latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
 
+    beta_smin = 0.01
+    beta_smax = 0.8
+    beta_min = 1
+    beta_max = 6
+    sweeps = {'beta': [f'beta{round(flt, 2)}_{round(beta_max - flt, 2)}' for flt in
+                             np.linspace(beta_min, beta_max - beta_min, 11)],
+              'beta_small': [f'beta{round(flt, 2)}_{round(beta_smax - flt, 2)}' for flt in
+                             np.linspace(beta_smin, beta_smax - beta_smin, 11)],
+              "propT": [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]}
+
     iterations = {'em':10,
                   'mcmc': 100}
     plot = plots()
@@ -386,7 +396,7 @@ if __name__ == "__main__":
         except:
             continue
         if session_dir != "":
-            create_stats.main(session_dir, step)
+            create_stats.main(session_dir, step, sweeps)
 
             # if not os.path.exists(f'{session_dir}/plot.png'):
             with open(f'{session_dir}/stats.pickle', 'rb') as file:

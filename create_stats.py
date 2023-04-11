@@ -1,10 +1,12 @@
 import re
-import time
-# from settings import *
+import numpy as np, os, platform, pandas, pickle
 import krippendorff
 
+from multiprocessing import Pool
+from functools import partial
+
 from em import EM
-from mcmc import *
+from mcmc import mcmc
 
 def process_alpha(data):
     try:
@@ -135,7 +137,7 @@ def makeplaceholderframe(model, idx, datalen, cols):
     return df
 
 
-def process_model(model, session_dir, sessions, data, cols, size, sweeptype, car, dup, p_fo, p_kg, p_kg_u):
+def process_model(model, session_dir, sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, p_kg, p_kg_u):
     with open(f'{session_dir}/{sessions[0]}/output/{model}_data.pickle', 'rb') as file:
         tmp_data = pickle.load(file)
     try:
@@ -153,14 +155,14 @@ def process_model(model, session_dir, sessions, data, cols, size, sweeptype, car
         data.loc[(data['model'] == model) & (data['session'] == 'avg'),
             ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] = data.loc[(data['model'] == model) & (data['session'] == 'avg'),
             ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] + np.array(tmp_data.loc[:, ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] / sessions.__len__())
-        data = pandas.concat((data, makeplaceholderframe(model, idx, sweeps[sweeptype].__len__(), cols)), ignore_index=True)
+        data = pandas.concat((data, makeplaceholderframe(model, idx, session_len, cols)), ignore_index=True)
         data.loc[(data['session'] == f'{idx}') & (data['model'] == f'{model}'),
         ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n', 'pc_n_KG']] = np.array(tmp_data.loc[:,
         ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', f'{model}', 'pc_m', 'pc_n', 'pc_n_KG']])
 
 
-        # if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
-        #     queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
+        if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
+            queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
         for T_dist in sweeps[sweeptype]:
 
             # make a slice of all the sessions without the average
@@ -231,7 +233,7 @@ def find_params(session_dir):
     kg_u = int(properties[7][re.match('kg_u_', properties[7]).regs[0][1]:])
     return size, sweeptype, car, dup, p_fo, kg_q, kg_u
 
-def main(session_dir, step):
+def main(session_dir, step, sweeps):
     # latexpath = f'C:\\users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\\em_mcmc_plots\\'
 
     # if not os.path.exists(f'{session_dir}/stats.pickle'):
@@ -279,11 +281,11 @@ def main(session_dir, step):
             data.loc[:,'session'] = 'avg'
 
             if em_sessions.__len__()>0:
-                data = process_model('em', session_dir, em_sessions, data, cols, size, sweeptype, car, dup, p_fo, kg_q, kg_u)
+                data = process_model('em', session_dir, em_sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, kg_q, kg_u)
 
 
             if mcmc_sessions.__len__()>0:
-                data = process_model('mcmc', session_dir, mcmc_sessions, data, cols, size, sweeptype, car, dup, p_fo, kg_q, kg_u)
+                data = process_model('mcmc', session_dir, mcmc_sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, kg_q, kg_u)
 
             with open(f'{session_dir}/stats.pickle', 'wb') as file:
                 pickle.dump(data, file)
