@@ -12,6 +12,9 @@ import  random
 from settings import c_data_mal_T
 from scipy.stats import beta
 
+from numpy.random import default_rng
+rng = default_rng()
+
 # set globals
 xmax = 1
 steps = 1000
@@ -47,22 +50,21 @@ def sim_answer(users, annotations, u_id, car, q_id, T_dist):
 
 class dist():
     def __init__(self, param, x):
-        self.param = param
+        self.params = param
         self.x = x
-        self.cum = self.build()
+        self.dist = None
 
     def __call__(self, *args, **kwargs):
-        return self.cum
+        return
 
     def build(self):
-        cum = np.zeros(self.x.__len__())
-        for dist in self.param:
-            func = eval(f'self.{dist[0]}') # eval to determine which distribution to take. Options: gamma beta gaussian uniform
+        # cum = np.zeros(self.x.__len__())
+        for param in self.params:
+            func = eval(f'self.{param[0]}') # eval to determine which distribution to take. Options: gamma beta gaussian uniform
             if func.__name__ not in ['gamma', 'beta', 'gaussian', 'uniform', 'single', 'propT_']:
                 raise NotImplementedError
-            cum += func(*dist[1:])
 
-        return cum/self.param.__len__()
+        return
 
     def single(self, prob):
         probs = np.zeros(self.x.shape[0])
@@ -139,31 +141,30 @@ def createData(path, car, T_dist, dup, p_fo, kg_u, ncpu, size):
         raise ValueError
 
     if T_dist == 'uniform':
-        param = [['uniform']]
-        distribution = dist(param, x)
+        t_given = rng.uniform(0,1,10)
     elif T_dist == 'gaussian':
-        param = [["gaussian", 5, 1]]
-        distribution = dist(param, x)
+        t_given = rng.normal(0.5,0.2,10)
     elif T_dist == 'gaussian50_50':
         param = [["gaussian",2,1],["gaussian",8,1]]
         distribution = dist(param, x)
+        t_given = random.choices(x, distribution(), k=nAnnot)
     elif T_dist[:6] == 'single':
-        param = [['single', T_dist[6:]]]
-        distribution = dist(param, x)
-    elif T_dist[:5] == "beta_small":
-        param = [['beta', float(T_dist[4:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:])]]
-        distribution = dist(param, x)
+        t_given = np.linspace(T_dist[6:],T_dist[6:],nAnnot)
+    elif T_dist[:5] == "beta2":
+        t_given = rng.beta(float(T_dist[5:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:]), nAnnot)
     elif T_dist[:4] == "beta":
-        param = [['beta', float(T_dist[4:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:])]]
-        distribution = dist(param, x)
+        t_given = rng.beta(float(T_dist[4:T_dist.index('_')]),float(T_dist[T_dist.index('_')+1:]), nAnnot)
     elif T_dist[:6] == 'propT_':
-        param = [['propT_', T_dist[6:]]]
-        distribution = dist(param, x)
+        probs = np.zeros(x.shape[0])
+        prop = float(T_dist[6:])
+        probs[0] = 1-prop
+        probs[-1] = prop
+        t_given = random.choices(x, probs, k=nAnnot)
     else:
         raise ValueError
     udata = {"ID":range(nAnnot),
                 "type": detType(nAnnot, p_fo),
-                "T_given": random.choices(x, distribution(), k=nAnnot),
+                "T_given": t_given,
                 "T_model": np.ones(nAnnot)*0.5}
 
     for q in range(nQuestions): # keep track of labels in broad format

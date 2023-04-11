@@ -8,7 +8,8 @@ car_list = [2,4]
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_min = 0.01
 beta_max = 0.8
-sweeps = {'beta_small':[f'beta{round(flt, 2)}_{round(beta_max-flt, 2)}' for flt in np.linspace(beta_min, beta_max-beta_min, 11)]}
+sweeps = {'beta_small':[f'beta2{round(flt, 2)}_{round(beta_max-flt, 2)}' for flt in np.linspace(beta_min, beta_max-beta_min, 11)]}
+          # "propT": [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]}
 
 ncpu = multiprocessing.cpu_count()
 debug = False
