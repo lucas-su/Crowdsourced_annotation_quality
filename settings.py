@@ -23,7 +23,7 @@ kg_u_list = [0,1]
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['medium']# ['small','medium','large', 'xlarge']
+    datasetsize_list = ['large']# ['small','medium','large', 'xlarge']
 
 # decrease annotators for quick debugging
 if debug:
