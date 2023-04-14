@@ -304,7 +304,7 @@ class plots():
         plt.show()
 
     def plot_pc_T(self, datasetsize, sweeptype, car, dup, p_fo, kg_q, kg_u):
-        self.figpc_T, self.axspc_T = plt.subplots(figsize=(16,9))
+        self.figpc_T, self.axspc_T = plt.subplots(figsize=(8,4.5))
         mcmcpc_m = data.loc[(data['model'] == 'mcmc'), 'pc_m']
         mcmc_sd = data.loc[(data['model'] == 'mcmc'), 'pc_m_SD']
         certQ = data.loc[(data['model'] == 'mcmc'), 'CertaintyQ']
@@ -323,11 +323,11 @@ class plots():
         x = np.arange(11)/10
 
         # maj. vote
-        self.axspc_T.plot(x, naivepc, label='maj. vote', color='darkorange')
+        self.axspc_T.plot(x, naivepc, label='PC. maj. vote', color='darkorange')
         self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naivepc + naive_sd, dtype=float)], [max(sd, 0) for sd in np.array(naivepc - naive_sd, dtype=float)],color='darkorange', alpha=0.2 )
 
         # mcmc
-        self.axspc_T.plot(x, mcmcpc_m, label='mcmc', color='#1f77b4')
+        self.axspc_T.plot(x, mcmcpc_m, label='PC. MCMC', color='#1f77b4')
         self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], color='#1f77b4', alpha=0.2)
 
         # em
@@ -336,7 +336,7 @@ class plots():
 
         # KG maj. vote
         if kg_q > 0 or kg_u > 0:
-            self.axspc_T.plot(x, naiveKGpc, label='maj. vote KG', color='firebrick')
+            self.axspc_T.plot(x, naiveKGpc, label='PC. maj. vote KG', color='firebrick')
             self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naiveKGpc+naiveKG_sd, dtype=float)], [max(sd, 0) for sd in np.array(naiveKGpc-naiveKG_sd, dtype=float)], color='firebrick', alpha=0.2)
 
         # krip
@@ -350,8 +350,8 @@ class plots():
         # certainty
         certQ = [np.exp(cert) for cert in certQ]
         certA = [np.exp(cert) for cert in certA]
-        self.axspc_T.plot(x, certQ,  label='certQ', color='#d62728', alpha=0.5, linestyle='dashed')
-        self.axspc_T.plot(x, certA,  label='certA', color='#9467bd', alpha=0.5, linestyle='dashed')
+        self.axspc_T.plot(x, certQ,  label='conf. Question', color='#d62728', alpha=0.5, linestyle='dashed')
+        self.axspc_T.plot(x, certA,  label='conf. Annotator', color='#9467bd', alpha=0.5, linestyle='dashed')
 
         if sweeptype == 'propT':
             self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
@@ -363,7 +363,7 @@ class plots():
         else:
             raise ValueError
         self.axspc_T.set_ylabel('— Proportion item labels correct\n- - - Confidence in questions and answers')
-        self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {kg_q}, datasetsize {datasetsize}, known good users {kg_u}')
+        # self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {kg_q}, datasetsize {datasetsize}, known good users {kg_u}')
         self.axspc_T.legend()
         plt.savefig(f'plots/datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
         plt.savefig(f'{session_dir}/plot.png')
@@ -380,7 +380,7 @@ if __name__ == "__main__":
     beta_max = 6
     sweeps = {'beta': [f'beta{round(flt, 2)}_{round(beta_max - flt, 2)}' for flt in
                              np.linspace(beta_min, beta_max - beta_min, 11)],
-              'beta_small': [f'beta{round(flt, 2)}_{round(beta_smax - flt, 2)}' for flt in
+              'beta_small': [f'beta2{round(flt, 2)}_{round(beta_smax - flt, 2)}' for flt in
                              np.linspace(beta_smin, beta_smax - beta_smin, 11)],
               "propT": [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]}
 

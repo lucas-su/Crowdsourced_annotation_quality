@@ -240,6 +240,7 @@ def main(session_dir, step, sweeps):
     if True:
         em_sessions = []
         mcmc_sessions = []
+        session_len = 0
         for dir in step[1]:
             types = next(os.walk(f'{session_dir}/{dir}/output'))[2]
 
@@ -264,29 +265,29 @@ def main(session_dir, step, sweeps):
             # initialize dataset
             session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__()-1)/3)
             if session_len != 11:
-                print(f"WARNING number of sessions was expected to be 11, but is {session_len} in folder {session_dir}/{dir}")
+                print(f"WARNING number of entries in session was expected to be 11, but is {session_len} in folder {session_dir}/{dir}")
+        assert session_len !=0
+        datalen = 2*session_len # account for both EM and MCMC models
 
-            datalen = 2*session_len # account for both EM and MCMC models
-
-            size, sweeptype, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
-
-
-            # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
-            cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'CertaintyQ',
-                    'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'pc_n_KG', 'pc_n_KG_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
-                    'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD' ]
-            data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
-            data.loc[:datalen/2,'model'] = "em"
-            data.loc[datalen / 2:, 'model'] = "mcmc"
-            data.loc[:,'session'] = 'avg'
-
-            if em_sessions.__len__()>0:
-                data = process_model('em', session_dir, em_sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, kg_q, kg_u)
+        size, sweeptype, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
 
 
-            if mcmc_sessions.__len__()>0:
-                data = process_model('mcmc', session_dir, mcmc_sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, kg_q, kg_u)
+        # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
+        cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'CertaintyQ',
+                'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'pc_n_KG', 'pc_n_KG_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
+                'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD' ]
+        data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
+        data.loc[:datalen/2,'model'] = "em"
+        data.loc[datalen / 2:, 'model'] = "mcmc"
+        data.loc[:,'session'] = 'avg'
 
-            with open(f'{session_dir}/stats.pickle', 'wb') as file:
-                pickle.dump(data, file)
+        if em_sessions.__len__()>0:
+            data = process_model('em', session_dir, em_sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, kg_q, kg_u)
+
+
+        if mcmc_sessions.__len__()>0:
+            data = process_model('mcmc', session_dir, mcmc_sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, kg_q, kg_u)
+
+        with open(f'{session_dir}/stats.pickle', 'wb') as file:
+            pickle.dump(data, file)
 
