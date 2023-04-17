@@ -79,7 +79,7 @@ class Question:
                 else:
                     ls = [l for l in self.annotations if l.annotator.id in u_idx]
                 ts = [l.annotator.sample() for l in ls]
-                ts = [np.spacing(0) if t ==0 else 1-np.spacing(0) if t ==1 else t for t in ts]
+                ts = [np.spacing(3) if t ==0 else 1-np.spacing(3) if t ==1 else t for t in ts]
                 a = np.ones(alpha.shape)
                 for v in range(self.cardinality):
                     # For every possible answer
@@ -88,11 +88,12 @@ class Question:
                         a[v] *= t if c else (1. - t)  # Compute the probability that this combination of correctnesses happens
                     # debug("posterior question", self, "for v=", v, ":", ts, cs)
                 # debug(" --> a", a)
-                with np.errstate(all="raise"):
-                    try:
-                        alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
-                    except:
-                        pass
+                alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
+                # with np.errstate(all="raise"):
+                #     try:
+                #         alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
+                #     except:
+                #         pass
 
             #
             #     for l in self.annotations:
