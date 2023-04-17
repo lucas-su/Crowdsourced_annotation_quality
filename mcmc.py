@@ -73,19 +73,13 @@ class Question:
             alpha = np.array(self.prior)
             debug_print(f'sample question self.post: {self.posterior}')
             for i in range(nSamples):
-                # a = np.ones(alpha.shape)
-                # a = np.zeros(alpha.shape)
-                # a_T = np.array([(x.value, x.annotator.sample()) for x in self.annotations])
-                # pos = [np.prod([a_T[y, 1] if y != [] else 0 for y in np.where(a_T.T[0]==c)]) for c in range(self.car)]
-                # pos_norm = [pos[c]*len(np.where(a_T.T[0]==c))/self.car for c in range(self.car)]
-                # for i, p in enumerate(pos_norm):
-                #     a += (1-p)*(1- np.eye(self.car)[i])
 
                 if u_idx == None:
                     ls = self.annotations
                 else:
                     ls = [l for l in self.annotations if l.annotator.id in u_idx]
                 ts = [l.annotator.sample() for l in ls]
+                ts = [np.spacing(0) if t ==0 else 1-np.spacing(0) if t ==1 else t for t in ts]
                 a = np.ones(alpha.shape)
                 for v in range(self.cardinality):
                     # For every possible answer
@@ -94,7 +88,11 @@ class Question:
                         a[v] *= t if c else (1. - t)  # Compute the probability that this combination of correctnesses happens
                     # debug("posterior question", self, "for v=", v, ":", ts, cs)
                 # debug(" --> a", a)
-                alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
+                with np.errstate(all="raise"):
+                    try:
+                        alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
+                    except:
+                        pass
 
             #
             #     for l in self.annotations:
