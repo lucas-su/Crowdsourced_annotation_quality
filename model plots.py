@@ -95,7 +95,7 @@ class plots():
             self.axssave.clear()
 
     def plot(self):
-        # todo make non-global
+        # todo makemake non-global
         for i, dup in enumerate(dup_list):
             for j, p_fo in enumerate(p_fo_list):
                 # plot naive
@@ -353,19 +353,22 @@ class plots():
         self.axspc_T.plot(x, certQ,  label='conf. Question', color='#d62728', alpha=0.5, linestyle='dashed')
         self.axspc_T.plot(x, certA,  label='conf. Annotator', color='#9467bd', alpha=0.5, linestyle='dashed')
 
-        if sweeptype == 'propT':
-            self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
-        elif sweeptype == 'beta':
-            self.axspc_T.set_xlabel('Mean density in beta distribution')
-        elif sweeptype == 'beta_small':
-            self.axspc_T.set_xlabel('Mean density in beta distribution')
+        # if sweeptype == 'propT':
+        #     self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')
+        # elif sweeptype == 'beta':
+        #     self.axspc_T.set_xlabel('Mean density in beta distribution')
+        # elif sweeptype == 'beta_small':
+        #     self.axspc_T.set_xlabel('Mean density in beta distribution')
+        # else:
+        #     raise ValueError
 
-        else:
-            raise ValueError
-        self.axspc_T.set_ylabel('— Proportion item labels correct\n- - - Confidence in questions and answers')
+        # self.axspc_T.set_ylabel('— Proportion item labels correct\n- - - Confidence in questions and answers')
         # self.axspc_T.set_title(f'Prop. of items correct for car {car}, duplication factor {dup}, known good items {kg_q}, datasetsize {datasetsize}, known good users {kg_u}')
+        os.makedirs(f'plots/no_legend', exist_ok=True)
+        os.makedirs(f'plots/legend', exist_ok=True)
+        plt.savefig(f'plots/no_legend/datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
         self.axspc_T.legend()
-        plt.savefig(f'plots/datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
+        plt.savefig(f'plots/legend/datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
         plt.savefig(f'{session_dir}/plot.png')
         # plt.show()
         plt.close()
