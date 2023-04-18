@@ -14,10 +14,10 @@ sweeps = {'beta_small':[f'beta2{round(flt, 2)}_{round(beta_max-flt, 2)}' for flt
 ncpu = multiprocessing.cpu_count()
 debug = False
 
-dup_list = [9]
+dup_list = [2,3,4,9]
 p_fo_list = [0.0]
 kg_q_list = [0]
-kg_u_list = [0]
+kg_u_list = [0,1,2]
 
 
 if debug:
