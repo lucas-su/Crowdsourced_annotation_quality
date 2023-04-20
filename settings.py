@@ -15,7 +15,7 @@ ncpu = multiprocessing.cpu_count()
 debug = False
 
 dup_list = [2,3,4,9]
-p_fo_list = [0.1, 0.2]
+p_fo_list = [0]
 kg_q_list = [0]
 kg_u_list = [0,1,2]
 
