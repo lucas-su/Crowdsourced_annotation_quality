@@ -85,7 +85,7 @@ class Question:
                     # For every possible answer
                     cs = [l.value == v for l in self.annotations]  # check which annotator is correct for this answer
                     for t, c in zip(ts, cs):
-                        a[v] *= t if c else ((1. - t))  # todo put job on cluster for set with car-1 correction! Compute the probability that this combination of correctnesses happens
+                        a[v] *= t if c else ((1. - t)/(self.car-1))  # Compute the probability that this combination of correctnesses happens
                     # debug("posterior question", self, "for v=", v, ":", ts, cs)
                 # debug(" --> a", a)
                 # alpha += len(self.annotations) * ((a / a.sum()) / nSamples)

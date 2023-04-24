@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [4]
+car_list = [2,4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_min = 0.01
@@ -22,7 +22,7 @@ kg_u_list = [0,1,2]
 if debug:
     datasetsize_list = ['debug'] 
 else:
-    datasetsize_list = ['medium']# ['small','medium','large', 'xlarge']
+    datasetsize_list = ['large']# ['small','medium','large', 'xlarge']
 
 # decrease annotators for quick debugging
 if debug:
