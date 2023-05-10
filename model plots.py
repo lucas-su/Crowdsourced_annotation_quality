@@ -304,9 +304,13 @@ class plots():
         plt.show()
 
     def plot_pc_T(self, datasetsize, sweeptype, car, dup, p_fo, kg_q, kg_u):
-        self.figpc_T, self.axspc_T = plt.subplots(figsize=(8,4.5))
+        self.figpc_T, self.axspc_T = plt.subplots(figsize=(6,3.5))
         mcmcpc_m = data.loc[(data['model'] == 'mcmc'), 'pc_m']
         mcmc_sd = data.loc[(data['model'] == 'mcmc'), 'pc_m_SD']
+
+        mcmcpc_m_cert = data.loc[(data['model'] == 'mcmc'), 'pc_m_cert']
+
+
         certQ = data.loc[(data['model'] == 'mcmc'), 'CertaintyQ']
         certA = data.loc[(data['model'] == 'mcmc'), 'CertaintyA']
         # empc_m = data.loc[(data['model'] == 'em'), 'pc_m']
@@ -329,6 +333,7 @@ class plots():
         # mcmc
         self.axspc_T.plot(x, mcmcpc_m, label='PC. MCMC', color='#1f77b4')
         self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], color='#1f77b4', alpha=0.2)
+        # self.axspc_T.plot(x, mcmcpc_m_cert, label='PC. MCMC cert', color='black')
 
         # em
         # self.axspc_T.plot(x, empc_m, label='em')

@@ -152,6 +152,8 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
         filepath = f'{session_dir}/{session}/output/{model}_data.pickle'
         with open(filepath, 'rb') as file:
             tmp_data = pickle.load(file)
+
+
         data.loc[(data['model'] == model) & (data['session'] == 'avg'),
             ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] = data.loc[(data['model'] == model) & (data['session'] == 'avg'),
             ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] + np.array(tmp_data.loc[:, ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] / sessions.__len__())
@@ -164,6 +166,32 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
         # if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
         #     queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
         for T_dist in sweeps[sweeptype]:
+
+            n_m_cert = 0
+            n_q = 0
+
+            for q in tmp_data.loc[(tmp_data['T_dist'] == T_dist), 'mcmc'].item().model.questions.values():
+                n_q += 1
+                if np.exp(q.logProb()) > 0.9:
+                    n_m_cert += q.model == q.GT
+            pc_m_cert = n_m_cert / n_q
+            data.loc[(data['session'] == 'avg') &
+                     (data['model'] == model) &
+                     (data['car'] == car) &
+                     (data['T_dist'] == T_dist) &
+                     (data['dup'] == dup) &
+                     (data['p_fo'] == p_fo) &
+                     (data['p_kg'] == p_kg) &
+                     (data['p_kg_u'] == p_kg_u), 'pc_m_cert'] = data.loc[(data['session'] == 'avg') &
+                                                                 (data['model'] == model) &
+                                                                 (data['car'] == car) &
+                                                                 (data['T_dist'] == T_dist) &
+                                                                 (data['dup'] == dup) &
+                                                                 (data['p_fo'] == p_fo) &
+                                                                 (data['p_kg'] == p_kg) &
+                                                                 (data['p_kg_u'] == p_kg_u), 'pc_m_cert'] + (pc_m_cert/sessions.__len__())
+
+            # data.loc[(data['session'] == f'{idx}') & (data['model'] == f'{model}'), 'pc_m_cert'] = pc_m_cert
 
             # make a slice of all the sessions without the average
             dat = data.loc[(data['session'] != 'avg') &
@@ -241,6 +269,7 @@ def main(session_dir, step, sweeps):
         em_sessions = []
         mcmc_sessions = []
         session_len = 0
+        print(session_dir)
         for dir in step[1]:
             types = next(os.walk(f'{session_dir}/{dir}/output'))[2]
 
@@ -273,7 +302,7 @@ def main(session_dir, step, sweeps):
 
 
         # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
-        cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'CertaintyQ',
+        cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_m_cert', 'CertaintyQ',
                 'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'pc_n_KG', 'pc_n_KG_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
                 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD' ]
         data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
