@@ -17,6 +17,7 @@ rng = default_rng()
 
 from functools import wraps
 from time import time
+from majority_vote import majority
 
 def timeit(f):
     @wraps(f)
@@ -81,6 +82,7 @@ class Question:
                 ts = [l.annotator.sample() for l in ls]
                 ts = [np.spacing(3) if t ==0 else 1-np.spacing(3) if t ==1 else t for t in ts]
                 a = np.ones(alpha.shape)
+
                 for v in range(self.cardinality):
                     # For every possible answer
                     cs = [l.value == v for l in self.annotations]  # check which annotator is correct for this answer
@@ -183,8 +185,6 @@ class Annotator:
                 debug_print(f'sample annot self.post: {self.posterior}')
                 for _ in range(nSamples):
                     v = a.question.sample()
-
-
 
                     # t = self.sample() # of current posterior
                     #
@@ -457,68 +457,7 @@ class mcmc():
         return history
 
 
-class majority():
-    def __init__(self, annotations, nQuestions):
-        self.maj_ans =[]
-        self.disc_annot = set([]) # discarded annotators
-        self.set_pc(annotations, nQuestions)
 
-    def set_discard(self, annotations):
-
-        for q in annotations.loc[annotations['KG']==1, :].iterrows():
-            for d in range(dup):
-                if q[1][f'annot_{d}'] != q[1]['GT']:
-                    self.disc_annot.add(q[1][f'id_{d}'])
-        for u in users.loc[users['type'] == 'KG', :].iterrows():
-            for d in range(dup):
-                for q in annotations.loc[annotations[f'id_{d}'] == u[0], :].iterrows():# for all questions answered by a KG annotator
-                    for d_ in range(dup): # go over all the other annotations for this question
-                        if q[1][f'annot_{d_}'] != u[1][f'q_{q[0]}']:
-                            self.disc_annot.add(q[1][f'id_{d_}'])
-        if self.disc_annot.__len__() > 0:
-            print(f'annotators {self.disc_annot} were removed')
-        if self.disc_annot.__len__() == users.__len__():
-            print(f'No annotators left who agree with all known good questions/annotators')
-            return [np.nan]*annotations.__len__() # don't bother figuring out pc if there are no annotators left
-
-    def set_pc(self, annotations, nQuestions):
-        self.pc = np.sum(annotations['GT'] == self.run(annotations, nQuestions, with_disc=False))/ nQuestions
-        if np.any(annotations['KG'])| np.any(users['type'] == 'KG'):
-            self.pc_KG = np.sum(annotations['GT'] == self.run(annotations,nQuestions, with_disc=True))/ nQuestions
-        else:
-            self.pc_KG = self.pc
-
-    def run(self, annotations,nQuestions, with_disc = False):
-        self.maj_ans = []
-        if with_disc:
-            self.set_discard(annotations)
-        else:
-            self.disc_annot = set([])
-
-        for q in range(nQuestions):
-            # weights for all k options list
-            if annotations.at[q, f'KG']:
-                self.maj_ans.append(annotations.at[q, f'GT'])
-            else:
-                k_weight = np.zeros(car)
-                for k in range(car):
-                    # counter for number of people who chose option k
-                    for d in range(dup):
-                        if not annotations.at[q, f'id_{d}'] in self.disc_annot:
-                            if annotations.at[q, f'annot_{d}'] == k:
-                                k_weight[k] +=1
-
-
-                if not np.array_equal(np.zeros(car),k_weight):
-                    max_val = max(k_weight)
-                    max_indices = []
-                    for i, k in enumerate(k_weight):
-                        if k == max_val:
-                            max_indices.append(i)
-                    self.maj_ans.append(max_indices[np.random.randint(max_indices.__len__())])
-                else:
-                    self.maj_ans.append(np.nan)
-        return self.maj_ans
 
 class ModelSel:
     def __init__(self,keep_n_samples, car, nQuestions, user, annotations, priors,nModels,nSamples):
@@ -604,7 +543,7 @@ if __name__ == "__main__":
                                         # global nQuestions
                                         nQuestions = items.__len__()
                                         # majority(annotations, nQuestions, car)
-                                        maj = majority(items, nQuestions)
+                                        maj = majority(items, nQuestions, car, dup, users)
                                         sel_model = ModelSel(keep_n_samples, car, nQuestions, users, items, priors, nModels, nSamples)
                                         # confs = sorted([(i, np.exp(j.logProb())) for i,j in enumerate(sel_model.model.questions.values())], key=lambda x:x[1])
                                         confs = np.array([np.exp(j.logProb()) for j in sel_model.model.questions.values()])

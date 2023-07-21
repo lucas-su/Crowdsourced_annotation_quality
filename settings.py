@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [3]
+car_list = [2]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_min = 0.01
@@ -44,12 +44,14 @@ elif platform.system() == 'Windows': # running local: fewer demands
     sample_interval = 1
     keep_samples_list = [1]
     nModels = 5
+    emIters = 50
 else:
     warmup = 15
     nSamples = 3 # number of samples per iteration
     sample_interval = 1 # keep a sample every sample_interval iterations
     keep_samples_list = [5] # n samples to keep
     nModels = 5
+    emIters = 80
 
 
 # create data settings
