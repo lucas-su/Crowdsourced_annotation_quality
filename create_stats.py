@@ -27,7 +27,7 @@ def process_alpha(data):
         print(f'Process alpha error {e}')
     return alphas
 
-def queue_alpha_uerror_metrics(model, session_dir, session, session_idx, data, T_dist_list, car, dup, p_fo, p_kg, p_kg_u):
+def queue_alpha_uerror_metrics(model, session_dir, session, session_idx, data, T_dist_list, car, dup, p_fo, kg_q, kg_u):
 
     iterations = {'mcmc':5, 'em':100}
     with Pool(32) as p:
@@ -39,8 +39,8 @@ def queue_alpha_uerror_metrics(model, session_dir, session, session_idx, data, T
                      (data['T_dist'].values == T_dist) &
                      (data['dup'].values == dup) &
                      (data['p_fo'].values == p_fo) &
-                     (data['p_kg'].values == p_kg) &
-                     (data['p_kg_u'].values == p_kg_u), 'uerror'] += res
+                     (data['kg_q'].values == kg_q) &
+                     (data['kg_u'].values == kg_u), 'uerror'] += res
 
         result = p.map(partial(process_krip, session_dir, model, car, dup, iterations, session), T_dist_list)
         for T_dist, res in result:
@@ -50,8 +50,8 @@ def queue_alpha_uerror_metrics(model, session_dir, session, session_idx, data, T
                      (data['T_dist'].values == T_dist) &
                      (data['dup'].values == dup) &
                      (data['p_fo'].values == p_fo) &
-                     (data['p_kg'].values == p_kg)&
-                     (data['p_kg_u'].values == p_kg_u), ['alpha_bfr_prun',
+                     (data['kg_q'].values == kg_q)&
+                     (data['kg_u'].values == kg_u), ['alpha_bfr_prun',
                                                      'n_annot_aftr_prun',
                                                      'alpha_aftr_prun',
                                                      'n_answ_aftr_prun',
@@ -137,15 +137,15 @@ def makeplaceholderframe(model, idx, datalen, cols):
     return df
 
 
-def process_model(model, session_dir, sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, p_kg, p_kg_u):
+def process_model(model, session_dir, sessions, session_len, data, cols, size, sweeps, sweeptype, car, dup, p_fo, kg_q, kg_u):
     with open(f'{session_dir}/{sessions[0]}/output/{model}_data.pickle', 'rb') as file:
         tmp_data = pickle.load(file)
     try:
         data.loc[(data['model'] == model) & (data['session'] == 'avg'),
-        ['car', 'T_dist', 'sweeptype', 'dup', 'p_fo', 'p_kg','p_kg_u']] = np.array(tmp_data.loc[(tmp_data['size'] == size) & (tmp_data['car'] == car) & (tmp_data['p_kg_u'] == p_kg_u),
-        ['car', 'T_dist', 'sweeptype', 'dup', 'p_fo','p_kg', 'p_kg_u']])
+        ['car', 'T_dist', 'sweeptype', 'dup', 'p_fo', 'kg_q','kg_u']] = np.array(tmp_data.loc[(tmp_data['size'] == size) & (tmp_data['car'] == car) & (tmp_data['kg_u'] == kg_u),
+        ['car', 'T_dist', 'sweeptype', 'dup', 'p_fo','kg_q', 'kg_u']])
     except:
-        print(f'process model failed on {[model, session_dir, sessions, data, cols, size, car, dup, p_fo, p_kg, p_kg_u]}')
+        print(f'process model failed on {[model, session_dir, sessions, data, cols, size, car, dup, p_fo, kg_q, kg_u]}')
 
     # fill frame with values
     for idx, session in enumerate(sessions):
@@ -159,37 +159,38 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
             ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] + np.array(tmp_data.loc[:, ['pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA']] / sessions.__len__())
         data = pandas.concat((data, makeplaceholderframe(model, idx, session_len, cols)), ignore_index=True)
         data.loc[(data['session'] == f'{idx}') & (data['model'] == f'{model}'),
-        ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_n', 'pc_n_KG']] = np.array(tmp_data.loc[:,
-        ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', f'{model}', 'pc_m', 'pc_n', 'pc_n_KG']])
+        ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'kg_q', 'kg_u', 'OBJ', 'pc_m', 'pc_n', 'pc_n_KG']] = np.array(tmp_data.loc[:,
+        ['iterations', 'car', 'T_dist', 'dup', 'p_fo', 'kg_q', 'kg_u', f'{model}', 'pc_m', 'pc_n', 'pc_n_KG']])
 
 
         # if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
-        #     queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, p_kg, p_kg_u)
+        #     queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, kg_q, kg_u)
         for T_dist in sweeps[sweeptype]:
 
             n_m_cert = 0
             n_q = 0
 
-            for q in tmp_data.loc[(tmp_data['T_dist'] == T_dist), 'mcmc'].item().model.questions.values():
-                n_q += 1
-                if np.exp(q.logProb()) > 0.9:
-                    n_m_cert += q.model == q.GT
-            pc_m_cert = n_m_cert / n_q
+            # for q in tmp_data.loc[(tmp_data['T_dist'] == T_dist), model].item().model.questions.values():
+            #     n_q += 1
+            #     if np.exp(q.logProb()) > 0.9:
+            #         n_m_cert += q.model == q.GT
+            # pc_m_cert = n_m_cert / n_q
+            pc_m_cert = 0 # not used
             data.loc[(data['session'] == 'avg') &
                      (data['model'] == model) &
                      (data['car'] == car) &
                      (data['T_dist'] == T_dist) &
                      (data['dup'] == dup) &
                      (data['p_fo'] == p_fo) &
-                     (data['p_kg'] == p_kg) &
-                     (data['p_kg_u'] == p_kg_u), 'pc_m_cert'] = data.loc[(data['session'] == 'avg') &
+                     (data['kg_q'] == kg_q) &
+                     (data['kg_u'] == kg_u), 'pc_m_cert'] = data.loc[(data['session'] == 'avg') &
                                                                  (data['model'] == model) &
                                                                  (data['car'] == car) &
                                                                  (data['T_dist'] == T_dist) &
                                                                  (data['dup'] == dup) &
                                                                  (data['p_fo'] == p_fo) &
-                                                                 (data['p_kg'] == p_kg) &
-                                                                 (data['p_kg_u'] == p_kg_u), 'pc_m_cert'] + (pc_m_cert/sessions.__len__())
+                                                                 (data['kg_q'] == kg_q) &
+                                                                 (data['kg_u'] == kg_u), 'pc_m_cert'] + (pc_m_cert/sessions.__len__())
 
             # data.loc[(data['session'] == f'{idx}') & (data['model'] == f'{model}'), 'pc_m_cert'] = pc_m_cert
 
@@ -200,8 +201,8 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
                            (data['T_dist'] == T_dist) &
                            (data['dup'] == dup) &
                            (data['p_fo'] == p_fo) &
-                           (data['p_kg'] == p_kg) &
-                           (data['p_kg_u'] == p_kg_u)]
+                           (data['kg_q'] == kg_q) &
+                           (data['kg_u'] == kg_u)]
             # determine SD for maj. vote and model
             data.loc[(data['session'] == 'avg') &
                      (data['model'] == model) &
@@ -209,16 +210,16 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
                      (data['T_dist'] == T_dist) &
                      (data['dup'] == dup) &
                      (data['p_fo'] == p_fo) &
-                     (data['p_kg'] == p_kg) &
-                     (data['p_kg_u'] == p_kg_u), 'pc_n_SD'] = np.std(dat['pc_n'])
+                     (data['kg_q'] == kg_q) &
+                     (data['kg_u'] == kg_u), 'pc_n_SD'] = np.std(dat['pc_n'])
             data.loc[(data['session'] == 'avg') &
                      (data['model'] == model) &
                      (data['car'] == car) &
                      (data['T_dist'] == T_dist) &
                      (data['dup'] == dup) &
                      (data['p_fo'] == p_fo) &
-                     (data['p_kg'] == p_kg) &
-                     (data['p_kg_u'] == p_kg_u), 'pc_n_KG_SD'] = np.std(dat['pc_n_KG'])
+                     (data['kg_q'] == kg_q) &
+                     (data['kg_u'] == kg_u), 'pc_n_KG_SD'] = np.std(dat['pc_n_KG'])
 
             data.loc[(data['session'] == 'avg') &
                      (data['model'] == model) &
@@ -226,8 +227,8 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
                      (data['T_dist'] == T_dist) &
                      (data['dup'] == dup) &
                      (data['p_fo'] == p_fo) &
-                     (data['p_kg'] == p_kg) &
-                     (data['p_kg_u'] == p_kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
+                     (data['kg_q'] == kg_q) &
+                     (data['kg_u'] == kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
 
             data.loc[(data['session'] == 'avg') &
                      (data['model'] == model) &
@@ -235,16 +236,16 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
                      (data['T_dist'] == T_dist) &
                      (data['dup'] == dup) &
                      (data['p_fo'] == p_fo) &
-                     (data['p_kg'] == p_kg) &
-                     (data['p_kg_u'] == p_kg_u), 'pc_krip'] = np.mean(dat['pc_krip'])
+                     (data['kg_q'] == kg_q) &
+                     (data['kg_u'] == kg_u), 'pc_krip'] = np.mean(dat['pc_krip'])
             data.loc[(data['session'] == 'avg') &
                      (data['model'] == model) &
                      (data['car'] == car) &
                      (data['T_dist'] == T_dist) &
                      (data['dup'] == dup) &
                      (data['p_fo'] == p_fo) &
-                     (data['p_kg'] == p_kg) &
-                     (data['p_kg_u'] == p_kg_u), 'pc_krip_SD'] = np.std(dat['pc_krip'])
+                     (data['kg_q'] == kg_q) &
+                     (data['kg_u'] == kg_u), 'pc_krip_SD'] = np.std(dat['pc_krip'])
     return data
 
 def find_params(session_dir):
@@ -285,14 +286,17 @@ def main(session_dir, step, sweeps):
             #     continue
             if type == 'em':
                 em_sessions.append(dir)
+                session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__() - 1) / 2)
             elif type == 'mc':
                 mcmc_sessions.append(dir)
+                session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__()-1)/3)
             else:
                 print(f"unexpected type: {type}")
                 raise ValueError
 
             # initialize dataset
-            session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__()-1)/3)
+
+            # session_len = int((next(os.walk(f'{session_dir}/{dir}/output'))[2].__len__()-1)/2)
             if session_len != 11:
                 print(f"WARNING number of entries in session was expected to be 11, but is {session_len} in folder {session_dir}/{dir}")
         assert session_len !=0
@@ -302,7 +306,7 @@ def main(session_dir, step, sweeps):
 
 
         # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
-        cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'p_kg', 'p_kg_u', 'OBJ', 'pc_m', 'pc_m_cert', 'CertaintyQ',
+        cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'kg_q', 'kg_u', 'OBJ', 'pc_m', 'pc_m_cert', 'CertaintyQ',
                 'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'pc_n_KG', 'pc_n_KG_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
                 'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD' ]
         data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)

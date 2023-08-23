@@ -21,7 +21,7 @@ class plots():
     #     self.figsave.set_size_inches(8,4)
     #     self.figsave.subplots_adjust(top=0.98, bottom=0.12,right=0.83,left=0.08)
 
-    def plot_one(self, mode, dup, p_fo, p_kg, iterations, datasetsize, p_kg_u):
+    def plot_one(self, mode, dup, p_fo, kg_q, iterations, datasetsize, kg_u):
         self.axssave.plot(car_list, data.loc[
             (data['size'] == datasetsize) &
             (data['model'] == 'mcmc') &
@@ -29,8 +29,8 @@ class plots():
             pandas.Series([item in car_list for item in data['car']]) &
             (data['mode'] == mode) &
             (data['p_fo'] == p_fo) &
-            (data['p_kg'] == p_kg) &
-            (data['p_kg_u'] == p_kg_u) &
+            (data['kg_q'] == kg_q) &
+            (data['kg_u'] == kg_u) &
             (data['dup'] == dup),
             'pc_n'
         ], label='Maj. vote')
@@ -43,8 +43,8 @@ class plots():
             pandas.Series([item in car_list for item in data['car']]) &
             (data['mode'] == mode) &
             (data['p_fo'] == p_fo) &
-            (data['p_kg'] == p_kg) &
-            (data['p_kg_u'] == p_kg_u) &
+            (data['kg_q'] == kg_q) &
+            (data['kg_u'] == kg_u) &
             (data['dup'] == dup),
             'pc_m'
         ], label='EM')
@@ -57,8 +57,8 @@ class plots():
             pandas.Series([item in car_list for item in data['car']]) &
             (data['mode'] == mode) &
             (data['p_fo'] == p_fo) &
-            (data['p_kg'] == p_kg) &
-            (data['p_kg_u'] == p_kg_u) &
+            (data['kg_q'] == kg_q) &
+            (data['kg_u'] == kg_u) &
             (data['dup'] == dup),
             'pc_m'
         ], label='MCMC')
@@ -71,8 +71,8 @@ class plots():
             pandas.Series([item in car_list for item in data['car']]) &
             (data['mode'] == mode) &
             (data['p_fo'] == p_fo) &
-            (data['p_kg'] == p_kg) &
-            (data['p_kg_u'] == p_kg_u) &
+            (data['kg_q'] == kg_q) &
+            (data['kg_u'] == kg_u) &
             (data['dup'] == dup),
             'pc_aftr_prun_total'  # pc_aftr_prun_total pc_aftr_prun
         ], label='Krip. α')
@@ -82,7 +82,7 @@ class plots():
         self.axssave.set_ylabel(f'Proportion correct')
 
     def saveplots(self):
-        # mode, dup, p_fo, p_kg, iterations, size, p_kg_u
+        # mode, dup, p_fo, kg_q, iterations, size, kg_u
         plotdata = [['beta2_4', 2,0,0,iterations,'small', 0],
                     ['beta2_4', 9,0,0,iterations,'small', 0],
                     ['beta4_2', 2, 0, .2, iterations, 'comb', .2],
@@ -91,7 +91,7 @@ class plots():
                     ['beta2_2', 2, 0.2, .2, iterations, 'comb', .2]]
         for plotdatum in plotdata:
             self.plot_one(*plotdatum)
-            plt.savefig(f'C:\\Users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\PC_mode-{plotdatum[0]}_dup-{plotdatum[1]}_p_fo-{plotdatum[2]}_p_kg-{plotdatum[3]}_size-{plotdatum[5]}_p_kg_u{plotdatum[6]}.png', dpi=300)
+            plt.savefig(f'C:\\Users\\admin\\pacof\\notes\\Papers\\trustworthiness modelling\\figures\PC_mode-{plotdatum[0]}_dup-{plotdatum[1]}_p_fo-{plotdatum[2]}_kg_q-{plotdatum[3]}_size-{plotdatum[5]}_kg_u{plotdatum[6]}.png', dpi=300)
             self.axssave.clear()
 
     def plot(self):
@@ -106,8 +106,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == kg_q) &
-                    (data['p_kg_u'] == kg_u) &
+                    (data['kg_q'] == kg_q) &
+                    (data['kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'pc_n'
                 ], label='Maj. vote')
@@ -120,8 +120,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == kg_q) &
-                    (data['p_kg_u'] == kg_u) &
+                    (data['kg_q'] == kg_q) &
+                    (data['kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'pc_m'
                 ], label='EM')
@@ -134,8 +134,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == kg_q) &
-                    (data['p_kg_u'] == kg_u) &
+                    (data['kg_q'] == kg_q) &
+                    (data['kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'uerror'
                 ], label='EM')
@@ -149,8 +149,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == kg_q) &
-                    (data['p_kg_u'] == kg_u) &
+                    (data['kg_q'] == kg_q) &
+                    (data['kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'pc_m'
                 ], label='MCMC')
@@ -163,8 +163,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == kg_q) &
-                    (data['p_kg_u'] == kg_u) &
+                    (data['kg_q'] == kg_q) &
+                    (data['kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'uerror'
                 ], label='MCMC')
@@ -177,8 +177,8 @@ class plots():
                     pandas.Series([item in car_list for item in data['car']]) &
                     (data['mode'] == T_dist) &
                     (data['p_fo'] == p_fo) &
-                    (data['p_kg'] == kg_q) &
-                    (data['p_kg_u'] == kg_u) &
+                    (data['kg_q'] == kg_q) &
+                    (data['kg_u'] == kg_u) &
                     (data['dup'] == dup),
                     'pc_aftr_prun_total' # pc_aftr_prun_total pc_aftr_prun
                 ], label='Krip a')
@@ -211,18 +211,18 @@ class plots():
                 ax=axpkg,
                 label="proportion\nknown good\nitems",
                 valmin=0,
-                valmax= p_kg_list[-1],
+                valmax= kg_q_list[-1],
                 valinit= val,
-                valstep= p_kg_list,
+                valstep= kg_q_list,
                 orientation="vertical"
             )
             return pkg_slider
-        pkg_slider = getKGSlider(p_kg_list[0])
+        pkg_slider = getKGSlider(kg_q_list[0])
 
         def updatepkg(val):
-            global p_kg
+            global kg_q
             global pkg_slider
-            p_kg = val
+            kg_q = val
             for row in self.axscar:
                 for col in row:
                     col.clear()
@@ -242,18 +242,18 @@ class plots():
                 ax=axpkgu,
                 label="proportion\nknown good\nusers",
                 valmin=0,
-                valmax= p_kg_u_list[-1],
+                valmax= kg_u_list[-1],
                 valinit= val,
-                valstep= p_kg_u_list,
+                valstep= kg_u_list,
                 orientation="vertical"
             )
             return pkgu_slider
-        pkgu_slider = getKGUSlider(p_kg_u_list[0])
+        pkgu_slider = getKGUSlider(kg_u_list[0])
 
         def updatepkgu(val):
-            global p_kg_u
+            global kg_u
             global pkgu_slider
-            p_kg_u = val
+            kg_u = val
             for row in self.axscar:
                 for col in row:
                     col.clear()

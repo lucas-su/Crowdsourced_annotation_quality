@@ -520,7 +520,7 @@ if __name__ == "__main__":
                         for kg_q in kg_q_list:
                             for kg_u in kg_u_list:
                                 mcmc_data = pandas.DataFrame(
-                                    columns=['size', 'iterations', 'car', 'T_dist', 'sweeptype', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
+                                    columns=['size', 'iterations', 'car', 'T_dist', 'sweeptype', 'dup', 'p_fo', 'kg_q', 'kg_u',
                                              'mcmc', 'pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA'])
 
                                 session_dir = set_session_dir(size, sweeptype, car, dup, p_fo, kg_q, kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
