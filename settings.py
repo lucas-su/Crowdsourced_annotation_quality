@@ -3,18 +3,21 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [2]
+car_list = [4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_min = 0.01
 beta_max = 0.8
 sweeps = {'beta_small':[f'beta2{round(flt, 2)}_{round(beta_max-flt, 2)}' for flt in np.linspace(beta_min, beta_max-beta_min, 11)]}
           # "propT": [f'propT_{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]}
+#
+# sweeps = {"propT": [f'propT_{round(flt, 2)}' for flt in np.arange(.4, 1.1, 0.1)]}
+          #
 
 ncpu = multiprocessing.cpu_count()
 debug = False
 
-dup_list = [2,3,4,9]
+dup_list = [4,9]
 p_fo_list = [0.]
 kg_q_list = [0]
 kg_u_list = [0,1,2]
@@ -36,15 +39,15 @@ if debug:
     nSamples = 2
     sample_interval = 2
     keep_samples_list = [2]
-    nModels = 2
+    nModels = 1
 
 elif platform.system() == 'Windows': # running local: fewer demands
     warmup = 10
     nSamples = 1
     sample_interval = 1
     keep_samples_list = [1]
-    nModels = 5
-    emIters = 50
+    nModels = 1
+    emIters = 60
 else:
     warmup = 15
     nSamples = 3 # number of samples per iteration

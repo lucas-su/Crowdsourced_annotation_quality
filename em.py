@@ -7,26 +7,38 @@ import numpy as np
 import pandas, pickle
 from multiprocessing import Pool
 from functools import partial
+from scipy.special import logsumexp
 
 from create_simulation_data import createData
 from majority_vote import majority
 
 def sigmoid(x):
-  return 1 / (1 + np.exp(-x))
+    if x>500:
+        print("big sigmoid")
+        return 1.
+    if x < -500:
+        print("small sigmoid")
+        return np.spacing(1)
+    else:
+        return 1 / (1 + np.exp(-x))
+def softmax(x):
+    return [np.e**i/np.sum([np.e**j for j in x])for i in x]
 
 class EM():
-    def __init__(self, K):
+    def __init__(self, K, maj):
         self.N = users['ID'] # annotators
         self.M = np.arange(0,nQuestions) # questions
         self.L = np.arange(0,K) # given label per question
         self.K = K
         self.cm = K-1 # -1 because there's one good answer and the rest is wrong
         self.gamma_ = pandas.DataFrame(columns=[i for i in range(K)])
-
+        self.logodds= -np.inf
         self.annotators = {id: Annotator(id, type, T_given, car) for id, type, T_given in zip(users.ID, users.type, users.T_given)}
-        self.questions = {qid: Question(qid, KG, GT, car) for qid, KG, GT in zip(items.ID, items.KG, items.GT)}
-
+        self.questions = {qid: Question(qid, KG, GT, car, maj_ans) for qid, KG, GT, maj_ans in zip(items.ID, items.KG, items.GT, maj.maj_ans)}
+        self.pc = 0
         self.annotations = []
+        self.bestQ = 0
+        self.bestA = 0
 
         for row in items.iterrows():
             for i in range(dup):
@@ -112,7 +124,7 @@ class EM():
     #     return nom/denom
 
 class Question():
-    def __init__(self, id, KG, GT, car, difficulty=None):
+    def __init__(self, id, KG, GT, car, maj_ans, difficulty=None):
         self.id = id
         # self.prior = np.array([priors['qAlpha'] for _ in range(car)])
 
@@ -126,17 +138,72 @@ class Question():
         self.diff = difficulty
         self.annotations = []  # Keep track of the labels that were made for this question
         self.postsamples = []
-        self.model = np.random.choice(range(car))
-        self.w = np.random.random() # weight
+        # self.model = maj_ans
+        self.posterior = 0
+
+
+        # self.w = np.random.random() # weight for binomial mode
+        # self.wv = [np.random.random() for _ in range(car)] # list of weights for each class for multinomial
+
+        if np.isnan(maj_ans): # the majority vote answer can be nan if there are known good annotators but a question is only answere by non known good annotators who disagreed with known good annotators
+            sel_index = np.random.randint(car)
+        else:
+            sel_index = maj_ans
+
+        self.wv = np.eye(car)[sel_index]+np.spacing(1) # list of weights for each class for multinomial
+        self.wv[sel_index] -= np.spacing(car) # prevent weight from being exactly 0
+
+
+
     def addAnnotation(self, annot):
         self.annotations.append(annot)
 
-    def e_step(self):
-        a = np.sum([(annot.annotator.sensitivity**(annot.value))*((1-annot.annotator.sensitivity)**(1-annot.value)) for annot in self.annotations])
-        b = np.sum([(annot.annotator.sensitivity ** (1-annot.value)) * ((1 - annot.annotator.sensitivity) ** (annot.value)) for annot in self.annotations])
-        p = sigmoid(self.w)
-        self.model = (a*p)/(a*p+b*(1-p))
+    def delta(self, x,y):
+        if x == y:
+            return 1
+        else:
+            return 0
 
+    def e_step(self):
+
+        ####
+        # binomial
+        ####
+        # a = np.prod([(annot.annotator.sensitivity**(annot.value))*((1-annot.annotator.sensitivity)**(1-annot.value)) for annot in self.annotations])
+        # b = np.prod([(annot.annotator.sensitivity ** (1-annot.value)) * ((1 - annot.annotator.sensitivity) ** (annot.value)) for annot in self.annotations])
+        # p = sigmoid(self.w)
+        # # check if a or p is 0 otherwise division by 0
+        # if a*p== 0:
+        #     self.model = 0
+        # else:
+        #     self.model = (a*p)/(a*p+b*(1-p))
+
+        ####
+        # multinomial
+        ####
+        for c in range(self.car):
+            self.wv[c] = np.prod(
+                [
+                    # annot.annotator.alpha[c,k]**self.delta(annot.value, k) for k in range(self.car)
+                    annot.annotator.alpha[c, annot.value]
+                for annot in self.annotations]
+            )
+        # self.wv = np.log(self.wv)-logsumexp(np.log(self.wv))
+        self.wv = self.wv / np.sum(self.wv)
+        for i in range(self.car):
+            if self.wv[i] < np.spacing(3):
+                self.wv[i] = np.spacing(3)
+            if self.wv[i] > 1-np.spacing(3):
+                self.wv[i] = 1-np.spacing(3)
+        self.posterior = np.argmax(self.wv)
+
+
+
+    def logodds(self):
+
+        maxP = max(self.wv)
+        # return maxP-logsumexp(self.wv)
+        return maxP/(1-maxP)
 
 class Annotator():
     def __init__(self, id, type, T_given, car):
@@ -144,23 +211,42 @@ class Annotator():
         self.T = T_given
         self.KG = True if type == 'KG' else False
         self.annotations = []
-        # self.basePrior = np.array((priors['aAlpha'], priors['aBeta']))
-        # self.prior = np.array((priors['aAlpha'], priors['aBeta']))
-        # self.posterior = np.array((priors['aAlpha'], priors['aBeta']))
+        self.conf_unnorm = np.zeros((car,car))
+        self.a = 0
+        self.b = 0
         self.sensitivity = 0
         self.specificity = 0
 
         # self.postsamples = []
-        self.C = 0  # start at 0 to prevent sampling from annealing in first iter
         self.car = car
-        # self.annealdist = np.array(priors['anneal'])
+        self.alpha = np.random.random((car,car))
 
     def addAnnotation(self, annot):
         self.annotations.append(annot)
 
+    def delta(self, x, y):
+        if x == y:
+            return 1
+        else:
+            return 0
     def m_step(self):
-        self.sensitivity = (np.sum([(annot.value == annot.question.GT) for annot in self.annotations]))/ np.sum([annot.value for annot in self.annotations])
-        self.specificity = (np.sum([(1-annot.value == 1-annot.question.GT) for annot in self.annotations]))/ np.sum([1-annot.value for annot in self.annotations])
+        for c in range(self.car):
+            for k in range(self.car):
+                num = np.sum([annot.question.wv[c]*self.delta(annot.value, k) for annot in self.annotations])
+                self.conf_unnorm[c][k] = num
+                denom = np.sum([annot.question.wv[c] for annot in self.annotations])
+                self.alpha[c, k] = num/denom
+
+
+        # for c in range(self.car):
+        #     for k in range(self.car):
+        #         num = np.sum([ np.prod([q_annots.annotator.alpha[c,k] for q_annots in annot.question.annotations if q_annots.value == c])
+        #                         for annot in self.annotations if annot.value == k ])
+        #         denom =  np.sum([ np.prod([q_annots.annotator.alpha[c,k]  for q_annots in annot.question.annotations if q_annots.value == c])
+        #                           for annot in self.annotations])
+        #         self.alpha[c,k] = num/denom
+        # self.sensitivity = (np.sum([(annot.value == annot.question.GT) for annot in self.annotations]))/ np.sum([annot.value for annot in self.annotations])
+        # self.specificity = (np.sum([(1-annot.value == 1-annot.question.GT) for annot in self.annotations]))/ np.sum([1-annot.value for annot in self.annotations])
 
 
 class Annotation:
@@ -181,106 +267,149 @@ def m_multi(annotator):
     annotator.m_step()
 
 
-def run_em(iterations, car, nQuestions):
+def run_em(iterations, car, nQuestions, maj):
     models = []
     n=0
-    eta = 0.1
+    eta = 10
+    best_logodds = -np.inf
     while n < nModels:
-        models.append(EM(car))
-        model = models[-1]
+        models.append(EM(car, maj))
+
 
         i = 0
         while i < iterations:
-            print("iteration: ", i)
-            # e step
-            with Pool(32) as p:
-                 p.map(e_multi, model.questions.values())
+            # print("iteration: ", i)
 
+            # start with m first bc e step is primed with majority votes
             # m step for the rest
-            with Pool(32) as p:
-                nonKGAnnots = [annotator for annotator in model.annotators.values() if annotator.KG != True]
-                p.map(m_multi,nonKGAnnots)
 
 
-            for q in model.questions.values():
-                g = q.model - sigmoid(q.w)
-                H = sigmoid(q.w) * sigmoid(1 - q.w)
+            # with Pool(1) as p:
+            #     # nonKGAnnots = [annotator for annotator in model.annotators.values() if annotator.KG != True]
+            #     p.map(m_multi,model.annotators.values())
 
-                q.w = q.w - eta*(1/H)*g
-                print(sigmoid(q.w))
-                print(q.GT)
-            print(sum([round(sigmoid(q.w))==q.GT for q in model.questions.values()]))
-            print(model.questions.__len__())
+            for annot in models[-1].annotators.values():
+                annot.m_step()
 
+            # e step
+            # with Pool(1) as p:
+            #     p.map(e_multi, model.questions.values())
+
+            for q in models[-1].questions.values():
+                q.e_step()
+
+            models[-1].logodds = np.sum(([q.logodds() for q in models[-1].questions.values()]))
+            # print(f"logodds: {models[-1].logodds}")
+            # print(f"correctly estimated labels:{sum([q.posterior == q.GT for q in models[-1].questions.values()])} out of {models[-1].questions.__len__()}")
+
+
+
+            #stopping criterion should be likelihood: the probability of the data given the modelled parameters.
+
+
+
+            # if logodds >= best_logodds:
+            #     best_logodds = logodds
+            #     print(f"best logodds: {best_logodds}")
+            #
+            # else:
+            #     # stop iterating if the model doesn't improve anymore\
+            #     print(f"stopping, logodds {logodds} is lower than {best_logodds}")
+            #     break
+            # for q in model.questions.values():
+            #     g = q.model - sigmoid(q.w)
+            #     H = -(sigmoid(q.w) * sigmoid(1 - q.w))
+            #
+            #     q.w = q.w - eta*(1/H)*g
             i += 1
+        models[-1].pc = sum([q.posterior == q.GT for q in models[-1].questions.values()])/models[-1].questions.__len__()
+        for annotator in models[-1].annotators.values():
+            annotator.a = np.sum(np.diag(annotator.alpha))
+            temp_a = annotator.alpha
+            np.fill_diagonal(temp_a, 0)
+            annotator.b = np.sum(temp_a)
+        n +=1
 
 
-        for q in range(nQuestions):
-            k_w = np.zeros(car)
-            for k in range(car):
+    # print(f"correctly estimated labels:{sum([q.posterior == q.GT for q in models[-1].questions.values()])} out of {models[-1].questions.__len__()}")
+    # print("correctly estimated labels:")
+    # print(sum([q.posterior == q.GT for q in models[0].questions.values()]))
+    # print("total number of labels")
+    # print(models[0].questions.__len__())
+    model_odds = [m.logodds for m in models]
 
-                for d in range(dup):
-                    if items.loc[q, f'annot_{d}'] == k:
-                        k_w = [k_w[i] + ((1 - users.loc[items.loc[q, f'id_{d}'], 'T_model']) / (car - 1)) if i != k else
-                               k_w[i] + users.loc[items.loc[q, f'id_{d}'], 'T_model'] for i in range(car)]
-                        # k_w[k] += users.loc[items.loc[q, f'id_{d}'], 'T_model']
-                    else:
-                        # k_w = [k_w[i]+((1-users.loc[items.loc[q, f'id_{d}'], 'T_model'])/(car-1)) if i!= k else k_w[i] for i in range(car)]
-                        k_w = [
-                            k_w[i] + ((users.loc[items.loc[q, f'id_{d}'], 'T_model']) / (car - 1)) if i != k else
-                            k_w[i] + 1-users.loc[items.loc[q, f'id_{d}'], 'T_model'] for i in range(car)]
-            items.loc[q, 'model'] = k_w.index(max(k_w))
-        items.insert(items.columns.get_loc("model") + 1, "naive", np.zeros(nQuestions))
-        for q in range(nQuestions):
-            k_w = []
-            for k in range(car):
-                d_w = 0
-                for d in range(dup):
-                    if items.loc[q, f'annot_{d}'] == k:
-                        d_w += 1
-                k_w.append(d_w)
-            items.loc[q, 'naive'] = k_w.index(max(k_w))
 
-        diff_m = items.loc[:, 'GT'] - items.loc[:, 'model']
-        diff_n = items.loc[:, 'GT'] - items.loc[:, 'naive']
-        diff_m_cnt = (diff_m != 0).sum()
-        diff_n_cnt = (diff_n != 0).sum()
-        em_data.loc[(em_data['size'].values == size) &
-                    (em_data['iterations'].values == iterations) &
-                    (em_data['car'].values == car) &
-                    (em_data['mode'].values == T_dist) &
-                    (em_data['dup'].values == dup) &
-                    (em_data['p_fo'].values == p_fo) &
-                    (em_data['kg_q'].values == kg_q) &
-                    (em_data['kg_u'].values == kg_u), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
-        em_data.loc[(em_data['size'].values == size) &
-                    (em_data['iterations'].values == iterations) &
-                    (em_data['car'].values == car) &
-                    (em_data['mode'].values == T_dist) &
-                    (em_data['dup'].values == dup) &
-                    (em_data['p_fo'].values == p_fo) &
-                    (em_data['kg_q'].values == kg_q) &
-                    (em_data['kg_u'].values == kg_u), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
-        summary = {"Mode": T_dist,
-                   "Cardinality": car,
-                   "Iterations": iterations,
-                   "Duplication factor": dup,
-                   "Proportion 'first only'": p_fo,
-                   "Proportion 'known good'": kg_q,
-                   "Percentage correct modelled": 100 * (1 - (diff_m_cnt / nQuestions)),
-                   "Percentage correct naive": 100 * (1 - (diff_n_cnt / nQuestions))}
-        [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
+    return models[np.argmax(model_odds)]
+
+
+
+
+        # for q in range(nQuestions):
+        #     k_w = np.zeros(car)
+        #     for k in range(car):
+        #
+        #         for d in range(dup):
+        #             if items.loc[q, f'annot_{d}'] == k:
+        #                 k_w = [k_w[i] + ((1 - users.loc[items.loc[q, f'id_{d}'], 'T_model']) / (car - 1)) if i != k else
+        #                        k_w[i] + users.loc[items.loc[q, f'id_{d}'], 'T_model'] for i in range(car)]
+        #                 # k_w[k] += users.loc[items.loc[q, f'id_{d}'], 'T_model']
+        #             else:
+        #                 # k_w = [k_w[i]+((1-users.loc[items.loc[q, f'id_{d}'], 'T_model'])/(car-1)) if i!= k else k_w[i] for i in range(car)]
+        #                 k_w = [
+        #                     k_w[i] + ((users.loc[items.loc[q, f'id_{d}'], 'T_model']) / (car - 1)) if i != k else
+        #                     k_w[i] + 1-users.loc[items.loc[q, f'id_{d}'], 'T_model'] for i in range(car)]
+        #     items.loc[q, 'model'] = k_w.index(max(k_w))
+        # items.insert(items.columns.get_loc("model") + 1, "naive", np.zeros(nQuestions))
+        # for q in range(nQuestions):
+        #     k_w = []
+        #     for k in range(car):
+        #         d_w = 0
+        #         for d in range(dup):
+        #             if items.loc[q, f'annot_{d}'] == k:
+        #                 d_w += 1
+        #         k_w.append(d_w)
+        #     items.loc[q, 'naive'] = k_w.index(max(k_w))
+
+        # diff_m = items.loc[:, 'GT'] - items.loc[:, 'model']
+        # diff_n = items.loc[:, 'GT'] - items.loc[:, 'naive']
+        # diff_m_cnt = (diff_m != 0).sum()
+        # diff_n_cnt = (diff_n != 0).sum()
+        # em_data.loc[(em_data['size'].values == size) &
+        #             (em_data['iterations'].values == iterations) &
+        #             (em_data['car'].values == car) &
+        #             (em_data['mode'].values == T_dist) &
+        #             (em_data['dup'].values == dup) &
+        #             (em_data['p_fo'].values == p_fo) &
+        #             (em_data['kg_q'].values == kg_q) &
+        #             (em_data['kg_u'].values == kg_u), 'pc_m'] = 100 * (1 - (diff_m_cnt / nQuestions))
+        # em_data.loc[(em_data['size'].values == size) &
+        #             (em_data['iterations'].values == iterations) &
+        #             (em_data['car'].values == car) &
+        #             (em_data['mode'].values == T_dist) &
+        #             (em_data['dup'].values == dup) &
+        #             (em_data['p_fo'].values == p_fo) &
+        #             (em_data['kg_q'].values == kg_q) &
+        #             (em_data['kg_u'].values == kg_u), 'pc_n'] = 100 * (1 - (diff_n_cnt / nQuestions))
+        # summary = {"Mode": T_dist,
+        #            "Cardinality": car,
+        #            "Iterations": iterations,
+        #            "Duplication factor": dup,
+        #            "Proportion 'first only'": p_fo,
+        #            "Proportion 'known good'": kg_q,
+        #            "Percentage correct modelled": 100 * (1 - (diff_m_cnt / nQuestions)),
+        #            "Percentage correct naive": 100 * (1 - (diff_n_cnt / nQuestions))}
+        # [print(f'{key:<30} {summary[key]}') for key in summary.keys()]
 
 
 if __name__ == "__main__":
 
     iterations_list = [10]
 
-    T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
-    dup_list = [3]
-    p_fo_list = [0.0, 0.1]
-    kg_q_list = [0.0, 0.1]
-    kg_u_list = [0.0, 0.1]
+    # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
+    # dup_list = [3]
+    # p_fo_list = [0.0, 0.1]
+    # kg_q_list = [0.0, 0.1]
+    # kg_u_list = [0.0, 0.1]
 
     session_folder = f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
 
@@ -341,8 +470,13 @@ if __name__ == "__main__":
                                     maj = majority(items, nQuestions, car, dup, users)
 
                                     # user['included'] = np.ones(user.__len__())
-                                    run_em(emIters, car, nQuestions)
+                                    model = run_em(emIters, car, nQuestions, maj)
 
+                                    em_data.loc[em_data.__len__(), :] = [size, emIters, car, T_dist,
+                                                                             sweeptype, dup, p_fo, kg_q, kg_u,
+                                                                             model, model.pc, maj.pc,
+                                                                             maj.pc_KG, model.bestQ,
+                                                                             model.bestA]
 
 
                                     # init user weights at 1

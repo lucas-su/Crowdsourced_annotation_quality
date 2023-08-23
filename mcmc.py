@@ -132,7 +132,7 @@ class Question:
 
     def logProb(self):
         debug_print("logprob q: ", self.posterior)
-        return np.log(self.posterior.max()/logsumexp(self.posterior))
+        return np.log(self.posterior.max())-logsumexp(self.posterior)
 
     def __repr__(self):
         if self.gt:
@@ -228,7 +228,8 @@ class Annotator:
 
 
     def logProb(self):
-        return np.log(self.posterior.max()/logsumexp(self.posterior))
+
+        return np.log(self.posterior.max())-logsumexp(self.posterior)
     
     def __repr__(self):
         s = "Annotator(%s)" % self.id
@@ -285,6 +286,7 @@ class mcmc():
 
         self.annotations = []
 
+
         for row in items.iterrows():
             for i in range(dup):
                 self.annotations.append(Annotation(self.annotators[row[1][f'id_{i}']], self.questions[row[0]], row[1][f'annot_{i}']))
@@ -310,10 +312,14 @@ class mcmc():
 
     # @timeit
     def modelEvidence(self):
-        for _,q in self.questions.items():
-            logEvidenceQ = q.logProb()
-        for _,a in self.annotators.items():
-            logEvidenceA = a.logProb()
+        logEvidenceQ = 0
+        logEvidenceA = 0
+        for q in self.questions.values():
+            # logEvidenceQ = logsumexp((logEvidenceQ,q.logProb())) # +=    should be += surely? with logaddexp
+            logEvidenceQ = logEvidenceQ + q.logProb()
+        for a in self.annotators.values():
+            # logEvidenceA = logsumexp((logEvidenceA,a.logProb()))
+            logEvidenceA = logEvidenceA + a.logProb()
         return logEvidenceQ, logEvidenceA        
 
     # @timeit
@@ -476,7 +482,7 @@ class ModelSel:
 
             leQ, leA = m.modelEvidence()
             le = leQ + leA
-            if np.exp(le) < 0.5:
+            if np.exp(le) < 0.1:
                 print(f'Evidence low: lhat -> {np.exp(leQ)} tn -> {np.exp(leA)} pc_m -> {m.pc_m}')
                 # print(f'previous pc_m was: {m.pc_m}')
                 nModels += 1
