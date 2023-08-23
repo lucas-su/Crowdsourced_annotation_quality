@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 import platform 
-car_list = [4]
+car_list = [2,4]
 
 # T_dist_list = [f'single{round(flt, 2)}' for flt in np.arange(0, 1.1, 0.1)]
 beta_min = 0.01
@@ -17,7 +17,7 @@ sweeps = {'beta_small':[f'beta2{round(flt, 2)}_{round(beta_max-flt, 2)}' for flt
 ncpu = multiprocessing.cpu_count()
 debug = False
 
-dup_list = [4,9]
+dup_list = [2,3,4,9]
 p_fo_list = [0.]
 kg_q_list = [0]
 kg_u_list = [0,1,2]
