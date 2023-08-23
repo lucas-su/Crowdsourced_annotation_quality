@@ -523,7 +523,7 @@ if __name__ == "__main__":
                                     columns=['size', 'iterations', 'car', 'T_dist', 'sweeptype', 'dup', 'p_fo', 'p_kg', 'p_kg_u',
                                              'mcmc', 'pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA'])
 
-                                session_dir = set_session_dir(size, sweeptype, car, dup, p_fo, kg_q, kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
+                                session_dir = set_session_dir("mcmc",size, sweeptype, car, dup, p_fo, kg_q, kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                                 for T_dist in T_dist_list:
                                     os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
 

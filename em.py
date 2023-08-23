@@ -440,10 +440,9 @@ if __name__ == "__main__":
                                     columns=['size', 'iterations', 'car', 'T_dist', 'sweeptype', 'dup', 'p_fo', 'kg_q',
                                              'kg_u', 'em', 'pc_m', 'pc_n', 'pc_n_KG', 'CertaintyQ', 'CertaintyA'])
 
-                                session_dir = set_session_dir(size, sweeptype, car, dup, p_fo, kg_q,
+                                session_dir = set_session_dir("em", size, sweeptype, car, dup, p_fo, kg_q,
                                                               kg_u) + f'session_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}'
                                 for T_dist in T_dist_list:
-                                    os.makedirs(f'{os.getcwd()}/{session_dir}/output', exist_ok=True)
 
                                     createData(f'{session_dir}', car, T_dist, dup, p_fo, kg_u, ncpu, size)
                                     print(f"Datasetsize {size}, cardinality {car}, distribution {T_dist}, annotations per item {dup}, malicious {p_fo}, known good items {kg_q}, known good users {kg_u}")
