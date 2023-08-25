@@ -303,6 +303,24 @@ class plots():
 
         plt.show()
 
+    def plot_delta_T(self, sweeptype, car, dup, p_fo, kg_q, kg_u):
+        self.figdelta_T, self.axsdelta_T = plt.subplots(figsize=(6,3.5))
+        x = np.arange(11) / 10
+
+        deltaT_mcmc = data.loc[(data['model'] == 'mcmc'), 'T_diff']
+        deltaT_em =  data.loc[(data['model'] == 'em'), 'T_diff']
+        self.axsdelta_T.plot(x, deltaT_mcmc, label='mcmc')
+        self.axsdelta_T.plot(x, deltaT_em, label='em')
+        # plt.show()
+
+
+        self.axsdelta_T.legend()
+        plt.savefig(f'plots/legend/delta_T_datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
+        plt.savefig(f'{session_dir}/delta_T_plot.png')
+        # plt.show()
+        plt.close()
+
+
     def plot_pc_T(self, datasetsize, sweeptype, car, dup, p_fo, kg_q, kg_u):
         self.figpc_T, self.axspc_T = plt.subplots(figsize=(6,3.5))
         mcmcpc_m = data.loc[(data['model'] == 'mcmc'), 'pc_m']
@@ -416,6 +434,7 @@ if __name__ == "__main__":
             data = data.loc[data['session'] == 'avg']
             size, sweeptype, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
             plot.plot_pc_T(size, sweeptype, car, dup, p_fo, kg_q, kg_u)
+            plot.plot_delta_T(sweeptype, car, dup, p_fo, kg_q, kg_u)
 
 
 

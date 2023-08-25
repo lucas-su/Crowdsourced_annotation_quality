@@ -1,7 +1,7 @@
 import re
 import numpy as np, os, platform, pandas, pickle
 import krippendorff
-
+from scipy.stats import beta
 from multiprocessing import Pool
 from functools import partial
 
@@ -165,87 +165,119 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
 
         # if model == 'mcmc': # only need to do krip calc once per dataset, no need to repeat same calc for em
         #     queue_alpha_uerror_metrics(model, session_dir, session, idx, data, sweeps[sweeptype], car, dup, p_fo, kg_q, kg_u)
-        for T_dist in sweeps[sweeptype]:
+    for T_dist in sweeps[sweeptype]:
 
-            n_m_cert = 0
-            n_q = 0
 
-            # for q in tmp_data.loc[(tmp_data['T_dist'] == T_dist), model].item().model.questions.values():
-            #     n_q += 1
-            #     if np.exp(q.logProb()) > 0.9:
-            #         n_m_cert += q.model == q.GT
-            # pc_m_cert = n_m_cert / n_q
-            pc_m_cert = 0 # not used
-            data.loc[(data['session'] == 'avg') &
-                     (data['model'] == model) &
-                     (data['car'] == car) &
-                     (data['T_dist'] == T_dist) &
-                     (data['dup'] == dup) &
-                     (data['p_fo'] == p_fo) &
-                     (data['kg_q'] == kg_q) &
-                     (data['kg_u'] == kg_u), 'pc_m_cert'] = data.loc[(data['session'] == 'avg') &
-                                                                 (data['model'] == model) &
-                                                                 (data['car'] == car) &
-                                                                 (data['T_dist'] == T_dist) &
-                                                                 (data['dup'] == dup) &
-                                                                 (data['p_fo'] == p_fo) &
-                                                                 (data['kg_q'] == kg_q) &
-                                                                 (data['kg_u'] == kg_u), 'pc_m_cert'] + (pc_m_cert/sessions.__len__())
+        n_m_cert = 0
+        n_q = 0
 
-            # data.loc[(data['session'] == f'{idx}') & (data['model'] == f'{model}'), 'pc_m_cert'] = pc_m_cert
+        # for q in tmp_data.loc[(tmp_data['T_dist'] == T_dist), model].item().model.questions.values():
+        #     n_q += 1
+        #     if np.exp(q.logProb()) > 0.9:
+        #         n_m_cert += q.model == q.GT
+        # pc_m_cert = n_m_cert / n_q
+        pc_m_cert = 0 # not used
+        data.loc[(data['session'] == 'avg') &
+                 (data['model'] == model) &
+                 (data['car'] == car) &
+                 (data['T_dist'] == T_dist) &
+                 (data['dup'] == dup) &
+                 (data['p_fo'] == p_fo) &
+                 (data['kg_q'] == kg_q) &
+                 (data['kg_u'] == kg_u), 'pc_m_cert'] = data.loc[(data['session'] == 'avg') &
+                                                             (data['model'] == model) &
+                                                             (data['car'] == car) &
+                                                             (data['T_dist'] == T_dist) &
+                                                             (data['dup'] == dup) &
+                                                             (data['p_fo'] == p_fo) &
+                                                             (data['kg_q'] == kg_q) &
+                                                             (data['kg_u'] == kg_u), 'pc_m_cert'] + (pc_m_cert/sessions.__len__())
 
-            # make a slice of all the sessions without the average
-            dat = data.loc[(data['session'] != 'avg') &
-                           (data['model'] == model) &
-                           (data['car'] == car) &
-                           (data['T_dist'] == T_dist) &
-                           (data['dup'] == dup) &
-                           (data['p_fo'] == p_fo) &
-                           (data['kg_q'] == kg_q) &
-                           (data['kg_u'] == kg_u)]
-            # determine SD for maj. vote and model
-            data.loc[(data['session'] == 'avg') &
-                     (data['model'] == model) &
-                     (data['car'] == car) &
-                     (data['T_dist'] == T_dist) &
-                     (data['dup'] == dup) &
-                     (data['p_fo'] == p_fo) &
-                     (data['kg_q'] == kg_q) &
-                     (data['kg_u'] == kg_u), 'pc_n_SD'] = np.std(dat['pc_n'])
-            data.loc[(data['session'] == 'avg') &
-                     (data['model'] == model) &
-                     (data['car'] == car) &
-                     (data['T_dist'] == T_dist) &
-                     (data['dup'] == dup) &
-                     (data['p_fo'] == p_fo) &
-                     (data['kg_q'] == kg_q) &
-                     (data['kg_u'] == kg_u), 'pc_n_KG_SD'] = np.std(dat['pc_n_KG'])
+        # data.loc[(data['session'] == f'{idx}') & (data['model'] == f'{model}'), 'pc_m_cert'] = pc_m_cert
 
-            data.loc[(data['session'] == 'avg') &
-                     (data['model'] == model) &
-                     (data['car'] == car) &
-                     (data['T_dist'] == T_dist) &
-                     (data['dup'] == dup) &
-                     (data['p_fo'] == p_fo) &
-                     (data['kg_q'] == kg_q) &
-                     (data['kg_u'] == kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
+        # make a slice of all the sessions without the average
+        dat = data.loc[(data['session'] != 'avg') &
+                       (data['model'] == model) &
+                       (data['car'] == car) &
+                       (data['T_dist'] == T_dist) &
+                       (data['dup'] == dup) &
+                       (data['p_fo'] == p_fo) &
+                       (data['kg_q'] == kg_q) &
+                       (data['kg_u'] == kg_u)]
+        T_diff = 0
+        n_annots = 0
 
-            data.loc[(data['session'] == 'avg') &
-                     (data['model'] == model) &
-                     (data['car'] == car) &
-                     (data['T_dist'] == T_dist) &
-                     (data['dup'] == dup) &
-                     (data['p_fo'] == p_fo) &
-                     (data['kg_q'] == kg_q) &
-                     (data['kg_u'] == kg_u), 'pc_krip'] = np.mean(dat['pc_krip'])
-            data.loc[(data['session'] == 'avg') &
-                     (data['model'] == model) &
-                     (data['car'] == car) &
-                     (data['T_dist'] == T_dist) &
-                     (data['dup'] == dup) &
-                     (data['p_fo'] == p_fo) &
-                     (data['kg_q'] == kg_q) &
-                     (data['kg_u'] == kg_u), 'pc_krip_SD'] = np.std(dat['pc_krip'])
+        for k in dat['OBJ'].values: # for each em session for this dist
+            if model == 'em':
+                for annot in list(k.annotators.values()):
+                    prop_t = beta.mean(annot.a, annot.b)
+                    T_diff += abs(annot.T - prop_t)
+                n_annots += k.annotators.__len__()
+            elif model == 'mcmc':
+                for annot in list(k.model.annotators.values()):
+                    prop_t = beta.mean(annot.posterior[0],annot.posterior[1])
+                    T_diff += abs(annot.T - prop_t)
+                n_annots += k.model.annotators.__len__()
+            else:
+                raise ValueError # always should be either mcmc or em
+
+
+
+
+        T_diff = T_diff/n_annots
+
+        data.loc[(data['session'] == 'avg') &
+                 (data['model'] == model) &
+                 (data['car'] == car) &
+                 (data['T_dist'] == T_dist) &
+                 (data['dup'] == dup) &
+                 (data['p_fo'] == p_fo) &
+                 (data['kg_q'] == kg_q) &
+                 (data['kg_u'] == kg_u), 'T_diff'] = T_diff
+
+        # determine SD for maj. vote and model
+        data.loc[(data['session'] == 'avg') &
+                 (data['model'] == model) &
+                 (data['car'] == car) &
+                 (data['T_dist'] == T_dist) &
+                 (data['dup'] == dup) &
+                 (data['p_fo'] == p_fo) &
+                 (data['kg_q'] == kg_q) &
+                 (data['kg_u'] == kg_u), 'pc_n_SD'] = np.std(dat['pc_n'])
+        data.loc[(data['session'] == 'avg') &
+                 (data['model'] == model) &
+                 (data['car'] == car) &
+                 (data['T_dist'] == T_dist) &
+                 (data['dup'] == dup) &
+                 (data['p_fo'] == p_fo) &
+                 (data['kg_q'] == kg_q) &
+                 (data['kg_u'] == kg_u), 'pc_n_KG_SD'] = np.std(dat['pc_n_KG'])
+
+        data.loc[(data['session'] == 'avg') &
+                 (data['model'] == model) &
+                 (data['car'] == car) &
+                 (data['T_dist'] == T_dist) &
+                 (data['dup'] == dup) &
+                 (data['p_fo'] == p_fo) &
+                 (data['kg_q'] == kg_q) &
+                 (data['kg_u'] == kg_u), 'pc_m_SD'] = np.std(dat['pc_m'])
+
+        data.loc[(data['session'] == 'avg') &
+                 (data['model'] == model) &
+                 (data['car'] == car) &
+                 (data['T_dist'] == T_dist) &
+                 (data['dup'] == dup) &
+                 (data['p_fo'] == p_fo) &
+                 (data['kg_q'] == kg_q) &
+                 (data['kg_u'] == kg_u), 'pc_krip'] = np.mean(dat['pc_krip'])
+        data.loc[(data['session'] == 'avg') &
+                 (data['model'] == model) &
+                 (data['car'] == car) &
+                 (data['T_dist'] == T_dist) &
+                 (data['dup'] == dup) &
+                 (data['p_fo'] == p_fo) &
+                 (data['kg_q'] == kg_q) &
+                 (data['kg_u'] == kg_u), 'pc_krip_SD'] = np.std(dat['pc_krip'])
     return data
 
 def find_params(session_dir):
@@ -273,6 +305,7 @@ def main(session_dir, step, sweeps):
         print(session_dir)
         for dir in step[1]:
             types = next(os.walk(f'{session_dir}/{dir}/output'))[2]
+
 
             # try:
             type = types[0][:2]
@@ -308,7 +341,7 @@ def main(session_dir, step, sweeps):
         # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
         cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'kg_q', 'kg_u', 'OBJ', 'pc_m', 'pc_m_cert', 'CertaintyQ',
                 'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'pc_n_KG', 'pc_n_KG_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
-                'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD' ]
+                'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD', 'T_diff' ]
         data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
         data.loc[:datalen/2,'model'] = "em"
         data.loc[datalen / 2:, 'model'] = "mcmc"
