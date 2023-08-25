@@ -313,8 +313,10 @@ class plots():
 
         certQ = data.loc[(data['model'] == 'mcmc'), 'CertaintyQ']
         certA = data.loc[(data['model'] == 'mcmc'), 'CertaintyA']
-        # empc_m = data.loc[(data['model'] == 'em'), 'pc_m']
-        # em_sd = data.loc[(data['model'] == 'em'), 'pc_m_SD']
+
+        empc_m = data.loc[(data['model'] == 'em'), 'pc_m']
+        em_sd = data.loc[(data['model'] == 'em'), 'pc_m_SD']
+
         naivepc = data.loc[(data['model'] == 'mcmc'), 'pc_n']
         naive_sd = data.loc[(data['model'] == 'mcmc'), 'pc_n_SD']
 
@@ -326,37 +328,39 @@ class plots():
 
         x = np.arange(11)/10
 
+        # cardinality
+        self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='#2ca02c')
+
         # maj. vote
-        self.axspc_T.plot(x, naivepc, label='PC. maj. vote', color='darkorange')
-        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naivepc + naive_sd, dtype=float)], [max(sd, 0) for sd in np.array(naivepc - naive_sd, dtype=float)],color='darkorange', alpha=0.2 )
-
-        # mcmc
-        self.axspc_T.plot(x, mcmcpc_m, label='PC. MCMC', color='#1f77b4')
-        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], color='#1f77b4', alpha=0.2)
-        # self.axspc_T.plot(x, mcmcpc_m_cert, label='PC. MCMC cert', color='black')
-
-        # em
-        # self.axspc_T.plot(x, empc_m, label='em')
-        # self.axspc_T.fill_between(x, np.array(empc_m + em_sd, dtype=float), np.array(empc_m - em_sd, dtype=float), alpha=0.2)
+        self.axspc_T.plot(x, naivepc, label='Maj. vote', color='firebrick')
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naivepc + naive_sd, dtype=float)], [max(sd, 0) for sd in np.array(naivepc - naive_sd, dtype=float)],color='firebrick', alpha=0.2 )
 
         # KG maj. vote
         if kg_q > 0 or kg_u > 0:
-            self.axspc_T.plot(x, naiveKGpc, label='PC. maj. vote KG', color='firebrick')
-            self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naiveKGpc+naiveKG_sd, dtype=float)], [max(sd, 0) for sd in np.array(naiveKGpc-naiveKG_sd, dtype=float)], color='firebrick', alpha=0.2)
+            self.axspc_T.plot(x, naiveKGpc, label='Maj. vote KG', color='purple')
+            self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(naiveKGpc+naiveKG_sd, dtype=float)], [max(sd, 0) for sd in np.array(naiveKGpc-naiveKG_sd, dtype=float)], color='purple', alpha=0.2)
+
+
+        # em
+        self.axspc_T.plot(x, empc_m, label='EM', color='darkorange')
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(empc_m+em_sd, dtype=float)], [max(sd, 0) for sd in np.array(empc_m-em_sd, dtype=float)],color='darkorange', alpha=0.2 )
+
+        # mcmc
+        self.axspc_T.plot(x, mcmcpc_m, label='MCMC', color='#1f77b4')
+        self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(mcmcpc_m+mcmc_sd, dtype=float)], [max(sd, 0) for sd in np.array(mcmcpc_m-mcmc_sd, dtype=float)], color='#1f77b4', alpha=0.2)
+        # self.axspc_T.plot(x, mcmcpc_m_cert, label='PC. MCMC cert', color='black')
 
         # krip
         # self.axspc_T.plot(x, pc_krip, label='krip', color='gold')
         # self.axspc_T.fill_between(x, [min(sd, 1) for sd in np.array(pc_krip + pc_krip_SD, dtype=float)], [max(sd, 0) for sd in np.array(pc_krip - pc_krip_SD, dtype=float)],color='gold', alpha=0.2 )
 
 
-        # cardinality
-        self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='#2ca02c')
 
         # certainty
         certQ = [np.exp(cert) for cert in certQ]
         certA = [np.exp(cert) for cert in certA]
-        self.axspc_T.plot(x, certQ,  label='conf. Question', color='#d62728', alpha=0.5, linestyle='dashed')
-        self.axspc_T.plot(x, certA,  label='conf. Annotator', color='#9467bd', alpha=0.5, linestyle='dashed')
+        # self.axspc_T.plot(x, certQ,  label='conf. Question', color='#d62728', alpha=0.5, linestyle='dashed')
+        # self.axspc_T.plot(x, certA,  label='conf. Annotator', color='#9467bd', alpha=0.5, linestyle='dashed')
 
         # if sweeptype == 'propT':
         #     self.axspc_T.set_xlabel('Proportion T=1 vs. T=0')

@@ -78,14 +78,15 @@ class Question:
                 if u_idx == None:
                     ls = self.annotations
                 else:
+                    # select labels for annotators who are included (some might be excluded in the warmup)
                     ls = [l for l in self.annotations if l.annotator.id in u_idx]
-                ts = [l.annotator.sample() for l in ls]
+                ts = [l.annotator.sample() for l in ls] # trustworthinesses
                 ts = [np.spacing(3) if t ==0 else 1-np.spacing(3) if t ==1 else t for t in ts]
-                a = np.ones(alpha.shape)
+                a = np.ones(self.cardinality)
 
                 for v in range(self.cardinality):
                     # For every possible answer
-                    cs = [l.value == v for l in self.annotations]  # check which annotator is correct for this answer
+                    cs = [l.value == v for l in ls]  # check which annotator is correct for this answer
                     for t, c in zip(ts, cs):
                         a[v] *= t if c else ((1. - t)/(self.car-1))  # Compute the probability that this combination of correctnesses happens
                     # debug("posterior question", self, "for v=", v, ":", ts, cs)
@@ -93,7 +94,7 @@ class Question:
                 # alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
                 with np.errstate(all="raise"):
                     try:
-                        alpha += len(self.annotations) * ((a / a.sum()) / nSamples)
+                        alpha += len(ls) * ((a / a.sum()) / nSamples)
                     except:
                         pass
 
@@ -132,7 +133,7 @@ class Question:
 
     def logProb(self):
         debug_print("logprob q: ", self.posterior)
-        return np.log(self.posterior.max())-logsumexp(self.posterior)
+        return np.log(self.posterior.max())-np.log(np.sum(self.posterior))
 
     def __repr__(self):
         if self.gt:
@@ -229,7 +230,7 @@ class Annotator:
 
     def logProb(self):
 
-        return np.log(self.posterior.max())-logsumexp(self.posterior)
+        return np.log(self.posterior.max())-np.log(np.sum(self.posterior))
     
     def __repr__(self):
         s = "Annotator(%s)" % self.id
@@ -315,7 +316,6 @@ class mcmc():
         logEvidenceQ = 0
         logEvidenceA = 0
         for q in self.questions.values():
-            # logEvidenceQ = logsumexp((logEvidenceQ,q.logProb())) # +=    should be += surely? with logaddexp
             logEvidenceQ = logEvidenceQ + q.logProb()
         for a in self.annotators.values():
             # logEvidenceA = logsumexp((logEvidenceA,a.logProb()))
@@ -482,7 +482,9 @@ class ModelSel:
 
             leQ, leA = m.modelEvidence()
             le = leQ + leA
-            if np.exp(le) < 0.1:
+
+            p_DgivenTheta = (le+np.log(1/car))-le
+            if np.exp(p_DgivenTheta) < 0.5:
                 print(f'Evidence low: lhat -> {np.exp(leQ)} tn -> {np.exp(leA)} pc_m -> {m.pc_m}')
                 # print(f'previous pc_m was: {m.pc_m}')
                 nModels += 1

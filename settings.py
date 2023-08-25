@@ -20,7 +20,7 @@ debug = False
 dup_list = [2,3,4,9]
 p_fo_list = [0.]
 kg_q_list = [0]
-kg_u_list = [0,1,2]
+kg_u_list = [1,2]
 
 if debug:
     datasetsize_list = ['debug'] 
