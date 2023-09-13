@@ -3,6 +3,8 @@ import numpy as np
 class majority():
     def __init__(self, annotations, nQuestions, car, dup, users):
         self.maj_ans =[]
+        self.maj_ans_KG = []
+        self.ans = []
         self.disc_annot = set([]) # discarded annotators
         self.dup = dup
         self.users = users
@@ -28,14 +30,17 @@ class majority():
             return [np.nan]*annotations.__len__() # don't bother figuring out pc if there are no annotators left
 
     def set_pc(self, annotations, nQuestions):
-        self.pc = np.sum(annotations['GT'] == self.run(annotations, nQuestions, with_disc=False))/ nQuestions
+        self.maj_ans = self.run(annotations, nQuestions, with_disc=False)
+        self.pc = np.sum(annotations['GT'] == self.maj_ans)/ nQuestions
         if np.any(annotations['KG'])| np.any(self.users['type'] == 'KG'):
-            self.pc_KG = np.sum(annotations['GT'] == self.run(annotations,nQuestions, with_disc=True))/ nQuestions
+            self.maj_ans_KG = self.run(annotations, nQuestions, with_disc=True)
+            self.pc_KG = np.sum(annotations['GT'] == self.maj_ans_KG)/ nQuestions
         else:
             self.pc_KG = self.pc
+            self.maj_ans_KG = self.maj_ans
 
     def run(self, annotations,nQuestions, with_disc = False):
-        self.maj_ans = []
+        self.ans = []
         if with_disc:
             self.set_discard(annotations)
         else:
@@ -44,7 +49,7 @@ class majority():
         for q in range(nQuestions):
             # weights for all k options list
             if annotations.at[q, f'KG']:
-                self.maj_ans.append(annotations.at[q, f'GT'])
+                self.ans.append(annotations.at[q, f'GT'])
             else:
                 k_weight = np.zeros(self.car)
                 for k in range(self.car):
@@ -61,7 +66,7 @@ class majority():
                     for i, k in enumerate(k_weight):
                         if k == max_val:
                             max_indices.append(i)
-                    self.maj_ans.append(max_indices[np.random.randint(max_indices.__len__())])
+                    self.ans.append(max_indices[np.random.randint(max_indices.__len__())])
                 else:
-                    self.maj_ans.append(np.nan)
-        return self.maj_ans
+                    self.ans.append(np.nan)
+        return self.ans

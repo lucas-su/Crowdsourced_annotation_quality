@@ -314,12 +314,12 @@ class plots():
         deltaT_em =  data.loc[(data['model'] == 'em'), 'T_diff']
         deltaT_em_SD = data.loc[(data['model'] == 'em'), 'T_diff_SD']
 
-        self.axsdelta_T.plot(x, deltaT_mcmc, label='mcmc', color='#1f77b4')
+        self.axsdelta_T.plot(x, deltaT_mcmc, label='MCMC', color='#1f77b4')
         self.axsdelta_T.fill_between(x, [min(sd, 1) for sd in np.array(deltaT_mcmc + deltaT_mcmc_SD, dtype=float)],
                                   [max(sd, 0) for sd in np.array(deltaT_mcmc - deltaT_mcmc_SD, dtype=float)], color='#1f77b4',
                                   alpha=0.2)
 
-        self.axsdelta_T.plot(x, deltaT_em, label='em', color='darkorange')
+        self.axsdelta_T.plot(x, deltaT_em, label='EM', color='darkorange')
         self.axsdelta_T.fill_between(x, [min(sd, 1) for sd in np.array(deltaT_em + deltaT_em_SD, dtype=float)],
                                   [max(sd, 0) for sd in np.array(deltaT_em - deltaT_em_SD, dtype=float)], color='darkorange',
                                   alpha=0.2)
