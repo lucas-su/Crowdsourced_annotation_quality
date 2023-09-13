@@ -13,6 +13,7 @@ from mpl_toolkits.mplot3d.axes3d import get_test_data
 from create_stats import find_params
 
 
+
 class plots():
     # def __init__(self):
     #     self.figcar, self.axscar = plt.subplots(dup_list.__len__(), p_fo_list.__len__(), sharex=True, sharey=True)
@@ -308,12 +309,24 @@ class plots():
         x = np.arange(11) / 10
 
         deltaT_mcmc = data.loc[(data['model'] == 'mcmc'), 'T_diff']
+        deltaT_mcmc_SD = data.loc[(data['model'] == 'mcmc'), 'T_diff_SD']
+
         deltaT_em =  data.loc[(data['model'] == 'em'), 'T_diff']
-        self.axsdelta_T.plot(x, deltaT_mcmc, label='mcmc')
-        self.axsdelta_T.plot(x, deltaT_em, label='em')
+        deltaT_em_SD = data.loc[(data['model'] == 'em'), 'T_diff_SD']
+
+        self.axsdelta_T.plot(x, deltaT_mcmc, label='mcmc', color='#1f77b4')
+        self.axsdelta_T.fill_between(x, [min(sd, 1) for sd in np.array(deltaT_mcmc + deltaT_mcmc_SD, dtype=float)],
+                                  [max(sd, 0) for sd in np.array(deltaT_mcmc - deltaT_mcmc_SD, dtype=float)], color='#1f77b4',
+                                  alpha=0.2)
+
+        self.axsdelta_T.plot(x, deltaT_em, label='em', color='darkorange')
+        self.axsdelta_T.fill_between(x, [min(sd, 1) for sd in np.array(deltaT_em + deltaT_em_SD, dtype=float)],
+                                  [max(sd, 0) for sd in np.array(deltaT_em - deltaT_em_SD, dtype=float)], color='darkorange',
+                                  alpha=0.2)
+
         # plt.show()
 
-
+        plt.savefig(f'plots/no_legend/delta_T_datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
         self.axsdelta_T.legend()
         plt.savefig(f'plots/legend/delta_T_datasetsize_{size}-dist_{sweeptype}-car_{car}-dup_{dup}-p_fo_{p_fo}-kg_q_{kg_q}-kg_u_{kg_u}.png')
         plt.savefig(f'{session_dir}/delta_T_plot.png')
@@ -345,7 +358,12 @@ class plots():
         pc_krip_SD = data.loc[(data['model'] == 'mcmc'), 'pc_krip_SD']
 
         x = np.arange(11)/10
-
+        xtickpoints = 76+(np.arange(11)*30.4)
+        p_s = list(data.loc[(data['model'] == 'mcmc'), 'ttest_p'])
+        self.axspc_T.set_xticks(x)
+        for i, xtickpoint in enumerate(xtickpoints):
+            if (p_s[i]<0.05) and list(mcmcpc_m)[i] > list(empc_m)[i]:
+                self.axspc_T.annotate("•", (xtickpoint, 13), xycoords='subfigure points',  fontsize=13)
         # cardinality
         self.axspc_T.hlines(1/car, x[0], x[-1], label='1/cardinality', colors='#2ca02c')
 
@@ -428,6 +446,11 @@ if __name__ == "__main__":
         if session_dir != "":
             create_stats.main(session_dir, step, sweeps)
 
+            # data.loc[(data['session'] != 'avg') & (data['model'] == 'em'), 'pc_m']
+            # data.loc[(data['session'] != 'avg') & (data['model'] == 'mcmc'), 'pc_m']
+
+
+
             # if not os.path.exists(f'{session_dir}/plot.png'):
             with open(f'{session_dir}/stats.pickle', 'rb') as file:
                 data = pickle.load(file)
@@ -435,6 +458,7 @@ if __name__ == "__main__":
             size, sweeptype, car, dup, p_fo, kg_q, kg_u = find_params(session_dir)
             plot.plot_pc_T(size, sweeptype, car, dup, p_fo, kg_q, kg_u)
             plot.plot_delta_T(sweeptype, car, dup, p_fo, kg_q, kg_u)
+
 
 
 

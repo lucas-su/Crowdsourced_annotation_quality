@@ -4,6 +4,7 @@ import krippendorff
 from scipy.stats import beta
 from multiprocessing import Pool
 from functools import partial
+from scipy.stats import ttest_ind
 
 from em import EM
 from mcmc import mcmc
@@ -204,19 +205,21 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
                        (data['p_fo'] == p_fo) &
                        (data['kg_q'] == kg_q) &
                        (data['kg_u'] == kg_u)]
-        T_diff = 0
+        T_diff = []
+        if dat.__len__() != 10:
+            print(f"unexpected number of sessions: {dat.__len__()}")
         n_annots = 0
 
-        for k in dat['OBJ'].values: # for each em session for this dist
+        for k in dat['OBJ'].values: # for each session for this dist
             if model == 'em':
                 for annot in list(k.annotators.values()):
                     prop_t = beta.mean(annot.a, annot.b)
-                    T_diff += abs(annot.T - prop_t)
+                    T_diff.append(abs(annot.T - prop_t))
                 n_annots += k.annotators.__len__()
             elif model == 'mcmc':
                 for annot in list(k.model.annotators.values()):
                     prop_t = beta.mean(annot.posterior[0],annot.posterior[1])
-                    T_diff += abs(annot.T - prop_t)
+                    T_diff.append(abs(annot.T - prop_t))
                 n_annots += k.model.annotators.__len__()
             else:
                 raise ValueError # always should be either mcmc or em
@@ -224,7 +227,46 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
 
 
 
-        T_diff = T_diff/n_annots
+
+        # do ttest
+        # ttest needs to be done only once per parameter configuration, so only do on mcmc round:
+        if model == 'mcmc':
+            pc_em = data.loc[(data['session'] != 'avg') &
+                           (data['model'] == 'em') &
+                           (data['car'] == car) &
+                           (data['T_dist'] == T_dist) &
+                           (data['dup'] == dup) &
+                           (data['p_fo'] == p_fo) &
+                           (data['kg_q'] == kg_q) &
+                           (data['kg_u'] == kg_u), 'pc_m']
+
+            pc_mcmc = data.loc[(data['session'] != 'avg') &
+                           (data['model'] == 'mcmc') &
+                           (data['car'] == car) &
+                           (data['T_dist'] == T_dist) &
+                           (data['dup'] == dup) &
+                           (data['p_fo'] == p_fo) &
+                           (data['kg_q'] == kg_q) &
+                           (data['kg_u'] == kg_u), 'pc_m']
+            res = ttest_ind(pc_mcmc, pc_em, alternative='greater')
+
+            data.loc[(data['session'] == 'avg') &
+                     (data['model'] == model) &
+                     (data['car'] == car) &
+                     (data['T_dist'] == T_dist) &
+                     (data['dup'] == dup) &
+                     (data['p_fo'] == p_fo) &
+                     (data['kg_q'] == kg_q) &
+                     (data['kg_u'] == kg_u), 'ttest_val'] = res.statistic
+            data.loc[(data['session'] == 'avg') &
+                     (data['model'] == model) &
+                     (data['car'] == car) &
+                     (data['T_dist'] == T_dist) &
+                     (data['dup'] == dup) &
+                     (data['p_fo'] == p_fo) &
+                     (data['kg_q'] == kg_q) &
+                     (data['kg_u'] == kg_u), 'ttest_p'] = res.pvalue
+
 
         data.loc[(data['session'] == 'avg') &
                  (data['model'] == model) &
@@ -233,7 +275,15 @@ def process_model(model, session_dir, sessions, session_len, data, cols, size, s
                  (data['dup'] == dup) &
                  (data['p_fo'] == p_fo) &
                  (data['kg_q'] == kg_q) &
-                 (data['kg_u'] == kg_u), 'T_diff'] = T_diff
+                 (data['kg_u'] == kg_u), 'T_diff'] = np.mean(T_diff)
+        data.loc[(data['session'] == 'avg') &
+                 (data['model'] == model) &
+                 (data['car'] == car) &
+                 (data['T_dist'] == T_dist) &
+                 (data['dup'] == dup) &
+                 (data['p_fo'] == p_fo) &
+                 (data['kg_q'] == kg_q) &
+                 (data['kg_u'] == kg_u), 'T_diff_SD'] = np.std(T_diff)
 
         # determine SD for maj. vote and model
         data.loc[(data['session'] == 'avg') &
@@ -341,7 +391,7 @@ def main(session_dir, step, sweeps):
         # session denotes the session number, all are needed in memory at once to calculate SD. Session 'avg' is the average over all sessions
         cols = ['session', 'model', 'car', 'sweeptype', 'T_dist', 'dup', 'p_fo', 'kg_q', 'kg_u', 'OBJ', 'pc_m', 'pc_m_cert', 'CertaintyQ',
                 'CertaintyA', 'pc_m_SD', 'pc_n', 'pc_n_SD', 'pc_n_KG', 'pc_n_KG_SD', 'uerror', 'alpha_bfr_prun', 'n_annot_aftr_prun','n_answ_aftr_prun',
-                'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD', 'T_diff' ]
+                'pc_aftr_prun', 'alpha_aftr_prun', 'pc_krip', 'pc_krip_SD', 'T_diff', 'T_diff_SD', 'ttest_val', 'ttest_p' ]
         data = pandas.DataFrame(np.zeros((datalen, cols.__len__())), columns=cols)
         data.loc[:datalen/2,'model'] = "em"
         data.loc[datalen / 2:, 'model'] = "mcmc"
